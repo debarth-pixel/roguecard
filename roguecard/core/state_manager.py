@@ -34,20 +34,13 @@ class StateManager:
     def start_new_run(self, seed: int | None = None) -> dict[str, Any]:
         self.run_seed = seed if seed is not None else random.randrange(1, 1_000_000)
 
-        starter_cards = [self.card_library.create_card(card_id) for card_id in STARTER_DECK_IDS]
-        deck_manager = DeckManager(starter_cards, rng=random.Random(self.run_seed))
-
-        self.player = Player()
-        self.player.attach_deck(deck_manager)
-
-        map_generator = MapGenerator(rng=random.Random(self.run_seed))
-        self.map_graph = map_generator.generate_map()
+        self.player = self._create_player(self.run_seed)
+        self.map_graph = MapGenerator(rng=random.Random(self.run_seed)).generate_map()
+        self._enter_map_state(status_message="Select the next node.")
         self.available_node_ids = list(self.map_graph["start_nodes"])
         self.visited_node_ids = []
         self.selected_node_id = None
         self.combat_manager = None
-        self.current_state = "map"
-        self.status_message = "Select the next node."
         return self.get_state_snapshot()
 
     def select_map_node(self, node_id: str) -> dict[str, Any]:
@@ -63,11 +56,10 @@ class StateManager:
 
         if node.node_type in ENCOUNTER_ENEMY_IDS:
             self._start_combat_for_node(node.node_type)
+        elif node.node_type in {"shop", "event"}:
+            self._handle_placeholder_node(node.node_type)
         else:
-            self.current_state = "map"
-            self.status_message = (
-                f"{node.node_type.title()} content is blocked until the contract defines that subsystem."
-            )
+            raise ValueError(f"Unsupported selectable node type: {node.node_type}")
 
         return self.get_state_snapshot()
 
@@ -108,6 +100,8 @@ class StateManager:
         }
 
     def _start_combat_for_node(self, node_type: str) -> None:
+        if node_type not in ENCOUNTER_ENEMY_IDS:
+            raise ValueError(f"Encounter node type is not mapped for combat: {node_type}")
         enemy_id = ENCOUNTER_ENEMY_IDS[node_type]
         enemy = self.enemy_library.create_enemy(enemy_id)
         self.combat_manager = CombatManager(player=self.player, enemies=[enemy])
@@ -124,8 +118,7 @@ class StateManager:
                 self.current_state = "victory"
                 self.status_message = "Run completed."
             else:
-                self.current_state = "map"
-                self.status_message = "Encounter cleared. Select the next node."
+                self._enter_map_state(status_message="Encounter cleared. Select the next node.")
         else:
             self.current_state = "game_over"
             self.status_message = "Run failed."
@@ -165,16 +158,34 @@ class StateManager:
         node = self.map_graph["nodes"].get(self.selected_node_id)
         return None if node is None else node.node_type
 
+    def _create_player(self, seed: int) -> Player:
+        starter_cards = [self.card_library.create_card(card_id) for card_id in STARTER_DECK_IDS]
+        deck_manager = DeckManager(starter_cards, rng=random.Random(seed))
+        player = Player()
+        player.attach_deck(deck_manager)
+        return player
+
+    def _enter_map_state(self, status_message: str) -> None:
+        self.current_state = "map"
+        self.status_message = status_message
+
+    def _handle_placeholder_node(self, node_type: str) -> None:
+        self._enter_map_state(
+            status_message=(
+                f"{node_type.title()} node selected. Content is blocked until the contract defines that subsystem."
+            )
+        )
+
 
 def simulate_state_manager() -> dict[str, Any]:
     manager = StateManager()
-    snapshot = manager.start_new_run(seed=29)
-    first_node = snapshot["map"]["available_node_ids"][0]
-    snapshot = manager.select_map_node(first_node)
-    if snapshot["current_state"] == "combat" and manager.player.deck_manager.hand:
-        snapshot = manager.play_card_from_hand(0)
+    start_snapshot = manager.start_new_run(seed=29)
+    first_node = start_snapshot["map"]["available_node_ids"][0]
+    selection_snapshot = manager.select_map_node(first_node)
     return {
-        "current_state": snapshot["current_state"],
-        "status_message": snapshot["status_message"],
-        "run_seed": snapshot["run_seed"],
+        "start_state": start_snapshot["current_state"],
+        "selected_node_id": first_node,
+        "current_state": selection_snapshot["current_state"],
+        "status_message": selection_snapshot["status_message"],
+        "run_seed": selection_snapshot["run_seed"],
     }

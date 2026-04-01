@@ -1,0 +1,119 @@
+ROGUE CARD ASSET REQUIREMENTS
+
+All filenames below are the exact asset names the current build expects.
+Please keep the folder structure and filenames unchanged so the game can load them without code changes.
+
+General visual direction:
+- Clean cyberpunk / terminal-fantasy look
+- High contrast and readable at a glance
+- Avoid busy detail behind text
+- Favor bold shapes, silhouettes, and glow accents
+- UI icons can use transparent backgrounds where it helps
+
+IMAGE ASSETS
+
+1. assets/ui/bg_map.png
+- Size: 1280 x 720
+- Purpose: Full-screen map background
+- What it should be: A moody neon map backdrop with room for route lines and node icons. Dark center field is helpful so nodes stay readable.
+
+2. assets/ui/bg_combat.png
+- Size: 1280 x 720
+- Purpose: Full-screen combat background
+- What it should be: A combat arena or digital battlefield backdrop. Keep the top-right readable for enemies and the bottom readable for cards.
+
+3. assets/ui/panel.png
+- Size: 480 x 240
+- Purpose: Reusable UI panel frame
+- What it should be: A semi-transparent interface panel with a subtle border or glow. It gets scaled to multiple sizes, so it should still look clean when resized.
+
+4. assets/ui/banner_victory.png
+- Size: 900 x 220
+- Purpose: Victory screen banner
+- What it should be: A celebratory banner. It can include baked-in "VICTORY" text if you want.
+
+5. assets/ui/banner_game_over.png
+- Size: 900 x 220
+- Purpose: Defeat screen banner
+- What it should be: A failure-state banner. It can include baked-in "GAME OVER" text if you want.
+
+6. assets/ui/node_combat.png
+- Size: 128 x 128
+- Purpose: Combat node icon
+- What it should be: A clear battle icon. Sword, sparks, or crossed weapons are all fine.
+
+7. assets/ui/node_elite.png
+- Size: 128 x 128
+- Purpose: Elite node icon
+- What it should be: A stronger, rarer version of the combat icon. It should feel more dangerous or prestigious than the normal combat node.
+
+8. assets/ui/node_shop.png
+- Size: 128 x 128
+- Purpose: Shop node icon
+- What it should be: A merchant, terminal, crate, or market symbol that reads instantly as a shop.
+
+9. assets/ui/node_event.png
+- Size: 128 x 128
+- Purpose: Event node icon
+- What it should be: A mystery or anomaly icon. Good options are a question mark, signal burst, eye, or glitch symbol.
+
+10. assets/ui/node_boss.png
+- Size: 128 x 128
+- Purpose: Boss node icon
+- What it should be: A dominant, high-threat icon. It should stand apart from all other node types immediately.
+
+11. assets/cards/card_placeholder.png
+- Size: 220 x 320
+- Purpose: Default card frame/background
+- What it should be: A readable card template with space for title, cost, art area, and body text. Avoid baking in specific card numbers or names.
+
+12. assets/enemies/enemy_placeholder.png
+- Size: 280 x 280
+- Purpose: Default enemy portrait panel
+- What it should be: A generic enemy silhouette or portrait frame that still reads well when reused for multiple encounters.
+
+AUDIO ASSETS
+
+Audio files do not have pixel width/height, so I listed the exact filename plus the target feel and a suggested duration.
+Recommended format for all audio: WAV, 44.1 kHz, short mono or stereo UI/gameplay cues.
+
+13. assets/audio/node_select.wav
+- Pixel size: N/A
+- Suggested duration: about 0.15 seconds
+- What it should be: A quick UI confirm/select click with a clean digital feel
+
+14. assets/audio/card_play.wav
+- Pixel size: N/A
+- Suggested duration: about 0.18 seconds
+- What it should be: A short card play snap, flick, or tech chirp
+
+15. assets/audio/turn_end.wav
+- Pixel size: N/A
+- Suggested duration: about 0.22 seconds
+- What it should be: A confirm tone for ending the turn
+
+16. assets/audio/player_hit.wav
+- Pixel size: N/A
+- Suggested duration: about 0.28 seconds
+- What it should be: A short player damage cue with a little impact
+
+17. assets/audio/enemy_hit.wav
+- Pixel size: N/A
+- Suggested duration: about 0.24 seconds
+- What it should be: A short enemy damage cue that feels distinct from the player hit sound
+
+18. assets/audio/victory.wav
+- Pixel size: N/A
+- Suggested duration: about 0.48 seconds
+- What it should be: A short win sting or triumphant synth cue
+
+19. assets/audio/defeat.wav
+- Pixel size: N/A
+- Suggested duration: about 0.52 seconds
+- What it should be: A short fail sting or descending loss cue
+
+NOTES
+
+- These dimensions match the current placeholder assets and UI scaling already in the project.
+- If you deliver replacements at these exact filenames and sizes, I can wire them in without changing the runtime paths.
+- If you want, I can also prepare a second document after this with style references and priority order so you can source the most important assets first.

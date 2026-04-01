@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
+ALLOWED_ANIMATION_STATES = {
+    "idle",
+    "map",
+    "select",
+    "card_play",
+    "attack",
+    "hit",
+    "victory",
+    "defeat",
+}
+
 
 class Animator:
     def __init__(self) -> None:
@@ -10,8 +21,8 @@ class Animator:
         self.history: list[str] = ["idle"]
 
     def trigger(self, state: str) -> None:
-        if not isinstance(state, str) or not state:
-            raise ValueError("Animation state must be a non-empty string.")
+        if state not in ALLOWED_ANIMATION_STATES:
+            raise ValueError(f"Unsupported animation state: {state}")
 
         self.current_state = state
         self.time_in_state = 0.0
@@ -32,6 +43,6 @@ class Animator:
 
 def simulate_animator() -> dict[str, Any]:
     animator = Animator()
-    animator.trigger("attack")
+    animator.trigger("card_play")
     animator.update(0.25)
     return animator.get_state()
