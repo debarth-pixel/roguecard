@@ -1,0 +1,32 @@
+[
+  {
+    "id": "enemy_basic_01",
+    "name": "Street Punk",
+    "max_hp": 40,
+    "intent_pattern": [
+      "attack",
+      "defend"
+    ]
+  },
+  {
+    "id": "enemy_elite_01",
+    "name": "Corporate Enforcer",
+    "max_hp": 65,
+    "intent_pattern": [
+      "attack",
+      "attack",
+      "defend"
+    ]
+  },
+  {
+    "id": "enemy_boss_01",
+    "name": "District Overlord",
+    "max_hp": 110,
+    "intent_pattern": [
+      "attack",
+      "defend",
+      "attack",
+      "attack"
+    ]
+  }
+]

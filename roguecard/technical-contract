@@ -1,0 +1,165 @@
+TECHNICAL CONTRACT
+
+This is the part that prevents chaos. This defines how everything plugs together.
+
+Tech Stack
+Language: Python
+Framework: Pygame
+Resolution: 1280x720 (fixed)
+Architecture: Modular, system-based
+Project Structure (Do NOT change without explicit instruction)
+/project_root
+│
+├── main.py
+├── config.py
+│
+├── /core
+│   ├── game_loop.py
+│   ├── state_manager.py
+│
+├── /combat
+│   ├── combat_manager.py
+│   ├── turn_manager.py
+│   ├── action_resolver.py
+│
+├── /cards
+│   ├── card_base.py
+│   ├── card_library.py
+│   ├── deck_manager.py
+│
+├── /entities
+│   ├── player.py
+│   ├── enemy.py
+│   ├── enemy_library.py
+│
+├── /map
+│   ├── map_generator.py
+│   ├── node.py
+│
+├── /ui
+│   ├── ui_manager.py
+│   ├── combat_ui.py
+│   ├── map_ui.py
+│
+├── /animation
+│   ├── animator.py
+│
+├── /audio
+│   ├── audio_manager.py
+│
+├── /assets
+│   ├── /cards
+│   ├── /enemies
+│   ├── /ui
+│   ├── /audio
+│
+└── /data
+    ├── cards.json
+    ├── enemies.json
+Global Rules (Critical)
+Do NOT rename folders or files
+Do NOT change public method names once created
+Do NOT change data schemas without versioning
+All systems must be callable independently
+No hardcoded paths outside /assets and /data
+Core Data Schemas
+Card Schema (cards.json)
+{
+  "id": "strike_01",
+  "name": "Strike",
+  "cost": 1,
+  "type": "attack",
+  "effects": [
+    {
+      "type": "damage",
+      "value": 6
+    }
+  ]
+}
+Enemy Schema (enemies.json)
+{
+  "id": "enemy_basic_01",
+  "name": "Street Punk",
+  "max_hp": 40,
+  "intent_pattern": ["attack", "defend"]
+}
+Card Engine Rules
+Deck → Draw pile → Hand → Discard → Exhaust
+Shuffle discard into draw when empty
+Max hand size: 10
+Energy resets each turn
+Cards resolve through action_resolver.py
+Combat System Contract
+Turn Flow
+Player turn starts
+Draw cards
+Player plays cards
+End turn
+Enemy intent executes
+Repeat
+Required Public Interfaces
+Deck Manager
+draw_cards(n)
+discard_card(card)
+exhaust_card(card)
+shuffle_deck()
+Combat Manager
+start_combat()
+end_turn()
+resolve_action(action)
+Enemy
+choose_intent()
+execute_intent()
+Animation Contract
+Animations triggered by state strings
+Example:
+"idle"
+"attack"
+"hit"
+Animator must NOT modify game logic
+Audio Contract
+All audio triggered through audio_manager.py
+No direct sound calls in gameplay logic
+Map System Contract
+Map outputs graph structure
+Node types:
+combat
+elite
+shop
+event
+boss
+Integration Rules
+Modules communicate only through defined interfaces
+No cross-module direct variable access
+No system should assume another system’s internal logic
+Testing Requirement
+
+Each system must include:
+
+A minimal test or simulation function
+Ability to run without UI
+Versioning Rule
+
+If ANY of these change:
+
+card schema
+enemy schema
+save format
+
+Then:
+
+Increment version in config.py
+Maintain backward compatibility or migration
+HOW YOU USE THIS
+
+When prompting Codex, you do NOT dump all this every time.
+
+You do this instead:
+
+Include relevant section only
+Always include:
+current state
+constraints
+interface rules
+
+You stay the one enforcing consistency.

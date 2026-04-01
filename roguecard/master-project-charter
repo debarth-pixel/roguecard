@@ -1,0 +1,54 @@
+MASTER PROJECT CHARTER
+
+Project Name:
+Error: Not Found (working title)
+
+Genre:
+Roguelike deck-building card battler
+
+Core Inspiration:
+Slay the Spire style progression with cyberpunk narrative tone
+
+Vision (What the game is)
+
+A replayable, run-based card battler where the player progresses through a branching path, builds a deck dynamically, and engages in turn-based combat driven by synergy, randomness, and strategic planning.
+
+The game emphasizes:
+
+Clean, readable mechanics over clutter
+Strong feedback loops (visual + mechanical)
+High replayability through randomness and builds
+A distinct cyberpunk identity layered over familiar systems
+Non-Negotiables (What must remain true)
+Turn-based combat only (no real-time mechanics)
+Card-driven actions (no separate ability system outside cards)
+Deterministic rules with controlled randomness (no chaos systems)
+Modular systems (map, combat, cards, enemies must be separable)
+No system rewrites once interfaces are established
+What the game is NOT
+Not an RPG with free movement
+Not an action game
+Not reliant on heavy story to function
+Not dependent on external APIs or online systems
+Core Gameplay Loop
+Player selects next node on a branching map
+Enters encounter (combat/event/shop)
+Executes turn-based card combat
+Receives rewards (cards, relics, upgrades)
+Modifies deck
+Repeats until death or completion
+Primary Systems
+Map / Path Generation
+Card Engine (draw, play, discard, exhaust)
+Combat State Machine
+Enemy Intent System
+Reward + Deck Building System
+Animation + Visual Feedback Layer
+Audio System
+Save / Load System
+Design Pillars
+Every card must feel meaningful
+Every run must feel different
+UI clarity > visual complexity
+Systems must be testable without visuals
+No hidden mechanics (player can learn everything)

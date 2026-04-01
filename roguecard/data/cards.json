@@ -1,0 +1,26 @@
+[
+  {
+    "id": "strike_01",
+    "name": "Strike",
+    "cost": 1,
+    "type": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 6
+      }
+    ]
+  },
+  {
+    "id": "defend_01",
+    "name": "Defend",
+    "cost": 1,
+    "type": "skill",
+    "effects": [
+      {
+        "type": "block",
+        "value": 5
+      }
+    ]
+  }
+]
