@@ -1,0 +1,54 @@
+Run Economy Audit
+Seeds: 1..200
+Shop reroll cost: 12 + (8 x rerolls used in that shop)
+
+Pre-Tuning Snapshot
+- Win rate: 0.92
+- Avg final credits: 63.97
+- Avg shop card buys: 0.44
+- Avg final deck size: 11.46
+- Avg paid sinks: 0.63
+
+Current Tuned Snapshot
+- Win rate: 0.94
+- Avg final credits: 58.42
+- Avg shop card buys: 0.53
+- Avg shop rerolls: 0.0
+- Avg final deck size: 11.58
+- Avg paid sinks: 0.81
+
+Reroll-Enabled Snapshot
+- Win rate: 0.94
+- Avg final credits: 58.27
+- Avg shop card buys: 0.51
+- Avg shop rerolls: 0.04
+- Avg final deck size: 11.55
+- Avg paid sinks: 0.85
+
+Current Tuned Vs Baseline
+- Win rate: +0.02
+- Avg final credits: -5.55
+- Avg shop card buys: +0.09
+- Avg shop rerolls: +0.0
+- Avg final deck size: +0.12
+- Avg paid sinks: +0.18
+
+Reroll-Enabled Vs Current Tuned
+- Win rate: +0.0
+- Avg final credits: -0.15
+- Avg shop card buys: -0.02
+- Avg shop rerolls: +0.04
+- Avg final deck size: -0.03
+- Avg paid sinks: +0.04
+
+Reroll-Enabled Target Checks
+- Average shop card buys per run: 0.51 (target 0.5-1.0)
+- Average final credits: 58.27 (target 15.0-35.0)
+- Average final deck size: 11.55 (target 10.5-12.0)
+- Average paid sinks per run: 0.85 (target 1.0-2.0)
+- All targets met: False
+
+Assessment
+- End-of-run excess credits did not drop meaningfully.
+- Shop engagement, deck growth, and win rate stayed within acceptable bounds.
+- Recommendation: A second shop-only sink is still recommended.

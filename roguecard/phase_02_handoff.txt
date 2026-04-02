@@ -1,0 +1,32 @@
+PHASE OBJECTIVE
+Completion status: Complete
+Combat and map clarity pass for the main gameplay loop.
+
+Audit findings
+- Combat needed stronger previews for costs, targets, and invalid actions.
+- The map needed to make currently reachable routes more obvious and stop stale hover/focus states from obscuring the next legal path.
+- Returning from combat needed to preserve route clarity without introducing a reward layer that does not exist yet.
+
+Player-facing changes shipped
+- Combat now previews projected damage, block, heal, draw, and energy outcomes directly in the card-inspection panel.
+- Damage cards now prefer a hovered enemy target when available, improving targeting clarity without changing the underlying combat rules.
+- Enemy-turn input now denies gracefully with readable feedback instead of feeling unresponsive.
+- Map focus now prefers currently available routes, highlights reachable paths more strongly, labels the current position more clearly, and shows a direct “next action” hint.
+- Available routes now sync mouse hover and keyboard selection so confirm actions are predictable.
+
+Files touched
+- roguecard/ui/combat_ui.py
+- roguecard/ui/map_ui.py
+- roguecard/ui/ui_manager.py
+
+Verification performed
+- Python 3.13 compile checks on the touched UI modules.
+- Headless simulations confirming readable combat preview data and route-focus data.
+- Dummy-SDL smoke rendering from map into combat.
+
+Known issues / deferred work
+- Combat still assumes simple single-target damage rules because multi-target mechanics are not part of the current content schema.
+- Post-combat rewards remain intentionally absent until the reward system is defined.
+
+Next recommended starting point
+- Start Phase 3 in roguecard/core/game_loop.py, roguecard/animation/animator.py, and roguecard/audio/audio_manager.py to strengthen action feedback and presentation polish.

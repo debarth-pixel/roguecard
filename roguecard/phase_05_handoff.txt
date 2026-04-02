@@ -1,0 +1,33 @@
+PHASE OBJECTIVE
+Completion status: Complete
+Save reliability, stability, and soft-lock prevention.
+
+Audit findings
+- The game needed explicit save serialization boundaries, recovery from invalid save files, and safe write behavior.
+- A broken or stale save could not be allowed to strand the game in boot or resume an invalid state.
+- Settings parsing and runtime recovery also needed stronger type tolerance.
+
+Player-facing changes shipped
+- Added versioned run-save serialization through StateManager.build_save_data() and StateManager.restore_save_data(save_data).
+- Auto-save now writes active map/combat progress using atomic temp-write-and-replace behavior.
+- Resume flow now restores valid in-progress runs and safely discards invalid, corrupt, or terminal save files.
+- Invalid save/settings data now falls back cleanly instead of leaving the player in a broken startup state.
+
+Files touched
+- roguecard/core/state_manager.py
+- roguecard/core/game_loop.py
+- roguecard/audio/audio_manager.py
+- roguecard/config.py
+
+Verification performed
+- Python 3.13 compile checks.
+- Headless save/restore verification from an active combat state.
+- Invalid save recovery test that confirmed bad save files are removed and a fresh run path remains available.
+- Corrupt settings recovery test.
+
+Known issues / deferred work
+- Save scope intentionally excludes rewards, shop state, and event resolution because those systems are not fully defined yet.
+- Auto-save is focused on active run continuity, not multi-slot save management.
+
+Next recommended starting point
+- Start Phase 6 in roguecard/ui/render_utils.py plus the UI modules, consolidating repeated rendering and interaction helpers now that the player-facing flow is stable.

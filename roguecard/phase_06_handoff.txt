@@ -1,0 +1,32 @@
+PHASE OBJECTIVE
+Completion status: Complete
+Targeted maintainability refactor to support future QoL safely.
+
+Audit findings
+- UI modules still repeated common text-wrapping, hit-testing, and scale-clamping logic.
+- Some stable interaction/layout values had become important enough to deserve named config entries.
+- Future UI iteration would stay riskier than necessary without a small shared rendering utility layer.
+
+Player-facing changes shipped
+- Preserved behavior while consolidating shared UI helpers for wrapped text, rect hit-testing, and scale clamping.
+- Moved stable interaction constants such as node hit radius and card hover lift into config.
+- Kept the map and combat UI aligned around the same scale rules, improving consistency and lowering future polish risk.
+
+Files touched
+- roguecard/ui/render_utils.py
+- roguecard/ui/ui_manager.py
+- roguecard/ui/combat_ui.py
+- roguecard/ui/map_ui.py
+- roguecard/config.py
+
+Verification performed
+- Python 3.13 compile checks on the refactored modules.
+- Headless simulations for UI state generation after the refactor.
+- Dummy-SDL render smoke test to confirm no behavior regressions through boot, map, and combat.
+
+Known issues / deferred work
+- The remaining largest maintainability pressure points are incomplete content systems rather than UI glue.
+- Rewards, shops, events, and deeper content authoring still need dedicated implementation work outside this QoL roadmap.
+
+Next recommended starting point
+- This roadmap is complete. The next safe expansion point is content-layer work: reward flow, shop/event resolution, or a dedicated asset polish pass.

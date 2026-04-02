@@ -1,0 +1,32 @@
+PHASE OBJECTIVE
+Completion status: Complete
+Immediate friction removal and readability pass across the first-run experience.
+
+Audit findings
+- Map and combat interactions were functional, but several screens still relied on implied next steps instead of clear calls to action.
+- Runtime overlays existed, but settings/help/menu affordances were not yet consistent across screens.
+- Some interaction handling still felt prototype-level: duplicate actions needed tighter guarding and invalid input feedback needed to stay visible instead of failing cold.
+
+Player-facing changes shipped
+- Standardized visible hover, pressed, disabled, and selected states across current interactive UI surfaces.
+- Added clearer top-bar state chips, notices, and prompts so the player can tell what screen they are on and what to do next.
+- Kept duplicate activation risk down with a shared gameplay cooldown in the main loop.
+- Polished settings/help overlay navigation so Enter, Space, Escape, and mouse use feel consistent.
+
+Files touched
+- roguecard/core/game_loop.py
+- roguecard/ui/ui_manager.py
+- roguecard/ui/combat_ui.py
+- roguecard/ui/map_ui.py
+
+Verification performed
+- Python 3.13 compile checks on the touched modules.
+- Headless UI simulations for map, combat, and status screens.
+- Dummy-SDL render smoke test through boot and first encounter entry.
+
+Known issues / deferred work
+- Shop and event nodes remain placeholder-only by design.
+- Reward/deck-management UX is still limited because those systems are not fully implemented yet.
+
+Next recommended starting point
+- Start Phase 2 in roguecard/ui/combat_ui.py and roguecard/ui/map_ui.py, focusing on at-a-glance combat/map readability and route clarity.

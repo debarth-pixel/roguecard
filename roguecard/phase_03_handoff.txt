@@ -1,0 +1,31 @@
+PHASE OBJECTIVE
+Completion status: Complete
+Feedback, juice, and presentation polish without slowing the game down.
+
+Audit findings
+- The game already had a basic presentation shell, but repeated actions needed clearer audiovisual acknowledgment.
+- Fast mode existed, but feedback timing needed to remain compatible with it.
+- Error states needed a distinct denial response instead of sharing the same feel as successful actions.
+
+Player-facing changes shipped
+- Added distinct presentation states for deny, block, heal, settings, victory, and defeat feedback.
+- Added overlay flashes, screen-shake integration, and audio hook routing for card plays, hits, heals, blocks, denial, node selection, and outcome states.
+- Kept feedback timing compatible with fast mode so the game remains snappy.
+- Preserved theme consistency by routing feedback centrally through the game loop instead of scattering logic across screens.
+
+Files touched
+- roguecard/core/game_loop.py
+- roguecard/animation/animator.py
+- roguecard/audio/audio_manager.py
+
+Verification performed
+- Python 3.13 compile checks.
+- Headless simulation of animator/audio/game-loop feedback routing.
+- Dummy-SDL smoke pass confirming the loop still renders and transitions cleanly.
+
+Known issues / deferred work
+- Placeholder WAV files are still acceptable fallbacks; richer bespoke audio is still an asset task.
+- Feedback is intentionally subtle and does not yet include content-specific reward or event responses because those systems are incomplete.
+
+Next recommended starting point
+- Start Phase 4 in roguecard/core/game_loop.py and roguecard/ui/ui_manager.py to turn the runtime toggles into a real persistent settings/accessibility layer.

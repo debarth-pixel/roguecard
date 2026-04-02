@@ -57,10 +57,11 @@ class Enemy:
         self.current_intent = None
         return resolution
 
-    def gain_block(self, amount: int) -> None:
+    def gain_block(self, amount: int) -> int:
         if amount < 0:
             raise ValueError("Block gain cannot be negative.")
         self.block += amount
+        return amount
 
     def take_damage(self, amount: int) -> int:
         if amount < 0:
@@ -72,15 +73,18 @@ class Enemy:
         self.current_hp = max(0, self.current_hp - damage_taken)
         return damage_taken
 
-    def heal(self, amount: int) -> None:
+    def heal(self, amount: int) -> int:
         if amount < 0:
             raise ValueError("Healing cannot be negative.")
-        self.current_hp = min(self.max_hp, self.current_hp + amount)
+        healed = min(self.max_hp - self.current_hp, amount)
+        self.current_hp += healed
+        return healed
 
     def is_alive(self) -> bool:
         return self.current_hp > 0
 
     def get_state(self) -> dict[str, Any]:
+        intent_value = self._intent_value(self.current_intent)
         return {
             "id": self.id,
             "name": self.name,
@@ -88,6 +92,8 @@ class Enemy:
             "current_hp": self.current_hp,
             "block": self.block,
             "current_intent": self.current_intent,
+            "intent_value": intent_value,
+            "intent_summary": self._intent_summary(self.current_intent, intent_value),
         }
 
     def _intent_to_action(self, intent: str) -> dict[str, Any]:
@@ -96,6 +102,24 @@ class Enemy:
         if intent == "defend":
             return {"type": "block", "value": DEFAULT_ENEMY_DEFEND_BLOCK}
         raise ValueError(f"Unsupported enemy intent: {intent}")
+
+    def _intent_value(self, intent: str | None) -> int | None:
+        if intent == "attack":
+            return DEFAULT_ENEMY_ATTACK_DAMAGE
+        if intent == "defend":
+            return DEFAULT_ENEMY_DEFEND_BLOCK
+        return None
+
+    def _intent_summary(self, intent: str | None, value: int | None) -> str:
+        if intent is None:
+            return "Waiting"
+        if value is None:
+            return intent.title()
+        if intent == "attack":
+            return f"Attack for {value}"
+        if intent == "defend":
+            return f"Gain {value} block"
+        return intent.title()
 
 
 def simulate_enemy() -> dict[str, Any]:

@@ -1,0 +1,220 @@
+[
+  {
+    "id": "dead_drop_01",
+    "title": "Dead Drop",
+    "body": "A blinking courier cache hums beneath a busted tram bench. The lock is cracked and nobody is claiming it.",
+    "choices": [
+      {
+        "id": "crack_cache",
+        "label": "Crack the cache",
+        "description": "Pull a clean stack of credits before the owner can trace the ping.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 25
+          }
+        ]
+      },
+      {
+        "id": "walk_away",
+        "label": "Walk away",
+        "description": "Leave the drop untouched and move on before it turns into a problem.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "street_clinic_01",
+    "title": "Street Clinic",
+    "body": "A basement ripperdoc offers fast patchwork surgery under a neon privacy sheet. The work looks rough, but real.",
+    "choices": [
+      {
+        "id": "pay_for_treatment",
+        "label": "Pay for treatment",
+        "description": "Spend credits for emergency repairs and a quick reboot.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 18,
+          "missing_hp_at_least": 5
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 15
+          },
+          {
+            "type": "heal",
+            "value": 15
+          }
+        ]
+      },
+      {
+        "id": "decline_treatment",
+        "label": "Decline",
+        "description": "Keep your credits and limp onward.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "memory_scrubber_01",
+    "title": "Memory Scrubber",
+    "body": "A gray-market technician offers to erase one combat routine from your stack. The process is permanent and surprisingly cheap.",
+    "choices": [
+      {
+        "id": "purge_card",
+        "label": "Scrub a card",
+        "description": "Delete one card from the deck forever.",
+        "choice_type": "purge",
+        "requirements": {
+          "deck_size_at_least": 2
+        },
+        "effects": [
+          {
+            "type": "purge_card"
+          }
+        ]
+      },
+      {
+        "id": "leave_deck_alone",
+        "label": "Keep the stack intact",
+        "description": "Back out before the scrubber touches your memories.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "black_ice_cache_01",
+    "title": "Black Ice Cache",
+    "body": "A locked shard pulses with hostile countermeasures. If you force it open, something valuable may still be buried inside.",
+    "choices": [
+      {
+        "id": "force_the_cache",
+        "label": "Force the cache",
+        "description": "Take the backlash and rip out the protected combat routine.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "gain_card",
+            "card_id": "firewall_01"
+          }
+        ]
+      },
+      {
+        "id": "leave_the_shard",
+        "label": "Leave it sealed",
+        "description": "The city will hand you another edge later.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "credit_shakedown_01",
+    "title": "Credit Shakedown",
+    "body": "Two local enforcers block the alley and demand a \"safety tax\" for passing through their district.",
+    "choices": [
+      {
+        "id": "pay_the_tax",
+        "label": "Pay the tax",
+        "description": "Lose credits and keep the peace.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 12
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 12
+          }
+        ]
+      },
+      {
+        "id": "refuse",
+        "label": "Refuse",
+        "description": "Take a beating rather than hand over your wallet.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "glitch_lottery_01",
+    "title": "Glitch Lottery",
+    "body": "A hacked vending terminal invites you to spin a corrupted payout daemon. The odds are murky, but the jackpot is very real.",
+    "choices": [
+      {
+        "id": "spin_the_daemon",
+        "label": "Spin the daemon",
+        "description": "Risk credits, blood, or luck for a glitched payout.",
+        "choice_type": "risk",
+        "outcomes": [
+          {
+            "id": "jackpot_credits",
+            "weight": 45,
+            "summary": "You spoof the payout daemon and drain a hidden account.",
+            "effects": [
+              {
+                "type": "gain_credits",
+                "value": 35
+              }
+            ]
+          },
+          {
+            "id": "neural_burn",
+            "weight": 25,
+            "summary": "The machine tags you with a neural burn before it unlocks.",
+            "effects": [
+              {
+                "type": "damage",
+                "value": 7
+              }
+            ]
+          },
+          {
+            "id": "credit_skimmer",
+            "weight": 20,
+            "summary": "The terminal skims your account before the exploit collapses.",
+            "effects": [
+              {
+                "type": "lose_credits",
+                "value": 15
+              }
+            ]
+          },
+          {
+            "id": "hidden_payload",
+            "weight": 10,
+            "summary": "A sealed payload cracks open and reveals a new combat script.",
+            "effects": [
+              {
+                "type": "gain_card",
+                "card_id": "overclock_01"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ignore_terminal",
+        "label": "Ignore it",
+        "description": "Leave the roulette to someone else.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  }
+]

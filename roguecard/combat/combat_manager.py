@@ -41,8 +41,12 @@ class CombatManager:
 
         for enemy in self._living_enemies():
             self.turn_manager.start_enemy_turn(enemy)
+            intent = enemy.current_intent or enemy.choose_intent()
             resolution = enemy.execute_intent(self.action_resolver, self.player)
             enemy_results.append({"enemy_id": enemy.id, "resolution": resolution})
+            self.event_log.append(
+                self._enemy_event_entry(enemy=enemy, intent=intent, resolution=resolution)
+            )
             if not self.player.is_alive():
                 self.combat_active = False
                 return {"combat_active": self.combat_active, "enemy_results": enemy_results}
@@ -100,8 +104,12 @@ class CombatManager:
 
         self.event_log.append(
             {
+                "type": "card",
+                "source": "player",
+                "label": card.name,
                 "card_id": card.id,
                 "resolutions": logged_resolutions,
+                "summary": self._summarize_event(label=card.name, resolutions=logged_resolutions),
             }
         )
 
@@ -114,8 +122,10 @@ class CombatManager:
         return {
             "combat_active": self.combat_active,
             "turn_number": self.turn_manager.turn_number,
+            "turn_owner": self.turn_manager.turn_owner,
             "player": self.player.get_state(),
             "enemies": [enemy.get_state() for enemy in self.enemies],
+            "living_enemy_ids": [enemy.id for enemy in self._living_enemies()],
             "event_log": list(self.event_log),
         }
 
@@ -145,6 +155,29 @@ class CombatManager:
     def _first_living_enemy(self) -> Any | None:
         living = self._living_enemies()
         return living[0] if living else None
+
+    def _enemy_event_entry(self, enemy: Any, intent: str, resolution: dict[str, Any]) -> dict[str, Any]:
+        target_id = "player" if intent == "attack" else enemy.id
+        logged_resolution = {**resolution, "target": target_id}
+        return {
+            "type": "intent",
+            "source": enemy.id,
+            "label": enemy.name,
+            "card_id": enemy.id,
+            "intent": intent,
+            "resolutions": [logged_resolution],
+            "summary": self._summarize_event(label=f"{enemy.name} {intent}", resolutions=[logged_resolution]),
+        }
+
+    def _summarize_event(self, label: str, resolutions: list[dict[str, Any]]) -> str:
+        if not resolutions:
+            return f"{label}: no effect."
+
+        parts = [
+            f"{resolution['type']} {resolution['applied']} -> {resolution['target']}"
+            for resolution in resolutions
+        ]
+        return f"{label}: {', '.join(parts)}"
 
 
 def simulate_combat_manager() -> dict[str, Any]:

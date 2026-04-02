@@ -1,0 +1,54 @@
+Content Stage 04 Handoff: Run Economy and Progression Audit
+
+Completion Status
+- Completed and verified on 2026-04-02.
+
+Objective
+- Audit the full run loop for pacing, balance, and content coherence after rewards, shops, and events were implemented.
+- Make only practical tuning changes unless a structural issue clearly blocked balance.
+
+Short Audit Findings
+- The run economy was not starved. It was oversupplied.
+- Normal combats plus elites already produced enough credits for a healthy run.
+- Shops were still under-converting credits into progression, so players finished successful runs with large unused wallets.
+- Free and low-friction purge access kept deck growth stable, but also reduced the relative attractiveness of shop cards.
+- The content pool remained intentionally small, so repetition became visible quickly but was still manageable for an audit stage.
+
+Player-Facing / System Changes Shipped
+- Tuned regular reward generation to favor card rewards over purge rewards.
+- Reduced shop card prices and the purge-service price to make early spending smoother.
+- Retuned `street_clinic_01` and `credit_shakedown_01` for fairer healing/damage tradeoffs.
+- Added a deterministic headless economy simulator at `core/run_economy_report.py`.
+- Added a written audit summary at `run_economy_audit_report.txt`.
+
+Public Interface Added
+- `simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str, Any]`
+
+Files Touched
+- `config.py`
+- `data/events.json`
+- `core/state_manager.py`
+- `core/run_economy_report.py`
+- `run_economy_audit_report.txt`
+- `content_stage_04_handoff.txt`
+
+Verification Performed
+- Python compile checks on the touched Stage 04 modules.
+- 200-seed headless economy report comparing baseline and tuned pacing.
+- Reward weighting verification through the live `StateManager` path.
+- Event loader validation through the new tuned values in `events.json`.
+- Smoke checks for:
+  - event resolution and continue flow
+  - shop purchase and leave flow
+  - reward-state save and restore
+
+Known Issues / Remaining Balance Gaps
+- The tuning improved shop usage, but the run still ends with too many credits on average.
+- Target deck growth is now healthy, but average paid sinks and shop card buys are still below target.
+- The current map cadence plus preserved combat rewards imply a structural content need:
+  - one more reliable shop sink or spend service
+- The reward/shop card pool is still small enough that repeated runs expose most of it quickly.
+
+Exact Next Recommended Starting Point
+- Begin the next content stage by adding one additional shop-only spend option or repeatable service before expanding the card/event pool.
+- After that sink is stable, safely expand the reward/shop card pool and then the authored event pool.

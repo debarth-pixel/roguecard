@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+import logging
+import math
+import os
+from pathlib import Path
 from typing import Any
 
 try:
@@ -9,9 +14,36 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 
 from animation.animator import Animator
 from audio.audio_manager import AudioManager, DEFAULT_AUDIO_CUES
-from config import FRAME_RATE, SCREEN_SIZE
+from config import (
+    ACTION_COOLDOWN_SECONDS,
+    DEFAULT_FAST_MODE,
+    DEFAULT_FULLSCREEN,
+    DEFAULT_HIGH_CONTRAST,
+    DEFAULT_MASTER_VOLUME,
+    DEFAULT_MUSIC_VOLUME,
+    DEFAULT_PRESENTATION_SCALE,
+    DEFAULT_SCREEN_SHAKE,
+    DEFAULT_SHOW_HELP,
+    DEFAULT_UI_SCALE,
+    FAST_MODE_MULTIPLIER,
+    FRAME_RATE,
+    MAX_PRESENTATION_SCALE,
+    MAX_UI_SCALE,
+    MIN_PRESENTATION_SCALE,
+    MIN_UI_SCALE,
+    NOTICE_DURATION_SECONDS,
+    PRESENTATION_SCALE_STEP,
+    RUN_SAVE_DATA_PATH,
+    SCREEN_SIZE,
+    SETTINGS_DATA_PATH,
+    SETTINGS_FORMAT_VERSION,
+    UI_SCALE_STEP,
+    VOLUME_STEP,
+)
 from core.state_manager import StateManager
 from ui.ui_manager import UIManager
+
+LOGGER = logging.getLogger(__name__)
 
 
 class GameLoop:
@@ -28,59 +60,169 @@ class GameLoop:
         self.audio_manager = audio_manager or AudioManager()
         self.running = False
         self._logical_surface = None
+        self._fullscreen = DEFAULT_FULLSCREEN
+        self._fast_mode = DEFAULT_FAST_MODE
+        self._show_help = DEFAULT_SHOW_HELP
+        self._settings_open = False
+        self._presentation_scale = DEFAULT_PRESENTATION_SCALE
+        self._ui_scale = DEFAULT_UI_SCALE
+        self._screen_shake = DEFAULT_SCREEN_SHAKE
+        self._high_contrast = DEFAULT_HIGH_CONTRAST
+        self._notice: dict[str, Any] | None = None
+        self._notice_timer = 0.0
+        self._interaction_cooldown = 0.0
 
     def run(self) -> None:
         if pygame is None:
             raise RuntimeError("Pygame is required to run the game loop.")
 
         pygame.init()
+        self._load_settings()
         self._initialize_audio()
         screen = self._create_display_surface()
-        pygame.display.set_caption("Error: Not Found")
+        pygame.display.set_caption("Rogue Card")
         clock = pygame.time.Clock()
 
         self._preload_presentation_assets()
-        self.state_manager.start_new_run()
-        self.animator.trigger("map")
+        boot_message, boot_level = self._bootstrap_run_state()
+        self._set_notice(boot_message, level=boot_level, duration=3.2)
         self.running = True
 
         while self.running:
             delta_time = clock.tick(FRAME_RATE) / 1000.0
+            self._advance_notice(delta_time)
+            self._advance_interaction_cooldown(delta_time)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
                     continue
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.running = False
+
+                screen, consumed = self._handle_global_event(event, screen)
+                if consumed:
                     continue
 
-                action = self.ui_manager.handle_event(event, self._snapshot_with_hand())
-                if action is not None:
-                    self._dispatch_action(action)
+                if self._show_help and not self._settings_open:
+                    continue
 
-            self.animator.update(delta_time)
+                translated_event = self._translate_event(event, screen)
+                if translated_event is None:
+                    continue
+
+                action = self.ui_manager.handle_event(translated_event, self._snapshot_with_hand())
+                if action is not None:
+                    screen = self._dispatch_action(action, screen)
+
+            animation_speed = FAST_MODE_MULTIPLIER if self._fast_mode else 1.0
+            self.animator.update(delta_time * animation_speed)
             self._render_frame(screen)
             pygame.display.flip()
 
         pygame.quit()
 
-    def _dispatch_action(self, action: dict[str, Any]) -> None:
-        before_snapshot = self._snapshot_with_hand()
+    def _dispatch_action(self, action: dict[str, Any], screen: Any) -> Any:
+        if not isinstance(action, dict) or "type" not in action:
+            self._trigger_denial_feedback("Received an invalid UI action payload.")
+            return screen
+
         action_type = action["type"]
 
-        if action_type == "new_run":
-            self.state_manager.start_new_run()
-        elif action_type == "select_node":
-            self.state_manager.select_map_node(action["node_id"])
-        elif action_type == "play_card":
-            self.state_manager.play_card_from_hand(action["hand_index"], action.get("target_id"))
-        elif action_type == "end_turn":
-            self.state_manager.end_combat_turn()
-        else:
-            raise ValueError(f"Unsupported UI action: {action_type}")
+        if action_type == "notice":
+            message = action.get("message", "Action unavailable.")
+            level = action.get("level", "info")
+            self._set_notice(message, level=level)
+            if level == "error":
+                self._trigger_denial_feedback(message)
+            return screen
+
+        if action_type in {"toggle_settings", "close_settings", "set_setting", "reset_settings"}:
+            return self._handle_settings_action(action, screen)
+
+        if self._action_uses_cooldown(action_type) and self._interaction_cooldown > 0:
+            return screen
+
+        before_snapshot = self._snapshot_with_hand()
+
+        try:
+            if action_type == "new_run":
+                self.state_manager.start_new_run()
+            elif action_type == "select_node":
+                self.state_manager.select_map_node(action["node_id"])
+            elif action_type == "play_card":
+                self.state_manager.play_card_from_hand(action["hand_index"], action.get("target_id"))
+            elif action_type == "end_turn":
+                self.state_manager.end_combat_turn()
+            elif action_type == "select_reward_option":
+                self.state_manager.select_reward_option(action["section"], action["option_id"])
+            elif action_type == "confirm_reward_selection":
+                self.state_manager.confirm_reward_selection(action["section"])
+            elif action_type == "skip_reward_section":
+                self.state_manager.skip_reward_section(action["section"])
+            elif action_type == "continue_from_reward":
+                self.state_manager.continue_from_reward()
+            elif action_type == "select_shop_offer":
+                self.state_manager.select_shop_offer(action["offer_id"])
+            elif action_type == "confirm_shop_purchase":
+                self.state_manager.confirm_shop_purchase()
+            elif action_type == "reroll_shop_inventory":
+                self.state_manager.reroll_shop_inventory()
+            elif action_type == "leave_shop":
+                self.state_manager.leave_shop()
+            elif action_type == "select_event_choice":
+                self.state_manager.select_event_choice(action["choice_id"])
+            elif action_type == "select_event_target":
+                self.state_manager.select_event_target(action["target_id"])
+            elif action_type == "confirm_event_choice":
+                self.state_manager.confirm_event_choice()
+            elif action_type == "continue_from_event":
+                self.state_manager.continue_from_event()
+            else:
+                raise ValueError(f"Unsupported UI action: {action_type}")
+        except (IndexError, ValueError, KeyError) as exc:
+            LOGGER.warning("Action rejected: %s", exc)
+            self._trigger_denial_feedback(str(exc))
+            return screen
+        except Exception:  # pragma: no cover - defensive runtime guard.
+            LOGGER.exception("Unexpected error while dispatching action %s", action_type)
+            self._trigger_denial_feedback("An unexpected error interrupted that action.")
+            return screen
 
         after_snapshot = self._snapshot_with_hand()
         self._apply_feedback(action_type, before_snapshot, after_snapshot)
+        self._persist_run_state(after_snapshot)
+        if self._action_uses_cooldown(action_type):
+            self._interaction_cooldown = ACTION_COOLDOWN_SECONDS
+        return screen
+
+    def _handle_settings_action(self, action: dict[str, Any], screen: Any) -> Any:
+        action_type = action["type"]
+
+        if action_type == "toggle_settings":
+            self._toggle_settings()
+            return screen
+
+        if action_type == "close_settings":
+            self._toggle_settings(False)
+            return screen
+
+        if action_type == "reset_settings":
+            screen = self._apply_runtime_settings(self._default_settings(), screen)
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice("Settings reset to defaults.", level="success", duration=1.8)
+            return screen
+
+        if action_type == "set_setting":
+            setting_name = action.get("setting")
+            if not isinstance(setting_name, str):
+                self._trigger_denial_feedback("Settings action is missing a valid setting name.")
+                return screen
+            screen = self._apply_setting_change(setting_name, action.get("value"), screen)
+            return screen
+
+        self._trigger_denial_feedback(f"Unsupported settings action: {action_type}")
+        return screen
 
     def _apply_feedback(
         self,
@@ -90,6 +232,7 @@ class GameLoop:
     ) -> None:
         if action_type == "new_run":
             self.animator.trigger("map")
+            self._set_notice("New run started. Select the next node.", duration=2.4)
         elif action_type == "select_node":
             self.animator.trigger("select")
             self.audio_manager.trigger("node_select")
@@ -98,14 +241,74 @@ class GameLoop:
             self.audio_manager.trigger("card_play")
         elif action_type == "end_turn":
             self.audio_manager.trigger("turn_end")
+        elif action_type == "select_reward_option":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], duration=1.6)
+        elif action_type == "confirm_reward_selection":
+            self.animator.trigger("card_play")
+            self.audio_manager.trigger("card_play")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
+        elif action_type == "skip_reward_section":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], duration=1.8)
+        elif action_type == "continue_from_reward":
+            self.animator.trigger("map")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
+        elif action_type == "select_shop_offer":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], duration=1.6)
+        elif action_type == "confirm_shop_purchase":
+            self.animator.trigger("card_play")
+            self.audio_manager.trigger("card_play")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
+        elif action_type == "reroll_shop_inventory":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=1.8)
+        elif action_type == "leave_shop":
+            self.animator.trigger("map")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
+        elif action_type == "select_event_choice":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], duration=1.6)
+        elif action_type == "select_event_target":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], duration=1.4)
+        elif action_type == "confirm_event_choice":
+            self.animator.trigger("card_play")
+            self.audio_manager.trigger("card_play")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.2)
+        elif action_type == "continue_from_event":
+            self.animator.trigger("map")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
 
-        if self._enemy_hp_total(after_snapshot) < self._enemy_hp_total(before_snapshot):
+        enemy_hp_change = self._enemy_hp_total(before_snapshot) - self._enemy_hp_total(after_snapshot)
+        player_hp_change = self._player_hp(after_snapshot) - self._player_hp(before_snapshot)
+        player_block_gain = self._player_block(after_snapshot) - self._player_block(before_snapshot)
+        enemy_block_gain = self._enemy_block_total(after_snapshot) - self._enemy_block_total(before_snapshot)
+
+        if enemy_hp_change > 0:
             self.animator.trigger("attack")
             self.audio_manager.trigger("enemy_hit")
 
-        if self._player_hp(after_snapshot) < self._player_hp(before_snapshot):
+        if player_hp_change < 0:
             self.animator.trigger("hit")
             self.audio_manager.trigger("player_hit")
+        elif player_hp_change > 0:
+            self.animator.trigger("heal")
+            self.audio_manager.trigger("heal")
+
+        if player_block_gain > 0 or enemy_block_gain > 0:
+            self.animator.trigger("block")
+            self.audio_manager.trigger("block")
 
         if (
             before_snapshot["current_state"] != "victory"
@@ -113,6 +316,7 @@ class GameLoop:
         ):
             self.animator.trigger("victory")
             self.audio_manager.trigger("victory")
+            self._set_notice("Boss defeated. Run complete.", level="success", duration=3.2)
             return
 
         if (
@@ -121,6 +325,42 @@ class GameLoop:
         ):
             self.animator.trigger("defeat")
             self.audio_manager.trigger("defeat")
+            self._set_notice("Run failed. Press N to restart.", level="error", duration=3.2)
+            return
+
+        if (
+            before_snapshot["current_state"] != "reward"
+            and after_snapshot["current_state"] == "reward"
+        ):
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.4)
+            return
+
+        if (
+            before_snapshot["current_state"] != "shop"
+            and after_snapshot["current_state"] == "shop"
+        ):
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.4)
+            return
+
+        if (
+            before_snapshot["current_state"] != "event"
+            and after_snapshot["current_state"] == "event"
+        ):
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.4)
+            return
+
+        if (
+            before_snapshot["current_state"] != "combat"
+            and after_snapshot["current_state"] == "combat"
+        ):
+            self.animator.trigger("idle")
+            self._set_notice(after_snapshot["status_message"], duration=2.0)
             return
 
         if (
@@ -128,6 +368,7 @@ class GameLoop:
             and after_snapshot["current_state"] == "map"
         ):
             self.animator.trigger("map")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.2)
 
     def _initialize_audio(self) -> None:
         if pygame is None:
@@ -137,6 +378,7 @@ class GameLoop:
                 pygame.mixer.init()
         except pygame.error:
             return
+        self.audio_manager.apply_settings(self._persistent_settings_payload())
 
     def _preload_presentation_assets(self) -> None:
         self.ui_manager.preload_assets()
@@ -147,13 +389,85 @@ class GameLoop:
         if pygame is None:
             raise RuntimeError("Pygame is required to create the display surface.")
 
-        try:
-            display_surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        except pygame.error:
-            display_surface = pygame.display.set_mode(SCREEN_SIZE)
+        info = pygame.display.Info()
+        if self._fullscreen:
+            try:
+                display_surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            except pygame.error:
+                display_surface = pygame.display.set_mode(self._windowed_size(info), pygame.RESIZABLE)
+                self._fullscreen = False
+        else:
+            display_surface = pygame.display.set_mode(self._windowed_size(info), pygame.RESIZABLE)
 
         self._logical_surface = pygame.Surface(SCREEN_SIZE).convert()
         return display_surface
+
+    def _handle_global_event(self, event: Any, screen: Any) -> tuple[Any, bool]:
+        if pygame is None:
+            return screen, False
+
+        if event.type == pygame.VIDEORESIZE and not self._fullscreen:
+            resized = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+            return resized, True
+
+        if event.type != pygame.KEYDOWN:
+            return screen, False
+
+        if event.key == pygame.K_ESCAPE:
+            if self._settings_open:
+                self._toggle_settings(False)
+                return screen, True
+            if self._show_help:
+                self._show_help = False
+                self._set_notice("Controls panel closed.", duration=1.4)
+                return screen, True
+            self.running = False
+            return screen, True
+
+        if event.key == pygame.K_h:
+            if self._settings_open:
+                return screen, True
+            self._show_help = not self._show_help
+            message = "Controls panel opened." if self._show_help else "Controls panel closed."
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(message, duration=1.4)
+            return screen, True
+
+        if event.key == pygame.K_s:
+            self._toggle_settings()
+            return screen, True
+
+        if event.key == pygame.K_F11:
+            updated_screen = self._apply_setting_change("fullscreen", not self._fullscreen, screen)
+            return updated_screen, True
+
+        if event.key == pygame.K_f:
+            updated_screen = self._apply_setting_change("fast_mode", not self._fast_mode, screen)
+            return updated_screen, True
+
+        if event.key == pygame.K_m:
+            updated_screen = self._apply_setting_change("muted", not self.audio_manager.muted, screen)
+            return updated_screen, True
+
+        if event.key in {pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET}:
+            delta = -VOLUME_STEP if event.key == pygame.K_LEFTBRACKET else VOLUME_STEP
+            updated_screen = self._apply_setting_change(
+                "master_volume",
+                self.audio_manager.master_volume + delta,
+                screen,
+            )
+            return updated_screen, True
+
+        if event.key in {pygame.K_MINUS, pygame.K_KP_MINUS, pygame.K_EQUALS, pygame.K_KP_PLUS}:
+            delta = -PRESENTATION_SCALE_STEP if event.key in {pygame.K_MINUS, pygame.K_KP_MINUS} else PRESENTATION_SCALE_STEP
+            updated_screen = self._apply_setting_change(
+                "presentation_scale",
+                self._presentation_scale + delta,
+                screen,
+            )
+            return updated_screen, True
+
+        return screen, False
 
     def _render_frame(self, display_surface: Any) -> None:
         if pygame is None:
@@ -162,19 +476,23 @@ class GameLoop:
         if self._logical_surface is None:
             self._logical_surface = pygame.Surface(SCREEN_SIZE).convert()
 
-        self.ui_manager.render(self._logical_surface, self._snapshot_with_hand())
+        state_snapshot = self._snapshot_with_hand()
+        self.ui_manager.render(self._logical_surface, state_snapshot)
+        self._render_feedback_overlay(self._logical_surface)
         scaled_size, offset = self._presentation_layout(
             display_surface.get_size(),
             self._logical_surface.get_size(),
         )
 
         display_surface.fill((0, 0, 0))
-        if scaled_size == self._logical_surface.get_size():
-            display_surface.blit(self._logical_surface, offset)
-            return
+        scaled_frame = (
+            self._logical_surface
+            if scaled_size == self._logical_surface.get_size()
+            else pygame.transform.smoothscale(self._logical_surface, scaled_size)
+        )
 
-        scaled_frame = pygame.transform.smoothscale(self._logical_surface, scaled_size)
-        display_surface.blit(scaled_frame, offset)
+        shake_x, shake_y = self._screen_offset()
+        display_surface.blit(scaled_frame, (offset[0] + shake_x, offset[1] + shake_y))
 
     def _presentation_layout(
         self,
@@ -184,14 +502,100 @@ class GameLoop:
         display_width, display_height = display_size
         logical_width, logical_height = logical_size
         scale = min(display_width / logical_width, display_height / logical_height)
-        scaled_width = max(1, int(logical_width * scale))
-        scaled_height = max(1, int(logical_height * scale))
+        scale *= self._presentation_scale
+        scaled_width = min(display_width, max(1, int(logical_width * scale)))
+        scaled_height = min(display_height, max(1, int(logical_height * scale)))
         offset_x = (display_width - scaled_width) // 2
         offset_y = (display_height - scaled_height) // 2
         return (scaled_width, scaled_height), (offset_x, offset_y)
 
+    def _translate_event(self, event: Any, display_surface: Any) -> Any | None:
+        if pygame is None or self._logical_surface is None:
+            return event
+
+        if event.type not in {pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP}:
+            return event
+
+        logical_pos = self._logical_position_for_display(event.pos, display_surface.get_size())
+        if logical_pos is None:
+            if event.type == pygame.MOUSEMOTION:
+                event_data = dict(event.dict)
+                event_data["pos"] = (-1, -1)
+                event_data["rel"] = (0, 0)
+                return pygame.event.Event(event.type, event_data)
+            return None
+
+        event_data = dict(event.dict)
+        event_data["pos"] = logical_pos
+        if event.type == pygame.MOUSEMOTION:
+            event_data["rel"] = (0, 0)
+        return pygame.event.Event(event.type, event_data)
+
+    def _logical_position_for_display(
+        self,
+        position: tuple[int, int],
+        display_size: tuple[int, int],
+    ) -> tuple[int, int] | None:
+        scaled_size, offset = self._presentation_layout(display_size, SCREEN_SIZE)
+        scaled_width, scaled_height = scaled_size
+        offset_x, offset_y = offset
+        x, y = position
+        if not (offset_x <= x < offset_x + scaled_width and offset_y <= y < offset_y + scaled_height):
+            return None
+
+        relative_x = (x - offset_x) / scaled_width
+        relative_y = (y - offset_y) / scaled_height
+        logical_x = min(SCREEN_SIZE[0] - 1, max(0, int(relative_x * SCREEN_SIZE[0])))
+        logical_y = min(SCREEN_SIZE[1] - 1, max(0, int(relative_y * SCREEN_SIZE[1])))
+        return logical_x, logical_y
+
     def _snapshot_with_hand(self) -> dict[str, Any]:
-        return self.state_manager.get_state_snapshot()
+        snapshot = self.state_manager.get_state_snapshot()
+        snapshot["presentation"] = self._presentation_state()
+        snapshot["ui_notice"] = None if self._notice is None else dict(self._notice)
+        return snapshot
+
+    def _presentation_state(self) -> dict[str, Any]:
+        return {
+            "fullscreen": self._fullscreen,
+            "fast_mode": self._fast_mode,
+            "show_help": self._show_help,
+            "settings_open": self._settings_open,
+            "presentation_scale": round(self._presentation_scale, 2),
+            "ui_scale": round(self._ui_scale, 2),
+            "screen_shake": self._screen_shake,
+            "high_contrast": self._high_contrast,
+            "master_volume": round(self.audio_manager.master_volume, 2),
+            "music_volume": round(self.audio_manager.music_volume, 2),
+            "muted": self.audio_manager.muted,
+            "animation": self.animator.get_state(),
+        }
+
+    def _advance_notice(self, delta_time: float) -> None:
+        if self._notice is None:
+            return
+        speed = FAST_MODE_MULTIPLIER if self._fast_mode else 1.0
+        self._notice_timer -= delta_time * speed
+        if self._notice_timer <= 0:
+            self._notice = None
+            self._notice_timer = 0.0
+
+    def _advance_interaction_cooldown(self, delta_time: float) -> None:
+        self._interaction_cooldown = max(0.0, self._interaction_cooldown - delta_time)
+
+    def _set_notice(
+        self,
+        text: str,
+        level: str = "info",
+        duration: float = NOTICE_DURATION_SECONDS,
+    ) -> None:
+        self._notice = {"text": text, "level": level}
+        self._notice_timer = duration
+
+    def _windowed_size(self, display_info: Any) -> tuple[int, int]:
+        width = min(display_info.current_w, max(640, min(SCREEN_SIZE[0], int(display_info.current_w * 0.9))))
+        height = min(display_info.current_h, max(360, min(SCREEN_SIZE[1], int(display_info.current_h * 0.9))))
+        return width, height
 
     def _enemy_hp_total(self, snapshot: dict[str, Any]) -> int:
         combat_state = snapshot.get("combat")
@@ -199,15 +603,372 @@ class GameLoop:
             return 0
         return sum(enemy["current_hp"] for enemy in combat_state["enemies"])
 
+    def _enemy_block_total(self, snapshot: dict[str, Any]) -> int:
+        combat_state = snapshot.get("combat")
+        if combat_state is None:
+            return 0
+        return sum(enemy["block"] for enemy in combat_state["enemies"])
+
     def _player_hp(self, snapshot: dict[str, Any]) -> int:
         player_state = snapshot.get("player")
         if player_state is None:
             return 0
         return player_state["current_hp"]
 
+    def _player_block(self, snapshot: dict[str, Any]) -> int:
+        player_state = snapshot.get("player")
+        if player_state is None:
+            return 0
+        return player_state["block"]
+
+    def _screen_offset(self) -> tuple[int, int]:
+        if not self._screen_shake:
+            return 0, 0
+
+        animation = self.animator.get_state()
+        state = animation["current_state"]
+        time_in_state = animation["time_in_state"]
+        strength_map = {
+            "attack": 3,
+            "hit": 7,
+            "deny": 3,
+            "select": 2,
+            "victory": 2,
+            "defeat": 5,
+        }
+        strength = strength_map.get(state, 0)
+        if strength == 0 or time_in_state > 0.28:
+            return 0, 0
+
+        falloff = 1.0 - (time_in_state / 0.28)
+        x = int(math.sin(time_in_state * 62) * strength * falloff)
+        y = int(math.cos(time_in_state * 48) * (strength * 0.45) * falloff)
+        return x, y
+
+    def _render_feedback_overlay(self, surface: Any) -> None:
+        if pygame is None:
+            return
+
+        animation = self.animator.get_state()
+        state = animation["current_state"]
+        time_in_state = animation["time_in_state"]
+        color_map = {
+            "attack": ((255, 180, 90), 28, 0.18),
+            "hit": ((255, 90, 110), 56, 0.24),
+            "heal": ((90, 235, 170), 42, 0.24),
+            "block": ((110, 180, 255), 34, 0.24),
+            "deny": ((255, 120, 120), 48, 0.18),
+            "victory": ((255, 230, 140), 36, 0.4),
+            "defeat": ((180, 90, 120), 44, 0.34),
+            "settings": ((100, 180, 255), 18, 0.14),
+        }
+        if state not in color_map:
+            return
+
+        color, max_alpha, duration = color_map[state]
+        if time_in_state > duration:
+            return
+
+        progress = 1.0 - (time_in_state / duration)
+        alpha = int(max_alpha * progress)
+        overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        overlay.fill((*color, alpha))
+        surface.blit(overlay, (0, 0))
+
+    def _toggle_settings(self, open_state: bool | None = None) -> None:
+        target_state = (not self._settings_open) if open_state is None else bool(open_state)
+        if self._settings_open == target_state:
+            return
+
+        self._settings_open = target_state
+        if target_state:
+            self._show_help = False
+            self.animator.trigger("settings")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice("Settings opened.", duration=1.4)
+        else:
+            self._set_notice("Settings closed.", duration=1.4)
+
+    def _default_settings(self) -> dict[str, Any]:
+        return {
+            "settings_format_version": SETTINGS_FORMAT_VERSION,
+            "fullscreen": DEFAULT_FULLSCREEN,
+            "fast_mode": DEFAULT_FAST_MODE,
+            "master_volume": DEFAULT_MASTER_VOLUME,
+            "music_volume": DEFAULT_MUSIC_VOLUME,
+            "muted": False,
+            "presentation_scale": DEFAULT_PRESENTATION_SCALE,
+            "ui_scale": DEFAULT_UI_SCALE,
+            "screen_shake": DEFAULT_SCREEN_SHAKE,
+            "high_contrast": DEFAULT_HIGH_CONTRAST,
+        }
+
+    def _load_settings(self) -> None:
+        defaults = self._default_settings()
+        path_exists = SETTINGS_DATA_PATH.exists()
+        payload = self._load_json(SETTINGS_DATA_PATH)
+        if not isinstance(payload, dict):
+            self._apply_loaded_settings(defaults)
+            self._persist_settings()
+            if path_exists:
+                LOGGER.warning("Settings file was invalid and has been reset to defaults.")
+            return
+
+        merged = {**defaults}
+        for key in defaults:
+            if key in payload:
+                merged[key] = payload[key]
+        self._apply_loaded_settings(merged)
+        self._persist_settings()
+
+    def _apply_loaded_settings(self, settings: dict[str, Any]) -> None:
+        self._fullscreen = bool(settings.get("fullscreen", DEFAULT_FULLSCREEN))
+        self._fast_mode = bool(settings.get("fast_mode", DEFAULT_FAST_MODE))
+        self._presentation_scale = self._clamp_setting(
+            settings.get("presentation_scale", DEFAULT_PRESENTATION_SCALE),
+            MIN_PRESENTATION_SCALE,
+            MAX_PRESENTATION_SCALE,
+        )
+        self._ui_scale = self._clamp_setting(
+            settings.get("ui_scale", DEFAULT_UI_SCALE),
+            MIN_UI_SCALE,
+            MAX_UI_SCALE,
+        )
+        self._screen_shake = bool(settings.get("screen_shake", DEFAULT_SCREEN_SHAKE))
+        self._high_contrast = bool(settings.get("high_contrast", DEFAULT_HIGH_CONTRAST))
+        self.audio_manager.apply_settings(settings)
+
+    def _apply_setting_change(self, setting_name: str, value: Any, screen: Any) -> Any:
+        if setting_name == "fullscreen":
+            self._fullscreen = bool(value)
+            self._persist_settings()
+            updated_screen = self._create_display_surface() if pygame is not None else screen
+            mode = "Fullscreen" if self._fullscreen else "Windowed"
+            self.animator.trigger("settings")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(f"{mode} mode enabled.", duration=1.6)
+            return updated_screen
+
+        if setting_name == "fast_mode":
+            self._fast_mode = bool(value)
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(
+                "Fast mode enabled." if self._fast_mode else "Fast mode disabled.",
+                duration=1.6,
+            )
+            return screen
+
+        if setting_name == "master_volume":
+            volume = self.audio_manager.set_master_volume(float(value))
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(f"SFX volume {int(volume * 100)}%.", duration=1.6)
+            return screen
+
+        if setting_name == "music_volume":
+            volume = self.audio_manager.set_music_volume(float(value))
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(f"Music volume {int(volume * 100)}%.", duration=1.6)
+            return screen
+
+        if setting_name == "muted":
+            muted = self.audio_manager.set_muted(bool(value))
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice("Audio muted." if muted else "Audio restored.", duration=1.6)
+            return screen
+
+        if setting_name == "presentation_scale":
+            self._presentation_scale = self._clamp_setting(
+                float(value),
+                MIN_PRESENTATION_SCALE,
+                MAX_PRESENTATION_SCALE,
+            )
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(
+                f"Presentation scale {int(self._presentation_scale * 100)}%.",
+                duration=1.6,
+            )
+            return screen
+
+        if setting_name == "ui_scale":
+            self._ui_scale = self._clamp_setting(float(value), MIN_UI_SCALE, MAX_UI_SCALE)
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(f"UI scale {int(self._ui_scale * 100)}%.", duration=1.6)
+            return screen
+
+        if setting_name == "screen_shake":
+            self._screen_shake = bool(value)
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(
+                "Screen shake enabled." if self._screen_shake else "Screen shake disabled.",
+                duration=1.6,
+            )
+            return screen
+
+        if setting_name == "high_contrast":
+            self._high_contrast = bool(value)
+            self._persist_settings()
+            self.animator.trigger("settings")
+            self._set_notice(
+                "High contrast enabled." if self._high_contrast else "High contrast disabled.",
+                duration=1.6,
+            )
+            return screen
+
+        self._trigger_denial_feedback(f"Unsupported setting: {setting_name}")
+        return screen
+
+    def _apply_runtime_settings(self, settings: dict[str, Any], screen: Any) -> Any:
+        self._apply_loaded_settings(settings)
+        if pygame is not None:
+            screen = self._create_display_surface()
+        return screen
+
+    def _persistent_settings_payload(self) -> dict[str, Any]:
+        return {
+            "settings_format_version": SETTINGS_FORMAT_VERSION,
+            "fullscreen": self._fullscreen,
+            "fast_mode": self._fast_mode,
+            "master_volume": self.audio_manager.master_volume,
+            "music_volume": self.audio_manager.music_volume,
+            "muted": self.audio_manager.muted,
+            "presentation_scale": self._presentation_scale,
+            "ui_scale": self._ui_scale,
+            "screen_shake": self._screen_shake,
+            "high_contrast": self._high_contrast,
+        }
+
+    def _persist_settings(self) -> None:
+        self._save_json_atomic(SETTINGS_DATA_PATH, self._persistent_settings_payload())
+
+    def _bootstrap_run_state(self) -> tuple[str, str]:
+        restored, restore_message, restore_level = self._restore_saved_run_if_available()
+        if restored:
+            self.animator.trigger(self._animator_state_for_current_state(self.state_manager.current_state))
+            return restore_message, restore_level
+
+        self.state_manager.start_new_run()
+        self.animator.trigger("map")
+        self._persist_run_state(self._snapshot_with_hand())
+        if restore_message is not None:
+            return restore_message, restore_level
+        return "Run ready. Choose a route with the mouse or 1-9.", "info"
+
+    def _restore_saved_run_if_available(self) -> tuple[bool, str | None, str]:
+        path_exists = RUN_SAVE_DATA_PATH.exists()
+        payload = self._load_json(RUN_SAVE_DATA_PATH)
+        if payload is None:
+            if path_exists:
+                self._clear_run_save()
+                return False, "Saved run data was invalid. Started a fresh run.", "error"
+            return False, None, "info"
+
+        if not isinstance(payload, dict):
+            self._clear_run_save()
+            return False, "Saved run data was invalid. Started a fresh run.", "error"
+
+        if payload.get("current_state") in {"victory", "game_over"}:
+            self._clear_run_save()
+            return False, "Previous run had already ended. Started a fresh run.", "info"
+
+        try:
+            snapshot = self.state_manager.restore_save_data(payload)
+        except Exception as exc:  # pragma: no cover - recovery path.
+            LOGGER.warning("Failed to restore saved run: %s", exc)
+            self._clear_run_save()
+            return False, "Saved run could not be restored. Started a fresh run.", "error"
+
+        if snapshot["current_state"] not in {"map", "combat", "reward", "shop", "event"}:
+            self._clear_run_save()
+            return False, "Saved run was not resumable. Started a fresh run.", "error"
+
+        self._persist_run_state(snapshot)
+        return True, "Continued your saved run. Press N to start over anytime.", "success"
+
+    def _persist_run_state(self, snapshot: dict[str, Any]) -> None:
+        current_state = snapshot.get("current_state")
+        if current_state not in {"map", "combat", "reward", "shop", "event"}:
+            self._clear_run_save()
+            return
+
+        try:
+            payload = self.state_manager.build_save_data()
+            self._save_json_atomic(RUN_SAVE_DATA_PATH, payload)
+        except Exception as exc:  # pragma: no cover - recovery path.
+            LOGGER.warning("Failed to persist run state: %s", exc)
+            self._set_notice("Auto-save failed, but the run is still active.", level="error", duration=2.6)
+
+    def _clear_run_save(self) -> None:
+        try:
+            RUN_SAVE_DATA_PATH.unlink(missing_ok=True)
+        except OSError:
+            return
+
+    def _load_json(self, path: Path) -> Any | None:
+        try:
+            if not path.exists():
+                return None
+            with path.open("r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def _save_json_atomic(self, path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = path.with_suffix(f"{path.suffix}.tmp")
+        with temporary_path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary_path.replace(path)
+
+    def _clamp_setting(self, value: Any, minimum: float, maximum: float) -> float:
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            numeric_value = minimum
+        return max(minimum, min(maximum, numeric_value))
+
+    def _trigger_denial_feedback(self, message: str) -> None:
+        self.animator.trigger("deny")
+        self.audio_manager.trigger("deny")
+        self._set_notice(message, level="error")
+
+    def _action_uses_cooldown(self, action_type: str) -> bool:
+        return action_type in {
+            "new_run",
+            "select_node",
+            "play_card",
+            "end_turn",
+            "confirm_reward_selection",
+            "skip_reward_section",
+            "continue_from_reward",
+            "confirm_shop_purchase",
+            "reroll_shop_inventory",
+            "leave_shop",
+            "confirm_event_choice",
+            "continue_from_event",
+        }
+
+    def _animator_state_for_current_state(self, current_state: str) -> str:
+        if current_state == "map":
+            return "map"
+        if current_state in {"reward", "shop", "event"}:
+            return "select"
+        if current_state in {"victory", "game_over"}:
+            return "idle"
+        return "idle"
+
 
 def simulate_game_loop() -> dict[str, Any]:
     loop = GameLoop()
+    loop._load_settings()
     start_snapshot = loop.state_manager.start_new_run(seed=31)
     before_select = loop._snapshot_with_hand()
     loop.state_manager.select_map_node(start_snapshot["map"]["available_node_ids"][0])
@@ -221,4 +982,6 @@ def simulate_game_loop() -> dict[str, Any]:
         "animation_state": loop.animator.get_state()["current_state"],
         "audio_history": list(loop.audio_manager.trigger_history),
         "presentation_layout": layout,
+        "notice": loop._notice,
+        "settings": loop._persistent_settings_payload(),
     }

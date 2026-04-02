@@ -31,14 +31,18 @@ class ActionResolver:
         if action_type == "block":
             if not hasattr(target, "gain_block"):
                 raise ValueError("Block actions require a target with gain_block().")
-            target.gain_block(value)
-            return {"type": action_type, "value": value, "applied": value}
+            applied = target.gain_block(value)
+            if not isinstance(applied, int):
+                applied = value
+            return {"type": action_type, "value": value, "applied": applied}
 
         if action_type == "heal":
             if not hasattr(target, "heal"):
                 raise ValueError("Heal actions require a target with heal().")
-            target.heal(value)
-            return {"type": action_type, "value": value, "applied": value}
+            applied = target.heal(value)
+            if not isinstance(applied, int):
+                applied = value
+            return {"type": action_type, "value": value, "applied": applied}
 
         if action_type == "draw":
             if not hasattr(target, "deck_manager") or target.deck_manager is None:

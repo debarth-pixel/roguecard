@@ -22,5 +22,81 @@
         "value": 5
       }
     ]
+  },
+  {
+    "id": "surge_strike_01",
+    "name": "Surge Strike",
+    "cost": 2,
+    "type": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 12
+      }
+    ]
+  },
+  {
+    "id": "firewall_01",
+    "name": "Firewall",
+    "cost": 1,
+    "type": "skill",
+    "effects": [
+      {
+        "type": "block",
+        "value": 8
+      }
+    ]
+  },
+  {
+    "id": "patch_kit_01",
+    "name": "Patch Kit",
+    "cost": 1,
+    "type": "skill",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "cache_draw_01",
+    "name": "Cache Draw",
+    "cost": 1,
+    "type": "skill",
+    "effects": [
+      {
+        "type": "draw",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "overclock_01",
+    "name": "Overclock",
+    "cost": 0,
+    "type": "skill",
+    "effects": [
+      {
+        "type": "energy",
+        "value": 1
+      },
+      {
+        "type": "draw",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "volley_01",
+    "name": "Volley",
+    "cost": 1,
+    "type": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 8
+      }
+    ]
   }
 ]

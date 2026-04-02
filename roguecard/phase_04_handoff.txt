@@ -1,0 +1,33 @@
+PHASE OBJECTIVE
+Completion status: Complete
+Settings, accessibility, and comfort pass with live persistence.
+
+Audit findings
+- Comfort options existed mostly as hidden runtime hotkeys, which made them hard to discover and hard to trust.
+- Settings needed persistence, safe fallback behavior, and a clearer accessibility story around contrast and scale.
+- The game needed a real in-flow settings surface instead of a scattered set of debug-like controls.
+
+Player-facing changes shipped
+- Added an in-game settings overlay with mouse and keyboard navigation.
+- Persisted fullscreen, fast mode, SFX volume, music volume, mute, presentation scale, UI scale, screen shake, and high-contrast mode to data/settings.json.
+- Settings now apply live, save automatically, and safely reset to defaults.
+- High-contrast and UI scale options now feed directly into the presentation layer instead of being cosmetic placeholders.
+
+Files touched
+- roguecard/config.py
+- roguecard/core/game_loop.py
+- roguecard/ui/ui_manager.py
+- roguecard/audio/audio_manager.py
+- roguecard/data/settings.json
+
+Verification performed
+- Python 3.13 compile checks.
+- Headless settings simulation and persistence checks.
+- Corrupt settings-file recovery test, confirming reset-to-default behavior.
+
+Known issues / deferred work
+- There is no event/dialogue text-speed control because there is still no real dialogue/event UI.
+- Music volume is future-proofed, but actual music playback content is still placeholder-level.
+
+Next recommended starting point
+- Start Phase 5 in roguecard/core/state_manager.py and roguecard/core/game_loop.py to harden run saves, resume flow, and malformed-state recovery.

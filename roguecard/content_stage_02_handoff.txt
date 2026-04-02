@@ -1,0 +1,43 @@
+Content Stage 02 Handoff: Shop System
+
+Completion Status
+- Completed and verified on 2026-04-02.
+
+Objective
+- Turn shop nodes into a complete playable loop with persistent inventory, card purchases, purge service, confirmation flow, return-to-map behavior, and save/load support.
+
+Short Audit Findings
+- Shop nodes previously bounced back to the map with placeholder text only.
+- The run had no spendable economy loop.
+- Save format v3 could not preserve an in-progress shop session.
+- The UI had no screen for inspecting offers or choosing purge targets.
+
+Player-Facing Changes Shipped
+- Shop nodes now open a dedicated shop screen instead of placeholder messaging.
+- Players can spend credits on card offers from the reward/shop pool.
+- Players can buy a purge service and choose a persistent deck card to remove.
+- Sold-out and unavailable offers are preserved within the current shop.
+- Shop state now saves and restores safely mid-session.
+- Leaving the shop cleanly returns to the map with route progression intact.
+
+Files Touched
+- config.py
+- entities/player.py
+- cards/deck_manager.py
+- core/state_manager.py
+- core/game_loop.py
+- ui/ui_manager.py
+- ui/shop_ui.py
+
+Verification Performed
+- Python compile checks on the touched modules.
+- Headless shop checks for deterministic inventory generation, successful purchase, insufficient-credit rejection, purge-target handling, leave flow, and save/restore round-trip.
+- Dummy-SDL smoke render of the shop screen plus auto-save/auto-resume of an active shop state through the real game loop.
+
+Known Issues / Deferred Work
+- Shop inventory is intentionally small and uses fixed prices from config.
+- There is still no event-node system yet.
+- The later asset/presentation pass is still deferred until the event system is playable.
+
+Exact Next Recommended Starting Point
+- Begin Content Stage 03 by implementing the event-node system in `core/state_manager.py` and a dedicated event UI flow, then extend save serialization for active event state before starting the tied asset/presentation pass.

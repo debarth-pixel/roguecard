@@ -9,6 +9,10 @@ ALLOWED_ANIMATION_STATES = {
     "card_play",
     "attack",
     "hit",
+    "heal",
+    "block",
+    "deny",
+    "settings",
     "victory",
     "defeat",
 }

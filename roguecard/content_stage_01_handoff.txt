@@ -1,0 +1,43 @@
+Content Stage 01 Handoff: Reward Flow After Combat
+
+Completion Status
+- Completed and verified on 2026-04-02.
+
+Objective
+- Add a full post-combat reward loop that bridges combat resolution back into run progression without breaking the existing QoL/stability work.
+
+Short Audit Findings
+- Combat victories returned directly to the map with no progression choice layer.
+- The deck had no persistent mutation API for add/remove flows.
+- Player state had no economy field.
+- Save format v2 could not preserve an in-progress reward screen.
+
+Player-Facing Changes Shipped
+- Non-boss victories now grant credits.
+- Regular combat can open a seeded post-combat reward screen.
+- Elite combat always opens a reward screen with both a card choice and a purge choice.
+- Reward sections now support select, confirm, skip, and continue flows.
+- Reward state now saves and restores safely mid-selection.
+
+Files Touched
+- config.py
+- data/cards.json
+- entities/player.py
+- cards/deck_manager.py
+- core/state_manager.py
+- core/game_loop.py
+- ui/ui_manager.py
+- ui/reward_ui.py
+
+Verification Performed
+- Python compile checks on the touched modules.
+- Headless reward flow checks for regular combat, elite combat, boss bypass, player defeat, add-card, purge, skip, continue gating, and save/restore round-trip.
+- Dummy-SDL smoke render of the reward screen through the real game loop.
+
+Known Issues / Deferred Work
+- Rewards currently use a small explicit non-starter card pool.
+- There is still no event-node content yet.
+- The asset/presentation pass for bespoke reward art/sound is deferred until after shop and event systems are finished.
+
+Exact Next Recommended Starting Point
+- Begin Content Stage 02 by replacing placeholder shop-node handling with a persistent shop inventory, purchase flow, purge service, and shop-state save/restore.

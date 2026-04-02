@@ -63,6 +63,20 @@ class DeckManager:
         for card in list(self.hand):
             self.discard_card(card)
 
+    def add_to_starting_deck(self, card: CardBase) -> None:
+        self.starting_deck.append(card)
+
+    def remove_from_starting_deck(self, index: int) -> CardBase:
+        if index < 0 or index >= len(self.starting_deck):
+            raise IndexError("Requested deck index is out of range.")
+        return self.starting_deck.pop(index)
+
+    def normalize_overworld_deck(self) -> None:
+        self.draw_pile = list(self.starting_deck)
+        self.hand.clear()
+        self.discard_pile.clear()
+        self.exhaust_pile.clear()
+
     def _reshuffle_if_needed(self) -> bool:
         if self.draw_pile or not self.discard_pile:
             return False
@@ -104,9 +118,14 @@ def simulate_deck_manager() -> dict[str, int]:
     deck.discard_hand()
     redraw = deck.draw_cards(3)
     deck.exhaust_card(redraw[0])
+    deck.add_to_starting_deck(library.create_card("volley_01"))
+    removed_card = deck.remove_from_starting_deck(0)
+    deck.normalize_overworld_deck()
     return {
         "first_draw": len(first_draw),
         "redraw": len(redraw),
+        "removed_card": removed_card.id,
+        "starting_deck": len(deck.starting_deck),
         "draw_pile": len(deck.draw_pile),
         "hand": len(deck.hand),
         "discard_pile": len(deck.discard_pile),

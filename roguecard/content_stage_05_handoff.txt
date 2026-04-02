@@ -1,0 +1,93 @@
+Content Stage 05 Handoff: Shop Reroll Sink Plus Bounded Declutter
+
+Completion Status
+- Completed and verified on 2026-04-02.
+
+Objective
+- Add one new shop-only credit sink through a repeatable reroll service.
+- Validate whether rerolls reduce excess end-of-run currency without destabilizing reward, shop, event, or save systems.
+- Finish a bounded declutter pass using real screenshot review rather than a full UI redesign.
+
+What Shipped
+- Added `StateManager.reroll_shop_inventory()` as the shop-only reroll sink.
+- Kept save compatibility at `v5` and extended active shop state through optional nested fields only:
+  - `reroll_count`
+  - `seen_card_ids`
+- Rerolls now:
+  - refresh only unsold card offers
+  - preserve purchased/sold-out card slots
+  - leave purge service unchanged
+  - scale cost within a shop visit using `12 + (8 * rerolls_used_here)`
+- Updated the headless economy audit to compare:
+  - `baseline`
+  - `current_tuned`
+  - `reroll_enabled`
+- Finished a bounded declutter pass across modal screens:
+  - compacted top chrome
+  - slimmed modal notice banners
+  - removed most always-visible footer control strips
+  - reduced reward purge CTA density
+  - removed leftover placeholder card-art text from combat hand cards
+  - removed redundant run-complete heading text
+  - hid inactive event purge space
+
+Audit Findings
+- The reroll service works correctly and does increase paid sinks, but only slightly.
+- On 200 seeds, reroll-enabled runs averaged:
+  - `58.27` final credits
+  - `0.51` shop card buys
+  - `0.04` shop rerolls
+  - `0.85` paid sinks
+  - `11.55` final deck size
+  - `0.94` win rate
+- Compared with the already tuned Stage 04 baseline, rerolls only reduced final credits by `0.15` on average.
+- Result: the reroll sink is stable and readable, but not strong enough by itself to fix the excess-currency problem.
+
+Files Touched
+- `config.py`
+- `core/state_manager.py`
+- `core/game_loop.py`
+- `core/run_economy_report.py`
+- `core/visual_audit_capture.py`
+- `ui/ui_manager.py`
+- `ui/shop_ui.py`
+- `ui/reward_ui.py`
+- `ui/event_ui.py`
+- `ui/combat_ui.py`
+- `ui/map_ui.py`
+- `ui/render_utils.py`
+- `run_economy_audit_report.txt`
+- `content_stage_05_handoff.txt`
+
+Verification Performed
+- Python compile checks for all touched Stage 05 modules.
+- Headless reroll checks confirming:
+  - scaled reroll pricing
+  - unsold-card-only rerolls
+  - sold-out slot preservation
+  - purge-service preservation
+  - `v5` round-trip restore
+  - older `v5` shop-state defaults when reroll keys are missing
+- 200-seed headless economy audit via `simulate_run_economy(seed_count=200, start_seed=1)`.
+- Non-persisting screenshot capture through `core/visual_audit_capture.py`.
+- 3-agent screenshot review across:
+  - shop/reward
+  - combat
+  - map/event/run-flow
+- Dummy-SDL launcher smoke:
+  - `py -3.13 .\roguecard\main.py` stayed alive under timeout after the final fixes.
+
+Screenshot Output Location
+- `C:\Users\workd\AppData\Local\Temp\roguecard_visual_audit_66kud_x9`
+
+Known Remaining Issues
+- End-of-run credits are still too high on average.
+- Paid sink count remains below target.
+- The UI is no longer blocked by obvious Stage 05 clutter, but placeholder background art still contributes some visual noise that is best handled in a later asset/presentation pass rather than more chrome cleanup.
+
+Recommendation
+- A second shop-only sink is still recommended.
+- The safest next content stage is:
+  - add one more spend service inside the existing shop loop
+  - rerun the economy audit
+  - only then expand the reward/shop card pool or event pool

@@ -1,0 +1,42 @@
+Content Stage 03 Handoff: Event Node System
+
+Completion Status
+- Completed and verified on 2026-04-02.
+
+Objective
+- Replace placeholder event nodes with a complete playable single-screen event system that supports authored data, conditional choices, deterministic risky outcomes, clean return-to-map flow, and safe save/load for active event state.
+
+Short Audit Findings
+- Event nodes previously returned to the map with placeholder text only.
+- The run/save loop had no active event state or event-specific temporary context.
+- UI routing had no event screen and no event controls in the current help/feedback flow.
+- There was no data-driven event authoring path that could grow without rewriting `StateManager`.
+
+Player-Facing Changes Shipped
+- Event nodes now open a dedicated event screen instead of placeholder messaging.
+- Added 6 authored cyberpunk events with multiple choice types and varied outcomes.
+- Added conditional choice availability, purge target selection, and deterministic risky branches.
+- Added event save/restore so unresolved and resolved event screens can resume safely.
+- Added event controls to the help overlay and wired event flow into existing feedback/audio cues.
+
+Files Touched
+- config.py
+- data/events.json
+- core/event_library.py
+- core/state_manager.py
+- core/game_loop.py
+- ui/event_ui.py
+- ui/ui_manager.py
+
+Verification Performed
+- Python compile checks on all touched Stage 03 modules.
+- Headless tests for loader validation, event entry, conditional choice availability, every supported event outcome type, purge behavior, risky outcome persistence, repeat avoidance, and v4/v5 save compatibility.
+- Dummy-SDL smoke test for map -> event -> save/restore -> resolve -> continue -> map.
+
+Known Issues / Deferred Work
+- Stage 03 uses a single-screen modal event model only; there are no multi-scene events yet.
+- Event presentation currently reuses the existing UI/audio style instead of bespoke event assets.
+- The event pool is intentionally small and fully authored for stability.
+
+Exact Next Recommended Starting Point
+- Begin the tied asset/presentation pass for reward, shop, and event systems, or expand authored event content using the new `events.json` + `core/event_library.py` framework without changing the event runtime shape.
