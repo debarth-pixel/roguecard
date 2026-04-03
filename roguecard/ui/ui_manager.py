@@ -9,15 +9,20 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from config import (
-    HELP_PANEL_HEIGHT,
-    HELP_PANEL_WIDTH,
     MAX_PRESENTATION_SCALE,
     MAX_UI_SCALE,
     MIN_PRESENTATION_SCALE,
     MIN_UI_SCALE,
+    MODIFIER_ICON_GAP,
+    MODIFIER_ICON_SIZE,
+    MODIFIER_TOOLTIP_WIDTH,
+    PAUSE_BUTTON_HEIGHT,
+    PAUSE_BUTTON_WIDTH,
     PRESENTATION_SCALE_STEP,
     SETTINGS_PANEL_HEIGHT,
     SETTINGS_PANEL_WIDTH,
+    SETTINGS_TAB_HEIGHT,
+    SETTINGS_TAB_WIDTH,
     UI_SCALE_STEP,
     VOLUME_STEP,
     resolve_asset_path,
@@ -25,9 +30,11 @@ from config import (
 from ui.combat_ui import CombatUI
 from ui.event_ui import EventUI
 from ui.map_ui import MapUI
+from ui.modifier_draft_ui import ModifierDraftUI
 from ui.reward_ui import RewardUI
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 from ui.shop_ui import ShopUI
+from ui.title_ui import TitleUI
 
 
 class UIManager:
@@ -35,8 +42,10 @@ class UIManager:
         self.combat_ui = CombatUI()
         self.event_ui = EventUI()
         self.map_ui = MapUI()
+        self.modifier_draft_ui = ModifierDraftUI()
         self.reward_ui = RewardUI()
         self.shop_ui = ShopUI()
+        self.title_ui = TitleUI()
         self._font = None
         self._small_font = None
         self._tiny_font = None
@@ -46,13 +55,19 @@ class UIManager:
         self._settings_hovered_action: str | None = None
         self._settings_pressed_action: str | None = None
         self._settings_selected_index = 0
+        self._pause_hovered_action: str | None = None
+        self._pause_pressed_action: str | None = None
+        self._pause_selected_index = 0
+        self._modifier_hovered_id: str | None = None
 
     def preload_assets(self) -> None:
         self.map_ui.preload_assets()
         self.combat_ui.preload_assets()
         self.event_ui.preload_assets()
+        self.modifier_draft_ui.preload_assets()
         self.reward_ui.preload_assets()
         self.shop_ui.preload_assets()
+        self.title_ui.preload_assets()
         if pygame is None:
             return
         for path in (
@@ -67,8 +82,29 @@ class UIManager:
         presentation = state_snapshot.get("presentation", {})
         if presentation.get("settings_open"):
             return self._handle_settings_event(event, presentation)
+        if presentation.get("pause_open"):
+            return self._handle_pause_event(event)
 
         current_state = state_snapshot["current_state"]
+        if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
+            top_action = self._handle_top_bar_event(event, state_snapshot)
+            if top_action is not None:
+                return top_action
+
+        if current_state == "map":
+            self._update_modifier_hover(event, state_snapshot)
+        else:
+            self._modifier_hovered_id = None
+
+        if current_state == "title" and state_snapshot.get("title") is not None:
+            action = self.title_ui.handle_event(event, self._title_view_state(state_snapshot))
+            if action is not None:
+                return action
+
+        if current_state == "modifier_draft" and state_snapshot.get("modifier_draft") is not None:
+            action = self.modifier_draft_ui.handle_event(event, self._modifier_draft_view_state(state_snapshot))
+            if action is not None:
+                return action
 
         if current_state == "combat" and state_snapshot["combat"] is not None:
             action = self.combat_ui.handle_event(event, self._combat_view_state(state_snapshot))
@@ -110,7 +146,11 @@ class UIManager:
         self._ensure_fonts(state_snapshot.get("presentation", {}).get("ui_scale", 1.0))
         current_state = state_snapshot["current_state"]
 
-        if current_state == "combat" and state_snapshot["combat"] is not None:
+        if current_state == "title" and state_snapshot.get("title") is not None:
+            self.title_ui.render(surface, self._title_view_state(state_snapshot))
+        elif current_state == "modifier_draft" and state_snapshot.get("modifier_draft") is not None:
+            self.modifier_draft_ui.render(surface, self._modifier_draft_view_state(state_snapshot))
+        elif current_state == "combat" and state_snapshot["combat"] is not None:
             self.combat_ui.render(surface, self._combat_view_state(state_snapshot))
         elif current_state == "event" and state_snapshot["event"] is not None:
             self.event_ui.render(surface, self._event_view_state(state_snapshot))
@@ -125,7 +165,10 @@ class UIManager:
         else:
             surface.fill((18, 21, 28))
 
-        self._render_top_bar(surface, state_snapshot)
+        if current_state not in {"title", "victory", "game_over"}:
+            self._render_top_bar(surface, state_snapshot)
+        if current_state == "map" and not state_snapshot.get("presentation", {}).get("pause_open") and not state_snapshot.get("presentation", {}).get("settings_open"):
+            self._render_map_modifier_icons(surface, state_snapshot)
         self._render_notice(
             surface,
             state_snapshot.get("ui_notice"),
@@ -136,10 +179,14 @@ class UIManager:
         presentation = state_snapshot.get("presentation", {})
         if presentation.get("settings_open"):
             self._render_settings_overlay(surface, presentation)
-        elif presentation.get("show_help"):
-            self._render_help_overlay(surface, current_state, presentation)
+        elif presentation.get("pause_open"):
+            self._render_pause_overlay(surface)
 
     def simulate_ui(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
+        if state_snapshot["current_state"] == "title" and state_snapshot.get("title") is not None:
+            return self.title_ui.build_layout(self._title_view_state(state_snapshot))
+        if state_snapshot["current_state"] == "modifier_draft" and state_snapshot.get("modifier_draft") is not None:
+            return self.modifier_draft_ui.build_layout(self._modifier_draft_view_state(state_snapshot))
         if state_snapshot["current_state"] == "combat" and state_snapshot["combat"] is not None:
             return self.combat_ui.build_layout(self._combat_view_state(state_snapshot))
         if state_snapshot["current_state"] == "event" and state_snapshot["event"] is not None:
@@ -176,6 +223,20 @@ class UIManager:
             "presentation": state_snapshot.get("presentation", {}),
         }
 
+    def _title_view_state(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "status_message": state_snapshot["status_message"],
+            "title": state_snapshot["title"],
+            "presentation": state_snapshot.get("presentation", {}),
+        }
+
+    def _modifier_draft_view_state(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "status_message": state_snapshot["status_message"],
+            "modifier_draft": state_snapshot["modifier_draft"],
+            "presentation": state_snapshot.get("presentation", {}),
+        }
+
     def _reward_view_state(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         return {
             "status_message": state_snapshot["status_message"],
@@ -207,12 +268,7 @@ class UIManager:
             "subtitle": state_snapshot["status_message"],
             "prompt": "Press Enter, Space, or N to start a new run.",
             "banner": "banner_victory.png" if is_victory else "banner_game_over.png",
-            "chips": [
-                "H: controls",
-                "S: settings",
-                "F11: windowed" if state_snapshot.get("presentation", {}).get("fullscreen") else "F11: fullscreen",
-                "N: new run",
-            ],
+            "hint": "S opens settings",
         }
 
     def _render_status_screen(self, surface: Any, layout: dict[str, Any]) -> None:
@@ -225,43 +281,233 @@ class UIManager:
         surface.blit(panel, (260, 220))
         surface.blit(banner, (260, 58))
 
+        self._draw_text(surface, layout["title"], (420, 268), self._title_font, width=430)
         self._draw_text(surface, layout["subtitle"], (330, 348), self._small_font, width=620)
         self._draw_text(surface, layout["prompt"], (356, 420), self._small_font, width=580)
-
-        chip_x = 314
-        for chip in layout["chips"]:
-            chip_width = max(132, self._tiny_font.size(chip)[0] + 24)
-            self._draw_chip(surface, chip, (chip_x, 462), chip_width, accent=(126, 140, 168))
-            chip_x += chip_width + 12
+        self._draw_text(surface, layout["hint"], (524, 462), self._tiny_font, width=240)
 
     def _render_top_bar(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
         presentation = state_snapshot.get("presentation", {})
         high_contrast = presentation.get("high_contrast", False)
-        chip_border = (220, 230, 255) if high_contrast else (105, 120, 150)
+        accent = (220, 230, 255) if high_contrast else (105, 120, 150)
+        layout = self._top_bar_layout(state_snapshot)
+        if layout["state_rect"] is not None:
+            state_rect = pygame.Rect(*layout["state_rect"])
+            pygame.draw.rect(surface, (12, 19, 30), state_rect, border_radius=12)
+            pygame.draw.rect(surface, accent, state_rect, 2, border_radius=12)
+            self._draw_text(surface, layout["state_label"], (state_rect.x + 16, state_rect.y + 10), self._tiny_font, width=state_rect.width - 32)
+
+        pause_rect = pygame.Rect(*layout["pause_rect"])
+        hovered = self._pause_hovered_action == "top_pause"
+        pressed = self._pause_pressed_action == "top_pause"
+        fill = (24, 34, 50)
+        if hovered:
+            fill = (40, 54, 76)
+        if pressed:
+            fill = (255, 214, 110)
+        pygame.draw.rect(surface, fill, pause_rect, border_radius=12)
+        pygame.draw.rect(surface, accent if not pressed else (255, 214, 110), pause_rect, 2, border_radius=12)
+        label_color = (18, 24, 36) if pressed else (240, 245, 255)
+        pause_label = self._small_font.render("Pause", True, label_color)
+        surface.blit(pause_label, pause_label.get_rect(center=pause_rect.center))
+
+    def _top_bar_layout(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         current_state = state_snapshot["current_state"]
-        compact_state = current_state in {"combat", "reward", "shop", "event"}
-        panel_size = (1232, 48) if compact_state else (1232, 68)
-        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), panel_size)
-        surface.blit(panel, (24, 10))
-
-        state_label = current_state.replace("_", " ").title()
+        state_label = {
+            "modifier_draft": "Run Draft",
+            "map": "Map",
+            "combat": "Combat",
+            "reward": "Reward",
+            "shop": "Shop",
+            "event": "Event",
+        }.get(current_state, current_state.replace("_", " ").title())
         run_seed = state_snapshot.get("run_seed")
-        left_text = f"{state_label} | Seed {run_seed}" if run_seed is not None else state_label
-        self._draw_text(surface, left_text, (44, 20 if compact_state else 26), self._small_font)
-        if not compact_state:
-            self._draw_text(surface, state_snapshot["status_message"], (330, 26), self._small_font, width=420)
+        label = f"{state_label} | Seed {run_seed}" if run_seed is not None and current_state in {"map", "modifier_draft"} else state_label
+        state_rect = (24, 14, 228 if current_state in {"map", "modifier_draft"} else 152, 34)
+        pause_rect = (1280 - PAUSE_BUTTON_WIDTH - 24, 12, PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)
+        return {
+            "state_rect": state_rect,
+            "state_label": label,
+            "pause_rect": pause_rect,
+        }
 
-        audio_chip = "Muted" if presentation.get("muted") else f"Audio {int(presentation.get('master_volume', 0) * 100)}%"
-        chips = [
-            "Fast On" if presentation.get("fast_mode") else "Fast Off",
-            audio_chip,
-            "Settings",
+    def _handle_top_bar_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+        if pygame is None:
+            return None
+        pause_rect = self._top_bar_layout(state_snapshot)["pause_rect"]
+        if event.type == pygame.MOUSEMOTION:
+            self._pause_hovered_action = "top_pause" if point_in_rect(event.pos, pause_rect) else None
+            return None
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._pause_pressed_action = "top_pause" if point_in_rect(event.pos, pause_rect) else None
+            return None
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            action_id = "top_pause" if point_in_rect(event.pos, pause_rect) else None
+            pressed_action = self._pause_pressed_action
+            self._pause_pressed_action = None
+            if action_id is not None and action_id == pressed_action:
+                return {"type": "pause_open"}
+        return None
+
+    def _modifier_icon_layout(self, state_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+        modifiers = state_snapshot.get("run_modifiers", {}).get("active", [])
+        if not modifiers:
+            return []
+        pause_rect = self._top_bar_layout(state_snapshot)["pause_rect"]
+        x = pause_rect[0] + ((pause_rect[2] - MODIFIER_ICON_SIZE) // 2)
+        start_y = pause_rect[1] + pause_rect[3] + 10
+        return [
+            {
+                **modifier,
+                "rect": (
+                    x,
+                    start_y + (index * (MODIFIER_ICON_SIZE + MODIFIER_ICON_GAP)),
+                    MODIFIER_ICON_SIZE,
+                    MODIFIER_ICON_SIZE,
+                ),
+            }
+            for index, modifier in enumerate(modifiers)
         ]
-        chip_x = 786 if compact_state else 796
-        for chip in chips:
-            chip_width = max(90, self._tiny_font.size(chip)[0] + 18)
-            self._draw_chip(surface, chip, (chip_x, 15 if compact_state else 21), chip_width, accent=chip_border)
-            chip_x += chip_width + 8
+
+    def _update_modifier_hover(self, event: Any, state_snapshot: dict[str, Any]) -> None:
+        if pygame is None or event.type not in {pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP}:
+            return
+        self._modifier_hovered_id = None
+        for modifier in self._modifier_icon_layout(state_snapshot):
+            if point_in_rect(event.pos, modifier["rect"]):
+                self._modifier_hovered_id = modifier["id"]
+                return
+
+    def _render_map_modifier_icons(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
+        modifiers = self._modifier_icon_layout(state_snapshot)
+        if not modifiers:
+            return
+
+        for modifier in modifiers:
+            rect = pygame.Rect(*modifier["rect"])
+            icon = self._scaled_image(
+                resolve_asset_path("ui", "modifiers", f"{modifier['id']}.png"),
+                (MODIFIER_ICON_SIZE, MODIFIER_ICON_SIZE),
+            )
+            surface.blit(icon, rect.topleft)
+            outline = (255, 214, 110) if modifier["id"] == self._modifier_hovered_id else (200, 214, 236)
+            pygame.draw.rect(surface, outline, rect, 2, border_radius=10)
+
+        hovered_modifier = next(
+            (modifier for modifier in modifiers if modifier["id"] == self._modifier_hovered_id),
+            None,
+        )
+        if hovered_modifier is None:
+            return
+
+        tooltip_height = 112 if hovered_modifier.get("downside") else 92
+        tooltip_x = hovered_modifier["rect"][0] - MODIFIER_TOOLTIP_WIDTH - 14
+        tooltip_y = max(78, hovered_modifier["rect"][1] - 12)
+        tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, MODIFIER_TOOLTIP_WIDTH, tooltip_height)
+        pygame.draw.rect(surface, (8, 14, 24), tooltip_rect, border_radius=14)
+        pygame.draw.rect(surface, (255, 214, 110), tooltip_rect, 2, border_radius=14)
+        self._draw_text(surface, hovered_modifier["name"], (tooltip_rect.x + 14, tooltip_rect.y + 12), self._small_font, width=tooltip_rect.width - 28)
+        self._draw_chip(surface, hovered_modifier["kind"].title(), (tooltip_rect.x + 14, tooltip_rect.y + 38), 92, accent=(118, 146, 194))
+        self._draw_text(surface, hovered_modifier["description"], (tooltip_rect.x + 14, tooltip_rect.y + 68), self._tiny_font, width=tooltip_rect.width - 28)
+        if hovered_modifier.get("downside"):
+            self._draw_text(
+                surface,
+                f"Tradeoff: {hovered_modifier['downside']}",
+                (tooltip_rect.x + 14, tooltip_rect.y + 88),
+                self._tiny_font,
+                width=tooltip_rect.width - 28,
+            )
+
+    def _pause_layout(self) -> dict[str, Any]:
+        buttons = [
+            {"action": "pause_continue", "label": "Continue", "description": "Close the menu and resume the run."},
+            {"action": "pause_open_settings", "label": "Settings", "description": "Open settings and controls."},
+            {"action": "pause_home", "label": "Home Screen", "description": "Return to title and keep Continue available."},
+            {"action": "pause_quit", "label": "Close Game", "description": "Exit the game immediately."},
+        ]
+        panel_rect = (440, 170, 400, 380)
+        for index, button in enumerate(buttons):
+            button["rect"] = (472, 238 + (index * 66), 336, 52)
+        return {"panel_rect": panel_rect, "buttons": buttons}
+
+    def _handle_pause_event(self, event: Any) -> dict[str, Any] | None:
+        if pygame is None:
+            return None
+        layout = self._pause_layout()
+        buttons = layout["buttons"]
+        self._pause_selected_index = max(0, min(self._pause_selected_index, len(buttons) - 1))
+
+        if event.type == pygame.MOUSEMOTION:
+            self._pause_hovered_action = None
+            for index, button in enumerate(buttons):
+                if point_in_rect(event.pos, button["rect"]):
+                    self._pause_hovered_action = button["action"]
+                    self._pause_selected_index = index
+                    break
+            return None
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._pause_pressed_action = next(
+                (button["action"] for button in buttons if point_in_rect(event.pos, button["rect"])),
+                None,
+            )
+            return None
+
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            action_id = next(
+                (button["action"] for button in buttons if point_in_rect(event.pos, button["rect"])),
+                None,
+            )
+            pressed_action = self._pause_pressed_action
+            self._pause_pressed_action = None
+            if action_id is not None and action_id == pressed_action:
+                return {"type": action_id}
+            return None
+
+        if event.type != pygame.KEYDOWN:
+            return None
+
+        if event.key == pygame.K_ESCAPE:
+            return {"type": "pause_continue"}
+        if event.key in {pygame.K_UP, pygame.K_LEFT}:
+            self._pause_selected_index = (self._pause_selected_index - 1) % len(buttons)
+            return None
+        if event.key in {pygame.K_DOWN, pygame.K_RIGHT}:
+            self._pause_selected_index = (self._pause_selected_index + 1) % len(buttons)
+            return None
+        if event.key in {pygame.K_RETURN, pygame.K_SPACE}:
+            return {"type": buttons[self._pause_selected_index]["action"]}
+        return None
+
+    def _render_pause_overlay(self, surface: Any) -> None:
+        layout = self._pause_layout()
+        backdrop = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        backdrop.fill((4, 8, 14, 188))
+        surface.blit(backdrop, (0, 0))
+
+        panel_rect = pygame.Rect(*layout["panel_rect"])
+        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), panel_rect.size)
+        surface.blit(panel, panel_rect.topleft)
+        pygame.draw.rect(surface, (180, 198, 226), panel_rect, 2, border_radius=16)
+        self._draw_text(surface, "Paused", (panel_rect.x + 34, panel_rect.y + 28), self._title_font)
+        self._draw_text(surface, "Continue, adjust settings, head home, or exit the game.", (panel_rect.x + 34, panel_rect.y + 72), self._tiny_font, width=panel_rect.width - 68)
+
+        for index, button in enumerate(layout["buttons"]):
+            rect = pygame.Rect(*button["rect"])
+            selected = index == self._pause_selected_index
+            hovered = self._pause_hovered_action == button["action"]
+            pressed = self._pause_pressed_action == button["action"]
+            fill = (18, 28, 42)
+            if hovered:
+                fill = (34, 50, 72)
+            if pressed:
+                fill = (255, 214, 110)
+            outline = (255, 214, 110) if selected else (168, 184, 214)
+            pygame.draw.rect(surface, fill, rect, border_radius=14)
+            pygame.draw.rect(surface, outline, rect, 2, border_radius=14)
+            label_color = (18, 24, 36) if pressed else (240, 245, 255)
+            self._draw_text(surface, button["label"], (rect.x + 16, rect.y + 12), self._small_font, width=140)
+            self._draw_text(surface, button["description"], (rect.x + 16, rect.y + 30), self._tiny_font, width=rect.width - 32)
 
     def _render_notice(
         self,
@@ -281,7 +527,7 @@ class UIManager:
         accent = colors.get(notice.get("level", "info"), colors["info"])
         if presentation.get("high_contrast"):
             accent = tuple(min(255, channel + 25) for channel in accent)
-        if current_state in {"combat", "reward", "shop", "event"}:
+        if current_state in {"combat", "modifier_draft", "reward", "shop", "event"}:
             panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (700, 54))
             panel_rect = pygame.Rect(290, 64, 700, 54)
             text_y = 80
@@ -298,37 +544,10 @@ class UIManager:
         pygame.draw.rect(surface, accent, panel_rect, 3, border_radius=14)
         self._draw_text(surface, notice["text"], (text_x, text_y), self._small_font, width=text_width)
 
-    def _render_help_overlay(
-        self,
-        surface: Any,
-        current_state: str,
-        presentation: dict[str, Any],
-    ) -> None:
-        backdrop = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        backdrop.fill((6, 10, 18, 180))
-        surface.blit(backdrop, (0, 0))
-
-        panel = self._scaled_image(
-            resolve_asset_path("ui", "panel.png"),
-            (HELP_PANEL_WIDTH, HELP_PANEL_HEIGHT),
-        )
-        panel_pos = ((surface.get_width() - HELP_PANEL_WIDTH) // 2, (surface.get_height() - HELP_PANEL_HEIGHT) // 2)
-        surface.blit(panel, panel_pos)
-
-        x = panel_pos[0] + 36
-        y = panel_pos[1] + 28
-        self._draw_text(surface, "Controls And Quality-of-Life Shortcuts", (x, y), self._title_font)
-        y += 54
-        self._draw_text(surface, "Global", (x, y), self._font)
-        y += 36
-        for line in self._help_lines(current_state, presentation):
-            self._draw_text(surface, line, (x, y), self._small_font, width=HELP_PANEL_WIDTH - 72)
-            y += 28
-
     def _render_settings_overlay(self, surface: Any, presentation: dict[str, Any]) -> None:
         high_contrast = presentation.get("high_contrast", False)
         backdrop = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        backdrop.fill((4, 8, 14, 196))
+        backdrop.fill((2, 6, 12, 224))
         surface.blit(backdrop, (0, 0))
 
         panel = self._scaled_image(
@@ -345,50 +564,96 @@ class UIManager:
         self._draw_text(surface, "Settings And Comfort Options", (panel_pos[0] + 34, panel_pos[1] + 24), self._title_font)
         self._draw_text(
             surface,
-            "Adjust the game live. Changes save automatically and apply immediately.",
+            "Adjust the game live, or switch to Controls for the full shortcut reference.",
             (panel_pos[0] + 34, panel_pos[1] + 66),
-            self._small_font,
+            self._tiny_font,
             width=SETTINGS_PANEL_WIDTH - 68,
         )
 
-        for index, row in enumerate(layout["rows"]):
-            row_rect = pygame.Rect(*row["row_rect"])
-            selected = index == self._settings_selected_index
-            outline = (255, 236, 140) if selected else (190, 205, 230) if high_contrast else (108, 122, 148)
-            pygame.draw.rect(
+        for tab in layout["tabs"]:
+            self._draw_settings_button(
                 surface,
-                (10, 16, 24) if high_contrast else (12, 18, 28),
-                row_rect,
-                border_radius=14,
+                tab["action"],
+                tab["rect"],
+                tab["label"],
+                active=tab["active"],
             )
-            pygame.draw.rect(surface, outline, row_rect, 2, border_radius=14)
-            self._draw_text(surface, row["label"], (row_rect.x + 18, row_rect.y + 12), self._small_font)
-            self._draw_text(surface, row["description"], (row_rect.x + 18, row_rect.y + 38), self._tiny_font, width=420)
 
-            if row["kind"] == "toggle":
-                self._draw_settings_button(
+        section_fill = (10, 16, 24) if high_contrast else (11, 17, 27)
+        section_outline = (184, 198, 224) if high_contrast else (92, 108, 134)
+        row_fill = (14, 22, 32) if high_contrast else (14, 20, 30)
+        row_outline = (255, 236, 140)
+        row_idle_outline = (186, 198, 222) if high_contrast else (96, 110, 136)
+        value_fill = (20, 30, 44) if high_contrast else (19, 28, 41)
+
+        if layout["page"] == "general":
+            if layout["rows"]:
+                self._settings_selected_index = max(0, min(self._settings_selected_index, len(layout["rows"]) - 1))
+                selected_row = layout["rows"][self._settings_selected_index]
+                help_rect = pygame.Rect(*layout["help_rect"])
+                help_fill = (10, 16, 24) if high_contrast else (9, 15, 23)
+                help_outline = (255, 236, 140) if high_contrast else (88, 110, 146)
+                pygame.draw.rect(surface, help_fill, help_rect, border_radius=14)
+                pygame.draw.rect(surface, help_outline, help_rect, 2, border_radius=14)
+                self._draw_text(
                     surface,
-                    row["toggle_action"],
-                    row["toggle_rect"],
-                    row["value_text"],
-                    active=row["value"],
+                    f"Focused setting: {selected_row['label']} | {selected_row['description']}",
+                    (help_rect.x + 18, help_rect.y + 13),
+                    self._tiny_font,
+                    width=help_rect.width - 36,
                 )
-            else:
-                self._draw_settings_button(
-                    surface,
-                    row["decrease_action"],
-                    row["decrease_rect"],
-                    "-",
-                    active=False,
-                )
-                self._draw_text(surface, row["value_text"], (row_rect.x + 590, row_rect.y + 24), self._small_font)
-                self._draw_settings_button(
-                    surface,
-                    row["increase_action"],
-                    row["increase_rect"],
-                    "+",
-                    active=False,
-                )
+
+            for section in layout["sections"]:
+                section_rect = pygame.Rect(*section["rect"])
+                pygame.draw.rect(surface, section_fill, section_rect, border_radius=18)
+                pygame.draw.rect(surface, section_outline, section_rect, 2, border_radius=18)
+                self._draw_text(surface, section["label"], (section_rect.x + 18, section_rect.y + 14), self._font)
+
+                for row in section["rows"]:
+                    row_rect = pygame.Rect(*row["row_rect"])
+                    selected = row["index"] == self._settings_selected_index
+                    outline = row_outline if selected else row_idle_outline
+                    pygame.draw.rect(surface, row_fill, row_rect, border_radius=14)
+                    pygame.draw.rect(surface, outline, row_rect, 2, border_radius=14)
+                    self._draw_text(surface, row["label"], (row_rect.x + 16, row_rect.y + 13), self._small_font, width=240)
+
+                    if row["kind"] == "toggle":
+                        self._draw_settings_button(
+                            surface,
+                            row["toggle_action"],
+                            row["toggle_rect"],
+                            row["value_text"],
+                            active=row["value"],
+                        )
+                    else:
+                        self._draw_settings_button(surface, row["decrease_action"], row["decrease_rect"], "-", active=False)
+                        value_rect = pygame.Rect(*row["value_rect"])
+                        pygame.draw.rect(surface, value_fill, value_rect, border_radius=12)
+                        pygame.draw.rect(surface, row_idle_outline, value_rect, 1, border_radius=12)
+                        value_surface = self._tiny_font.render(row["value_text"], True, (240, 245, 255))
+                        surface.blit(value_surface, value_surface.get_rect(center=value_rect.center))
+                        self._draw_settings_button(surface, row["increase_action"], row["increase_rect"], "+", active=False)
+        else:
+            for section in layout["control_sections"]:
+                section_rect = pygame.Rect(*section["rect"])
+                pygame.draw.rect(surface, section_fill, section_rect, border_radius=18)
+                pygame.draw.rect(surface, section_outline, section_rect, 2, border_radius=18)
+                self._draw_text(surface, section["label"], (section_rect.x + 16, section_rect.y + 12), self._small_font)
+                for index, line in enumerate(section["lines"]):
+                    self._draw_text(surface, line, (section_rect.x + 16, section_rect.y + 38 + (index * 16)), self._tiny_font, width=section_rect.width - 32)
+
+        footer_rect = pygame.Rect(*layout["footer_rect"])
+        footer_fill = (8, 14, 22) if high_contrast else (9, 14, 22)
+        footer_outline = (184, 198, 224) if high_contrast else (88, 106, 134)
+        pygame.draw.rect(surface, footer_fill, footer_rect, border_radius=14)
+        pygame.draw.rect(surface, footer_outline, footer_rect, 2, border_radius=14)
+        self._draw_text(
+            surface,
+            layout["footer_hint"],
+            (footer_rect.x + 294, footer_rect.y + 14),
+            self._tiny_font,
+            width=320,
+        )
 
         for button in layout["footer_buttons"]:
             self._draw_settings_button(
@@ -399,69 +664,70 @@ class UIManager:
                 active=button.get("active", False),
             )
 
-    def _help_lines(self, current_state: str, presentation: dict[str, Any]) -> list[str]:
-        lines = [
-            "H toggles this panel. Esc closes overlays first, then exits the game.",
-            "S opens the settings overlay.",
-            "F11 toggles fullscreen and windowed mode.",
-            "F toggles fast feedback mode.",
-            "M mutes or restores audio.",
-            "[ and ] lower or raise SFX volume.",
-            "- and + adjust presentation scale inside the display frame.",
-            "N starts a fresh run from anywhere.",
+    def _controls_sections(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "label": "Global",
+                "lines": [
+                    "Esc: pause during a run",
+                    "S: settings",
+                    "F11: fullscreen",
+                    "F: fast mode",
+                    "M: mute audio",
+                ],
+            },
+            {
+                "label": "Title / Menu",
+                "lines": [
+                    "N: new run",
+                    "C: continue",
+                    "Q: quit",
+                    "Enter / Space: confirm",
+                ],
+            },
+            {
+                "label": "Modifier Draft",
+                "lines": [
+                    "1-3 / click: select",
+                    "Enter / Space: confirm",
+                ],
+            },
+            {
+                "label": "Map",
+                "lines": [
+                    "1-9 / click: route",
+                    "Arrows: move focus",
+                    "Enter / Space: confirm",
+                    "Hover modifier icons",
+                ],
+            },
+            {
+                "label": "Combat",
+                "lines": [
+                    "1-9 / click: play card",
+                    "E / Enter / Space: end turn",
+                    "Pause button or Esc: pause",
+                ],
+            },
+            {
+                "label": "Reward / Event / Shop",
+                "lines": [
+                    "1-9 / click: select",
+                    "Enter / Space: confirm",
+                    "X: skip reward",
+                    "C: continue",
+                    "Shop: R reroll, L leave",
+                ],
+            },
+            {
+                "label": "Pause",
+                "lines": [
+                    "Esc: continue",
+                    "Arrows: move selection",
+                    "Enter / Space: activate",
+                ],
+            },
         ]
-
-        if current_state == "map":
-            lines.extend(
-                [
-                    "Map: click an available node or press 1-9 to choose a route.",
-                    "Map: Enter or Space confirms the hovered route, or the first available route if nothing is hovered.",
-                    "Available routes glow gold, visited routes glow green, and locked routes stay dim.",
-                ]
-            )
-        elif current_state == "combat":
-            lines.extend(
-                [
-                    "Combat: click a card or press 1-9 to play it.",
-                    "Combat: Enter, Space, or E ends the turn.",
-                    "Disabled cards show why they cannot be played before you click them.",
-                    "Enemy intent panels preview the next attack or block amount.",
-                ]
-            )
-        elif current_state == "reward":
-            lines.extend(
-                [
-                    "Reward: click or press 1-9 to select a reward option in the active section.",
-                    "Reward: Enter or Space confirms the selected option.",
-                    "Reward: X skips the active section and C continues once every section is resolved.",
-                ]
-            )
-        elif current_state == "event":
-            lines.extend(
-                [
-                    "Event: click or press 1-9 to choose an event option.",
-                    "Event: click a deck card target when a purge option is selected.",
-                    "Event: Enter or Space confirms the choice, and C continues after it resolves.",
-                ]
-            )
-        elif current_state == "shop":
-            lines.extend(
-                [
-                    "Shop: click or press 1-9 to select an offer.",
-                    "Shop: Enter or Space buys the selected offer, R rerolls the unsold card offers, and L leaves the shop.",
-                    "Purge service requires choosing a deck card before confirming the purchase.",
-                ]
-            )
-        else:
-            lines.append("Victory / Game Over: Enter, Space, or N starts a new run.")
-
-        if presentation.get("fast_mode"):
-            lines.append("Fast mode is currently enabled.")
-        if presentation.get("muted"):
-            lines.append("Audio is currently muted.")
-        if presentation.get("settings_open"):
-            lines.append("Settings overlay is currently open.")
-        return lines
 
     def _handle_settings_event(self, event: Any, presentation: dict[str, Any]) -> dict[str, Any] | None:
         if pygame is None:
@@ -469,13 +735,16 @@ class UIManager:
 
         layout = self._settings_layout(presentation, self._settings_panel_position())
         row_count = len(layout["rows"])
+        if row_count > 0:
+            self._settings_selected_index = max(0, min(self._settings_selected_index, row_count - 1))
 
         if event.type == pygame.MOUSEMOTION:
             self._settings_hovered_action = self._settings_action_at_position(layout, event.pos)
-            for index, row in enumerate(layout["rows"]):
-                if point_in_rect(event.pos, row["row_rect"]):
-                    self._settings_selected_index = index
-                    break
+            if layout["page"] == "general":
+                for index, row in enumerate(layout["rows"]):
+                    if point_in_rect(event.pos, row["row_rect"]):
+                        self._settings_selected_index = index
+                        break
             return None
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -495,6 +764,12 @@ class UIManager:
 
         if event.key in {pygame.K_ESCAPE, pygame.K_s}:
             return {"type": "close_settings"}
+        if event.key == pygame.K_TAB:
+            target_page = "controls" if layout["page"] == "general" else "general"
+            return {"type": "open_controls_page" if target_page == "controls" else "open_general_settings_page"}
+
+        if row_count == 0:
+            return None
 
         if event.key == pygame.K_UP:
             self._settings_selected_index = (self._settings_selected_index - 1) % row_count
@@ -523,43 +798,144 @@ class UIManager:
         return None
 
     def _settings_layout(self, presentation: dict[str, Any], panel_pos: tuple[int, int]) -> dict[str, Any]:
+        page = "controls" if presentation.get("settings_page") == "controls" else "general"
+        base_x = panel_pos[0] + 28
+        tabs = [
+            {
+                "action": "tab:general",
+                "label": "General",
+                "rect": (base_x, panel_pos[1] + 102, SETTINGS_TAB_WIDTH, SETTINGS_TAB_HEIGHT),
+                "active": page == "general",
+            },
+            {
+                "action": "tab:controls",
+                "label": "Controls",
+                "rect": (base_x + SETTINGS_TAB_WIDTH + 12, panel_pos[1] + 102, SETTINGS_TAB_WIDTH, SETTINGS_TAB_HEIGHT),
+                "active": page == "controls",
+            },
+        ]
+        if page == "controls":
+            return self._settings_controls_layout(panel_pos, tabs)
+        return self._settings_general_layout(presentation, panel_pos, tabs)
+
+    def _settings_general_layout(
+        self,
+        presentation: dict[str, Any],
+        panel_pos: tuple[int, int],
+        tabs: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         rows = []
-        base_x = panel_pos[0] + 32
-        base_y = panel_pos[1] + 108
-        row_height = 48
+        base_x = panel_pos[0] + 28
+        row_height = 50
         row_gap = 8
+        help_rect = (base_x, panel_pos[1] + 148, SETTINGS_PANEL_WIDTH - 56, 42)
+        section_gap = 20
+        section_width = (SETTINGS_PANEL_WIDTH - 56 - section_gap) // 2
+        section_top = panel_pos[1] + 206
+        footer_rect = (base_x, panel_pos[1] + SETTINGS_PANEL_HEIGHT - 66, SETTINGS_PANEL_WIDTH - 56, 46)
+        section_height = footer_rect[1] - section_top - 18
+        section_specs = {
+            "display": {
+                "label": "Display & Motion",
+                "rect": (base_x, section_top, section_width, section_height),
+                "rows": [],
+            },
+            "audio": {
+                "label": "Audio & Accessibility",
+                "rect": (base_x + section_width + section_gap, section_top, section_width, section_height),
+                "rows": [],
+            },
+        }
 
         for index, row in enumerate(self._settings_rows(presentation)):
-            row_y = base_y + (index * (row_height + row_gap))
-            row_rect = (base_x, row_y, SETTINGS_PANEL_WIDTH - 64, row_height)
-            entry = {**row, "row_rect": row_rect}
+            section = section_specs[row["group"]]
+            row_index = len(section["rows"])
+            section_x, section_y, section_w, _ = section["rect"]
+            row_x = section_x + 16
+            row_y = section_y + 48 + (row_index * (row_height + row_gap))
+            row_w = section_w - 32
+            row_rect = (row_x, row_y, row_w, row_height)
+            entry = {**row, "index": index, "row_rect": row_rect}
             if row["kind"] == "toggle":
-                entry["toggle_rect"] = (base_x + 644, row_y + 8, 190, 32)
+                entry["toggle_rect"] = (row_x + row_w - 164, row_y + 9, 148, 32)
                 entry["toggle_action"] = f"toggle:{row['id']}"
             else:
-                entry["decrease_rect"] = (base_x + 566, row_y + 8, 34, 32)
-                entry["increase_rect"] = (base_x + 790, row_y + 8, 34, 32)
+                plus_x = row_x + row_w - 48
+                value_x = plus_x - 82
+                minus_x = value_x - 42
+                entry["decrease_rect"] = (minus_x, row_y + 9, 32, 32)
+                entry["value_rect"] = (value_x, row_y + 9, 72, 32)
+                entry["increase_rect"] = (plus_x, row_y + 9, 32, 32)
                 entry["decrease_action"] = f"decrease:{row['id']}"
                 entry["increase_action"] = f"increase:{row['id']}"
             rows.append(entry)
+            section["rows"].append(entry)
 
         footer_buttons = [
-            {"action": "reset", "label": "Reset Defaults", "rect": (base_x, panel_pos[1] + 500, 180, 38)},
-            {"action": "close", "label": "Close", "rect": (panel_pos[0] + 690, panel_pos[1] + 500, 146, 38), "active": True},
+            {"action": "reset", "label": "Reset Defaults", "rect": (footer_rect[0] + 16, footer_rect[1] + 4, 180, 38)},
+            {"action": "close", "label": "Close", "rect": (footer_rect[0] + footer_rect[2] - 162, footer_rect[1] + 4, 146, 38), "active": True},
         ]
-        return {"rows": rows, "footer_buttons": footer_buttons}
+        return {
+            "page": "general",
+            "tabs": tabs,
+            "rows": rows,
+            "sections": [section_specs["display"], section_specs["audio"]],
+            "help_rect": help_rect,
+            "footer_rect": footer_rect,
+            "footer_buttons": footer_buttons,
+            "footer_hint": "Esc closes • Tab switches page",
+            "control_sections": [],
+        }
+
+    def _settings_controls_layout(
+        self,
+        panel_pos: tuple[int, int],
+        tabs: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        base_x = panel_pos[0] + 28
+        footer_rect = (base_x, panel_pos[1] + SETTINGS_PANEL_HEIGHT - 66, SETTINGS_PANEL_WIDTH - 56, 46)
+        section_gap = 14
+        section_width = (SETTINGS_PANEL_WIDTH - 56 - (section_gap * 2)) // 3
+        section_top = panel_pos[1] + 150
+        section_height = 112
+        control_sections = []
+        for index, section in enumerate(self._controls_sections()):
+            column = index % 3
+            row = index // 3
+            rect = (
+                base_x + (column * (section_width + section_gap)),
+                section_top + (row * (section_height + 10)),
+                section_width,
+                section_height,
+            )
+            control_sections.append({**section, "rect": rect})
+
+        footer_buttons = [
+            {"action": "close", "label": "Close", "rect": (footer_rect[0] + footer_rect[2] - 162, footer_rect[1] + 4, 146, 38), "active": True},
+        ]
+        return {
+            "page": "controls",
+            "tabs": tabs,
+            "rows": [],
+            "sections": [],
+            "help_rect": None,
+            "footer_rect": footer_rect,
+            "footer_buttons": footer_buttons,
+            "footer_hint": "Esc closes • Tab switches page",
+            "control_sections": control_sections,
+        }
 
     def _settings_rows(self, presentation: dict[str, Any]) -> list[dict[str, Any]]:
         return [
-            {"id": "fullscreen", "label": "Display Mode", "description": "Toggle fullscreen or a resizable window.", "kind": "toggle", "value": presentation.get("fullscreen", True), "value_text": "Fullscreen" if presentation.get("fullscreen", True) else "Windowed"},
-            {"id": "fast_mode", "label": "Fast Mode", "description": "Shorten non-critical feedback and transitions.", "kind": "toggle", "value": presentation.get("fast_mode", False), "value_text": "Enabled" if presentation.get("fast_mode", False) else "Disabled"},
-            {"id": "master_volume", "label": "SFX Volume", "description": "Adjust sound effect volume for combat and UI cues.", "kind": "step", "value": presentation.get("master_volume", 0.8), "value_text": f"{int(presentation.get('master_volume', 0.8) * 100)}%"},
-            {"id": "music_volume", "label": "Music Volume", "description": "Reserve volume for music playback when tracks are added.", "kind": "step", "value": presentation.get("music_volume", 0.65), "value_text": f"{int(presentation.get('music_volume', 0.65) * 100)}%"},
-            {"id": "muted", "label": "Mute Audio", "description": "Silence all current and future audio output.", "kind": "toggle", "value": presentation.get("muted", False), "value_text": "Muted" if presentation.get("muted", False) else "Live"},
-            {"id": "presentation_scale", "label": "Presentation Scale", "description": "Fit the 1280x720 canvas comfortably inside the display.", "kind": "step", "value": presentation.get("presentation_scale", 1.0), "value_text": f"{int(presentation.get('presentation_scale', 1.0) * 100)}%"},
-            {"id": "ui_scale", "label": "UI Text Scale", "description": "Scale text and labels for readability.", "kind": "step", "value": presentation.get("ui_scale", 1.0), "value_text": f"{int(presentation.get('ui_scale', 1.0) * 100)}%"},
-            {"id": "screen_shake", "label": "Screen Shake", "description": "Toggle impact shake on heavy feedback moments.", "kind": "toggle", "value": presentation.get("screen_shake", True), "value_text": "Enabled" if presentation.get("screen_shake", True) else "Disabled"},
-            {"id": "high_contrast", "label": "High Contrast", "description": "Boost contrast and reduce reliance on subtle color differences.", "kind": "toggle", "value": presentation.get("high_contrast", False), "value_text": "Enabled" if presentation.get("high_contrast", False) else "Disabled"},
+            {"id": "fullscreen", "group": "display", "label": "Display Mode", "description": "Toggle fullscreen or a resizable window.", "kind": "toggle", "value": presentation.get("fullscreen", True), "value_text": "Fullscreen" if presentation.get("fullscreen", True) else "Windowed"},
+            {"id": "fast_mode", "group": "display", "label": "Fast Mode", "description": "Shorten non-critical feedback and transitions.", "kind": "toggle", "value": presentation.get("fast_mode", False), "value_text": "Enabled" if presentation.get("fast_mode", False) else "Disabled"},
+            {"id": "presentation_scale", "group": "display", "label": "Display Scale", "description": "Fit the 1280x720 canvas comfortably inside the display.", "kind": "step", "value": presentation.get("presentation_scale", 1.0), "value_text": f"{int(presentation.get('presentation_scale', 1.0) * 100)}%"},
+            {"id": "ui_scale", "group": "display", "label": "UI Text Scale", "description": "Scale text and labels for readability.", "kind": "step", "value": presentation.get("ui_scale", 1.0), "value_text": f"{int(presentation.get('ui_scale', 1.0) * 100)}%"},
+            {"id": "screen_shake", "group": "display", "label": "Screen Shake", "description": "Toggle impact shake on heavy feedback moments.", "kind": "toggle", "value": presentation.get("screen_shake", True), "value_text": "Enabled" if presentation.get("screen_shake", True) else "Disabled"},
+            {"id": "master_volume", "group": "audio", "label": "SFX Volume", "description": "Adjust sound effect volume for combat and UI cues.", "kind": "step", "value": presentation.get("master_volume", 0.8), "value_text": f"{int(presentation.get('master_volume', 0.8) * 100)}%"},
+            {"id": "music_volume", "group": "audio", "label": "Music Volume", "description": "Reserve volume for music playback when tracks are added.", "kind": "step", "value": presentation.get("music_volume", 0.65), "value_text": f"{int(presentation.get('music_volume', 0.65) * 100)}%"},
+            {"id": "muted", "group": "audio", "label": "Mute Audio", "description": "Silence all current and future audio output.", "kind": "toggle", "value": presentation.get("muted", False), "value_text": "Muted" if presentation.get("muted", False) else "Live"},
+            {"id": "high_contrast", "group": "audio", "label": "High Contrast", "description": "Boost contrast and reduce reliance on subtle color differences.", "kind": "toggle", "value": presentation.get("high_contrast", False), "value_text": "Enabled" if presentation.get("high_contrast", False) else "Disabled"},
         ]
 
     def _settings_action_to_event(
@@ -571,6 +947,10 @@ class UIManager:
             return {"type": "reset_settings"}
         if action_id == "close":
             return {"type": "close_settings"}
+        if action_id == "tab:general":
+            return {"type": "open_general_settings_page"}
+        if action_id == "tab:controls":
+            return {"type": "open_controls_page"}
 
         action_type, _, setting_name = action_id.partition(":")
         if action_type == "toggle":
@@ -594,6 +974,9 @@ class UIManager:
         return current_value
 
     def _settings_action_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:
+        for tab in layout["tabs"]:
+            if self._point_in_rect(position, tab["rect"]):
+                return tab["action"]
         for row in layout["rows"]:
             if row["kind"] == "toggle" and self._point_in_rect(position, row["toggle_rect"]):
                 return row["toggle_action"]
@@ -742,8 +1125,9 @@ def simulate_ui_manager() -> dict[str, Any]:
                 "ui_scale": 1.0,
                 "screen_shake": True,
                 "high_contrast": False,
-                "show_help": False,
                 "settings_open": False,
+                "settings_page": "general",
+                "pause_open": False,
             },
             "ui_notice": {"text": "Event screen shown.", "level": "info"},
         }
@@ -769,8 +1153,9 @@ def simulate_ui_manager() -> dict[str, Any]:
                 "ui_scale": 1.0,
                 "screen_shake": True,
                 "high_contrast": False,
-                "show_help": False,
                 "settings_open": False,
+                "settings_page": "general",
+                "pause_open": False,
             },
             "ui_notice": {"text": "Victory banner shown.", "level": "success"},
         }

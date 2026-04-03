@@ -7,6 +7,7 @@ from typing import Any
 
 from cards.card_library import CardLibrary
 from config import EVENTS_DATA_PATH
+from core.run_modifier_library import RunModifierLibrary
 
 ALLOWED_EVENT_CHOICE_TYPES = {"effect", "purge", "risk"}
 ALLOWED_EVENT_REQUIREMENTS = {"credits_at_least", "missing_hp_at_least", "deck_size_at_least"}
@@ -14,6 +15,7 @@ ALLOWED_EVENT_EFFECT_TYPES = {
     "gain_credits",
     "lose_credits",
     "gain_card",
+    "gain_modifier",
     "heal",
     "damage",
     "purge_card",
@@ -25,9 +27,11 @@ class EventLibrary:
         self,
         data_path: Path = EVENTS_DATA_PATH,
         card_library: CardLibrary | None = None,
+        modifier_library: RunModifierLibrary | None = None,
     ) -> None:
         self.data_path = data_path
         self.card_library = card_library or CardLibrary()
+        self.modifier_library = modifier_library or RunModifierLibrary(card_library=self.card_library)
         self._events: dict[str, dict[str, Any]] = {}
 
     def load_events(self) -> dict[str, dict[str, Any]]:
@@ -205,6 +209,15 @@ class EventLibrary:
                 )
             self.card_library.get_card(card_id)
             return {"type": effect_type, "card_id": card_id}
+
+        if effect_type == "gain_modifier":
+            modifier_id = effect_data.get("modifier_id")
+            if not isinstance(modifier_id, str) or not modifier_id:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} gain_modifier effect must define a modifier_id."
+                )
+            self.modifier_library.get_modifier(modifier_id)
+            return {"type": effect_type, "modifier_id": modifier_id}
 
         if effect_type == "purge_card":
             return {"type": effect_type}

@@ -88,25 +88,30 @@ class RewardUI:
         reward = reward_state["reward"]
         sections = []
         section_width = 1232
-        section_height = 170
         base_x = 24
         base_y = 198
+        active_section_id = next((section["id"] for section in reward["sections"] if not section["resolved"]), None)
+        cursor_y = base_y
 
-        for index, section in enumerate(reward["sections"]):
-            panel_rect = (base_x, base_y + (index * 184), section_width, section_height)
-            option_entries = self._option_entries(section, panel_rect)
+        for section in reward["sections"]:
+            expanded = (not section["resolved"]) and section["id"] == active_section_id
+            section_height = 170 if expanded and section["type"] == "card_offer" else 134 if expanded else 76
+            panel_rect = (base_x, cursor_y, section_width, section_height)
+            option_entries = self._option_entries(section, panel_rect) if expanded else []
             sections.append(
                 {
                     **section,
+                    "expanded": expanded,
                     "panel_rect": panel_rect,
                     "option_entries": option_entries,
                     "confirm_rect": (panel_rect[0] + 980, panel_rect[1] + 20, 104, 34),
                     "skip_rect": (panel_rect[0] + 1096, panel_rect[1] + 20, 104, 34),
                 }
             )
+            cursor_y += section_height + 16
 
         active_section = next((section for section in sections if not section["resolved"]), None)
-        continue_rect = (1056, 636, 168, 48)
+        continue_rect = (1056, min(650, cursor_y + 8), 168, 48)
         return {
             "credits_granted": reward["credits_granted"],
             "player_credits": reward_state["player"]["credits"],
@@ -132,8 +137,7 @@ class RewardUI:
         high_contrast = reward_state.get("presentation", {}).get("high_contrast", False)
         layout = self.build_layout(reward_state)
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 86))
-        section_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 170))
+        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 78))
         card_panel = self._scaled_image(resolve_asset_path("cards", "card_placeholder.png"), (184, 108))
 
         surface.blit(background, (0, 0))
@@ -143,24 +147,33 @@ class RewardUI:
         self._draw_text(
             surface,
             f"Credits earned: +{layout['credits_granted']} | Total credits: {layout['player_credits']} | Deck size: {layout['deck_size']}",
-            (44, 152),
+            (44, 146),
             self._small_font,
             width=1120,
         )
 
         for section in layout["sections"]:
             panel_rect = pygame.Rect(*section["panel_rect"])
+            section_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), panel_rect.size)
             surface.blit(section_panel, panel_rect.topleft)
             outline = (255, 214, 110) if section is layout["active_section"] else (190, 205, 230) if high_contrast else (108, 122, 148)
             if section["resolved"]:
                 outline = (120, 244, 170)
             pygame.draw.rect(surface, outline, panel_rect, 2, border_radius=16)
             self._draw_text(surface, section["title"], (panel_rect.x + 18, panel_rect.y + 16), self._small_font)
-            self._draw_text(surface, section["description"], (panel_rect.x + 18, panel_rect.y + 44), self._tiny_font, width=520)
+            self._draw_text(surface, section["description"], (panel_rect.x + 18, panel_rect.y + 42), self._tiny_font, width=520)
 
             if section["resolved"]:
                 summary = "Resolved." if section["resolution"] is None else section["resolution"]["summary"]
-                self._draw_text(surface, summary, (panel_rect.x + 18, panel_rect.y + 116), self._small_font, width=760)
+                self._draw_text(surface, summary, (panel_rect.x + 18, panel_rect.y + 44), self._small_font, width=980)
+            elif not section["expanded"]:
+                self._draw_text(
+                    surface,
+                    "Resolve the current reward first.",
+                    (panel_rect.x + 18, panel_rect.y + 44),
+                    self._tiny_font,
+                    width=420,
+                )
             else:
                 for option in section["option_entries"]:
                     option_rect = pygame.Rect(*option["rect"])
@@ -185,9 +198,8 @@ class RewardUI:
                         badge = self._tiny_font.render(str(option["shortcut"]), True, (255, 214, 110))
                         surface.blit(badge, badge.get_rect(center=badge_rect.center))
 
-                if section is layout["active_section"]:
-                    self._draw_button(surface, section["confirm_rect"], "Confirm", self._hovered_action == f"confirm:{section['id']}", self._pressed_action == f"confirm:{section['id']}", enabled=section["selected_option_id"] is not None)
-                    self._draw_button(surface, section["skip_rect"], "Skip", self._hovered_action == f"skip:{section['id']}", self._pressed_action == f"skip:{section['id']}", enabled=section["can_skip"])
+                self._draw_button(surface, section["confirm_rect"], "Confirm", self._hovered_action == f"confirm:{section['id']}", self._pressed_action == f"confirm:{section['id']}", enabled=section["selected_option_id"] is not None)
+                self._draw_button(surface, section["skip_rect"], "Skip", self._hovered_action == f"skip:{section['id']}", self._pressed_action == f"skip:{section['id']}", enabled=section["can_skip"])
 
         if layout["can_continue"]:
             self._draw_button(
@@ -257,18 +269,18 @@ class RewardUI:
 
     def _action_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:
         for section in layout["sections"]:
-            if not section["resolved"]:
+            if section["expanded"]:
                 for option in section["option_entries"]:
                     if point_in_rect(position, option["rect"]):
                         return option["action_id"]
             if (
-                not section["resolved"]
+                section["expanded"]
                 and section["selected_option_id"] is not None
                 and point_in_rect(position, section["confirm_rect"])
             ):
                 return f"confirm:{section['id']}"
             if (
-                not section["resolved"]
+                section["expanded"]
                 and section["can_skip"]
                 and point_in_rect(position, section["skip_rect"])
             ):

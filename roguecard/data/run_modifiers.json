@@ -1,0 +1,342 @@
+[
+  {
+    "id": "carbon_weave",
+    "name": "Carbon Weave",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Start each combat with 5 Block.",
+    "hooks": {
+      "combat_start": [
+        {
+          "type": "gain_block",
+          "value": 5
+        }
+      ]
+    }
+  },
+  {
+    "id": "flash_cache",
+    "name": "Flash Cache",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Draw 1 extra card on turn 1.",
+    "hooks": {
+      "turn_one": [
+        {
+          "type": "draw_cards",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "overclock_relay",
+    "name": "Overclock Relay",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Gain 1 extra Energy on turn 1.",
+    "hooks": {
+      "turn_one": [
+        {
+          "type": "gain_energy",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "salvage_license",
+    "name": "Salvage License",
+    "kind": "blessing",
+    "draft_eligible": true,
+    "description": "Gain 6 extra credits after normal combats.",
+    "hooks": {
+      "post_victory": [
+        {
+          "type": "gain_credits",
+          "value": 6,
+          "encounter_types": [
+            "combat"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "champion_contract",
+    "name": "Champion Contract",
+    "kind": "blessing",
+    "draft_eligible": true,
+    "description": "Heal 5 after elite victories.",
+    "hooks": {
+      "post_victory": [
+        {
+          "type": "heal",
+          "value": 5,
+          "encounter_types": [
+            "elite"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "market_key",
+    "name": "Market Key",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Shop card prices cost 15% less.",
+    "hooks": {
+      "shop_pricing": [
+        {
+          "type": "percent_discount",
+          "target": "card",
+          "value": 15
+        }
+      ]
+    }
+  },
+  {
+    "id": "clean_slate",
+    "name": "Clean Slate",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "The first purge each run is free.",
+    "hooks": {
+      "shop_pricing": [
+        {
+          "type": "free_first_purge_run"
+        }
+      ]
+    }
+  },
+  {
+    "id": "patch_priority",
+    "name": "Patch Priority",
+    "kind": "blessing",
+    "draft_eligible": true,
+    "description": "Shop heal service costs 6 less.",
+    "hooks": {
+      "shop_pricing": [
+        {
+          "type": "flat_discount",
+          "target": "heal",
+          "value": 6
+        }
+      ]
+    }
+  },
+  {
+    "id": "deep_pockets",
+    "name": "Deep Pockets",
+    "kind": "blessing",
+    "draft_eligible": true,
+    "description": "Start the run with 25 credits.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "gain_credits",
+          "value": 25
+        }
+      ]
+    }
+  },
+  {
+    "id": "signal_router",
+    "name": "Signal Router",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Card rewards show 1 extra choice.",
+    "hooks": {
+      "reward_generation": [
+        {
+          "type": "extra_card_choice",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "shard_seed",
+    "name": "Shard Seed",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Add Cache Draw to the starting deck.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "add_card",
+          "card_id": "cache_draw_01"
+        }
+      ]
+    }
+  },
+  {
+    "id": "plated_grip",
+    "name": "Plated Grip",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Add Firewall to the starting deck.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "add_card",
+          "card_id": "firewall_01"
+        }
+      ]
+    }
+  },
+  {
+    "id": "surge_fuse",
+    "name": "Surge Fuse",
+    "kind": "relic",
+    "draft_eligible": true,
+    "description": "Add Surge Strike to the starting deck.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "add_card",
+          "card_id": "surge_strike_01"
+        }
+      ]
+    }
+  },
+  {
+    "id": "blood_money",
+    "name": "Blood Money",
+    "kind": "curse",
+    "draft_eligible": true,
+    "description": "Gain 10 extra credits after every combat.",
+    "downside": "All healing is 25% weaker.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "modify_healing_multiplier_percent",
+          "value": -25
+        }
+      ],
+      "post_victory": [
+        {
+          "type": "gain_credits",
+          "value": 10,
+          "encounter_types": [
+            "combat",
+            "elite"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "glass_engine",
+    "name": "Glass Engine",
+    "kind": "curse",
+    "draft_eligible": true,
+    "description": "Gain 1 extra Energy on turn 1.",
+    "downside": "Lose 12 max HP.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "modify_max_hp",
+          "value": -12
+        }
+      ],
+      "turn_one": [
+        {
+          "type": "gain_energy",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "lean_market",
+    "name": "Lean Market",
+    "kind": "curse",
+    "draft_eligible": true,
+    "description": "All shop prices cost 20% less.",
+    "downside": "Lose 10 max HP.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "modify_max_hp",
+          "value": -10
+        }
+      ],
+      "shop_pricing": [
+        {
+          "type": "percent_discount",
+          "target": "all",
+          "value": 20
+        }
+      ]
+    }
+  },
+  {
+    "id": "ghost_warranty",
+    "name": "Ghost Warranty",
+    "kind": "blessing",
+    "draft_eligible": false,
+    "description": "The first reroll in each shop is free.",
+    "hooks": {
+      "shop_pricing": [
+        {
+          "type": "free_first_reroll_shop"
+        }
+      ]
+    }
+  },
+  {
+    "id": "street_choir",
+    "name": "Street Choir",
+    "kind": "blessing",
+    "draft_eligible": false,
+    "description": "Heal 3 after each event resolves.",
+    "hooks": {
+      "event_value": [
+        {
+          "type": "heal_after_event",
+          "value": 3
+        }
+      ]
+    }
+  },
+  {
+    "id": "debt_spike",
+    "name": "Debt Spike",
+    "kind": "curse",
+    "draft_eligible": false,
+    "description": "Gain faster access to premium stock.",
+    "downside": "The first card purchase in each shop costs 8 more.",
+    "hooks": {
+      "shop_pricing": [
+        {
+          "type": "flat_surcharge_first_card_shop",
+          "value": 8
+        }
+      ]
+    }
+  },
+  {
+    "id": "black_ice_scar",
+    "name": "Black Ice Scar",
+    "kind": "curse",
+    "draft_eligible": false,
+    "description": "Card rewards show 1 extra choice.",
+    "downside": "Lose 8 max HP.",
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "modify_max_hp",
+          "value": -8
+        }
+      ],
+      "reward_generation": [
+        {
+          "type": "extra_card_choice",
+          "value": 1
+        }
+      ]
+    }
+  }
+]

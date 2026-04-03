@@ -13,6 +13,8 @@ from config import (
     REGULAR_COMBAT_CREDIT_REWARD,
     REGULAR_REWARD_CARD_WEIGHT,
     REGULAR_REWARD_PURGE_WEIGHT,
+    SHOP_HEAL_AMOUNT,
+    SHOP_HEAL_PRICE,
     SHOP_PURGE_PRICE,
     SHOP_REROLL_BASE_PRICE,
     SHOP_REROLL_PRICE_STEP,
@@ -55,6 +57,9 @@ class EconomyScenario:
     regular_reward_purge_weight: int
     event_effect_values: dict[str, dict[str, dict[str, int]]]
     reroll_enabled: bool = False
+    heal_enabled: bool = False
+    heal_price: int = SHOP_HEAL_PRICE
+    heal_amount: int = SHOP_HEAL_AMOUNT
 
 
 def simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str, Any]:
@@ -95,16 +100,34 @@ def simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str
         },
         reroll_enabled=True,
     )
+    heal_service_scenario = EconomyScenario(
+        name="heal_service_enabled",
+        card_prices=copy.deepcopy(CARD_SHOP_PRICES),
+        purge_price=SHOP_PURGE_PRICE,
+        regular_reward_card_weight=REGULAR_REWARD_CARD_WEIGHT,
+        regular_reward_purge_weight=REGULAR_REWARD_PURGE_WEIGHT,
+        event_effect_values={
+            "street_clinic_01": {"pay_for_treatment": {"lose_credits": 15, "heal": 15}},
+            "credit_shakedown_01": {"refuse": {"damage": 6}},
+        },
+        reroll_enabled=True,
+        heal_enabled=True,
+        heal_price=SHOP_HEAL_PRICE,
+        heal_amount=SHOP_HEAL_AMOUNT,
+    )
 
     baseline_metrics = _simulate_scenario(baseline_scenario, seed_count, start_seed)
     tuned_metrics = _simulate_scenario(tuned_scenario, seed_count, start_seed)
     reroll_metrics = _simulate_scenario(reroll_scenario, seed_count, start_seed)
+    heal_service_metrics = _simulate_scenario(heal_service_scenario, seed_count, start_seed)
     comparisons = {
         "current_tuned_vs_baseline": _build_delta(baseline_metrics, tuned_metrics),
         "reroll_enabled_vs_current_tuned": _build_delta(tuned_metrics, reroll_metrics),
         "reroll_enabled_vs_baseline": _build_delta(baseline_metrics, reroll_metrics),
+        "heal_service_enabled_vs_reroll_enabled": _build_delta(reroll_metrics, heal_service_metrics),
+        "heal_service_enabled_vs_baseline": _build_delta(baseline_metrics, heal_service_metrics),
     }
-    targets = _assess_targets(reroll_metrics)
+    targets = _assess_targets(heal_service_metrics)
 
     return {
         "seed_count": seed_count,
@@ -112,7 +135,8 @@ def simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str
         "baseline": baseline_metrics,
         "current_tuned": tuned_metrics,
         "reroll_enabled": reroll_metrics,
-        "delta": comparisons["current_tuned_vs_baseline"],
+        "heal_service_enabled": heal_service_metrics,
+        "delta": comparisons["heal_service_enabled_vs_reroll_enabled"],
         "comparisons": comparisons,
         "targets": targets,
     }
@@ -154,6 +178,8 @@ def _simulate_run(seed: int, scenario: EconomyScenario) -> dict[str, Any]:
     with _patched_state_manager(scenario):
         manager = StateManager(event_library=_event_library_for_scenario(scenario))
         manager.start_new_run(seed=seed)
+        if manager.current_state == "modifier_draft":
+            _resolve_modifier_draft(manager)
 
         totals: Counter[str] = Counter()
         event_choices: Counter[str] = Counter()
@@ -214,6 +240,7 @@ def _simulate_run(seed: int, scenario: EconomyScenario) -> dict[str, Any]:
         )
         totals["paid_sink_count"] += (
             totals["shop_card_buys"]
+            + totals["shop_heal_uses"]
             + totals["shop_purges"]
             + totals["shop_rerolls"]
             + totals["clinic_uses"]
@@ -227,6 +254,34 @@ def _simulate_run(seed: int, scenario: EconomyScenario) -> dict[str, Any]:
             "reward_exposure": reward_exposure,
             "shop_exposure": shop_exposure,
         }
+
+
+def _resolve_modifier_draft(manager: StateManager) -> None:
+    draft_state = manager.get_state_snapshot()["modifier_draft"]
+    chosen_offer = max(draft_state["offers"], key=_modifier_offer_score)
+    manager.select_run_modifier_offer(chosen_offer["id"])
+    manager.confirm_run_modifier_selection()
+
+
+def _modifier_offer_score(offer: dict[str, Any]) -> int:
+    return {
+        "market_key": 78,
+        "deep_pockets": 72,
+        "signal_router": 69,
+        "carbon_weave": 64,
+        "overclock_relay": 61,
+        "flash_cache": 58,
+        "patch_priority": 54,
+        "champion_contract": 52,
+        "clean_slate": 48,
+        "salvage_license": 44,
+        "shard_seed": 42,
+        "plated_grip": 40,
+        "surge_fuse": 40,
+        "lean_market": 34,
+        "glass_engine": 28,
+        "blood_money": 24,
+    }.get(offer["id"], 20)
 
 
 def _choose_map_node(snapshot: dict[str, Any], scenario: EconomyScenario) -> str:
@@ -364,6 +419,7 @@ def _resolve_shop(
                 shop_exposure[offer["card_id"]] += 1
 
         card_offers = [offer for offer in available_offers if offer["type"] == "card"]
+        heal_offer = next((offer for offer in available_offers if offer["type"] == "heal"), None)
         purge_offer = next((offer for offer in available_offers if offer["type"] == "purge"), None)
 
         best_card_offer = None
@@ -374,6 +430,11 @@ def _resolve_shop(
                 best_card_offer = offer
                 best_card_score = score
 
+        heal_score = (
+            _shop_offer_score(heal_offer, player_credits, shop_state, manager)
+            if heal_offer is not None
+            else float("-inf")
+        )
         purge_score = (
             _shop_offer_score(purge_offer, player_credits, shop_state, manager)
             if purge_offer is not None
@@ -388,6 +449,15 @@ def _resolve_shop(
             manager.confirm_shop_purchase()
             continue
 
+        if scenario.heal_enabled and heal_offer is not None and heal_score >= 14:
+            before_hp = manager.player.current_hp
+            manager.select_shop_offer(heal_offer["offer_id"])
+            manager.confirm_shop_purchase()
+            totals["shop_spend_heal"] += heal_offer["price"]
+            totals["shop_heal_uses"] += 1
+            totals["hp_healing_shop"] += max(0, manager.player.current_hp - before_hp)
+            continue
+
         if scenario.reroll_enabled and _should_reroll_shop(shop_state, player_credits, best_card_score):
             totals["shop_spend_reroll"] += shop_state["reroll_price"]
             totals["shop_rerolls"] += 1
@@ -400,6 +470,15 @@ def _resolve_shop(
             totals["shop_card_buys"] += 1
             totals["deck_delta_shop_cards"] += 1
             manager.confirm_shop_purchase()
+            continue
+
+        if scenario.heal_enabled and heal_offer is not None and heal_score >= 4:
+            before_hp = manager.player.current_hp
+            manager.select_shop_offer(heal_offer["offer_id"])
+            manager.confirm_shop_purchase()
+            totals["shop_spend_heal"] += heal_offer["price"]
+            totals["shop_heal_uses"] += 1
+            totals["hp_healing_shop"] += max(0, manager.player.current_hp - before_hp)
             continue
 
         if purge_offer is not None and purge_score >= 14:
@@ -435,6 +514,21 @@ def _shop_offer_score(
 ) -> float:
     if offer["price"] > player_credits:
         return float("-inf")
+
+    if offer["type"] == "heal":
+        missing_hp = manager.player.max_hp - manager.player.current_hp
+        if missing_hp <= 0:
+            return float("-inf")
+        urgency_bonus = 0
+        hp_ratio = manager.player.current_hp / max(1, manager.player.max_hp)
+        if hp_ratio <= 0.45:
+            urgency_bonus = 16
+        elif hp_ratio <= 0.65:
+            urgency_bonus = 10
+        elif hp_ratio <= 0.8:
+            urgency_bonus = 4
+        effective_heal = min(missing_hp, offer.get("heal_amount", SHOP_HEAL_AMOUNT))
+        return (effective_heal * 1.55) + urgency_bonus - (offer["price"] * 0.72)
 
     if offer["type"] == "purge":
         purge_score = _purge_desirability(manager)
@@ -598,6 +692,7 @@ def _build_averages(aggregate: Counter[str], seed_count: int) -> dict[str, Any]:
         },
         "credits_spent_by_source": {
             "shop_cards": _round(aggregate["shop_spend_cards"] / seed_count),
+            "shop_heal": _round(aggregate["shop_spend_heal"] / seed_count),
             "shop_purge": _round(aggregate["shop_spend_purge"] / seed_count),
             "shop_reroll": _round(aggregate["shop_spend_reroll"] / seed_count),
             "clinic": _round(aggregate["credits_spent_clinic"] / seed_count),
@@ -607,6 +702,7 @@ def _build_averages(aggregate: Counter[str], seed_count: int) -> dict[str, Any]:
             "combat_damage_taken": _round(aggregate["hp_damage_combat"] / seed_count),
             "event_damage_taken": _round(aggregate["hp_damage_events"] / seed_count),
             "event_healing": _round(aggregate["hp_healing_events"] / seed_count),
+            "shop_healing": _round(aggregate["hp_healing_shop"] / seed_count),
         },
         "deck_delta_by_source": {
             "reward_cards": _round(aggregate["deck_delta_reward_cards"] / seed_count),
@@ -623,6 +719,7 @@ def _build_averages(aggregate: Counter[str], seed_count: int) -> dict[str, Any]:
         },
         "reward_screens": _round(aggregate["reward_screens"] / seed_count),
         "shop_card_buys": _round(aggregate["shop_card_buys"] / seed_count),
+        "shop_heal_uses": _round(aggregate["shop_heal_uses"] / seed_count),
         "shop_purges": _round(aggregate["shop_purges"] / seed_count),
         "shop_rerolls": _round(aggregate["shop_rerolls"] / seed_count),
         "clinic_uses": _round(aggregate["clinic_uses"] / seed_count),
@@ -643,6 +740,9 @@ def _build_delta(baseline: dict[str, Any], tuned: dict[str, Any]) -> dict[str, A
         "shop_card_buys": _round(
             tuned_averages["shop_card_buys"] - baseline_averages["shop_card_buys"]
         ),
+        "shop_heal_uses": _round(
+            tuned_averages.get("shop_heal_uses", 0) - baseline_averages.get("shop_heal_uses", 0)
+        ),
         "shop_rerolls": _round(
             tuned_averages.get("shop_rerolls", 0) - baseline_averages.get("shop_rerolls", 0)
         ),
@@ -651,6 +751,9 @@ def _build_delta(baseline: dict[str, Any], tuned: dict[str, Any]) -> dict[str, A
         ),
         "final_credits": _round(
             tuned_averages["final_stats"]["credits"] - baseline_averages["final_stats"]["credits"]
+        ),
+        "final_hp": _round(
+            tuned_averages["final_stats"]["hp"] - baseline_averages["final_stats"]["hp"]
         ),
         "final_deck_size": _round(
             tuned_averages["final_stats"]["deck_size"] - baseline_averages["final_stats"]["deck_size"]
@@ -721,11 +824,17 @@ def _patched_state_manager(scenario: EconomyScenario) -> Iterator[None]:
     original_values = {
         "CARD_SHOP_PRICES": state_manager_module.CARD_SHOP_PRICES,
         "SHOP_PURGE_PRICE": state_manager_module.SHOP_PURGE_PRICE,
+        "SHOP_HEAL_ENABLED": state_manager_module.SHOP_HEAL_ENABLED,
+        "SHOP_HEAL_PRICE": state_manager_module.SHOP_HEAL_PRICE,
+        "SHOP_HEAL_AMOUNT": state_manager_module.SHOP_HEAL_AMOUNT,
         "REGULAR_REWARD_CARD_WEIGHT": state_manager_module.REGULAR_REWARD_CARD_WEIGHT,
         "REGULAR_REWARD_PURGE_WEIGHT": state_manager_module.REGULAR_REWARD_PURGE_WEIGHT,
     }
     state_manager_module.CARD_SHOP_PRICES = copy.deepcopy(scenario.card_prices)
     state_manager_module.SHOP_PURGE_PRICE = scenario.purge_price
+    state_manager_module.SHOP_HEAL_ENABLED = scenario.heal_enabled
+    state_manager_module.SHOP_HEAL_PRICE = scenario.heal_price
+    state_manager_module.SHOP_HEAL_AMOUNT = scenario.heal_amount
     state_manager_module.REGULAR_REWARD_CARD_WEIGHT = scenario.regular_reward_card_weight
     state_manager_module.REGULAR_REWARD_PURGE_WEIGHT = scenario.regular_reward_purge_weight
     try:
@@ -743,36 +852,40 @@ def _format_report(report: dict[str, Any]) -> str:
     baseline = report["baseline"]
     tuned = report["current_tuned"]
     reroll = report["reroll_enabled"]
+    heal_service = report["heal_service_enabled"]
     tuned_delta = report["comparisons"]["current_tuned_vs_baseline"]
     reroll_delta = report["comparisons"]["reroll_enabled_vs_current_tuned"]
+    heal_delta = report["comparisons"]["heal_service_enabled_vs_reroll_enabled"]
     targets = report["targets"]
-    reroll_credit_drop = -reroll_delta["final_credits"]
-    second_sink_needed = (
-        reroll["averages"]["final_stats"]["credits"] > 40
-        or reroll["averages"]["paid_sink_count"] < 1.0
+    heal_credit_drop = -heal_delta["final_credits"]
+    third_sink_needed = (
+        heal_service["averages"]["final_stats"]["credits"] > 40
+        or heal_service["averages"]["paid_sink_count"] < 1.0
     )
     recommendation = (
-        "A second shop-only sink is still recommended."
-        if second_sink_needed
-        else "A second shop-only sink is not required yet."
+        "A third shop-only sink is still recommended."
+        if third_sink_needed
+        else "The economy looks healthy enough to hold here before adding a third sink."
     )
     credit_assessment = (
         "End-of-run excess credits dropped meaningfully."
-        if reroll_credit_drop >= 8
+        if heal_credit_drop >= 8
         else "End-of-run excess credits did not drop meaningfully."
     )
-    regression_assessment = (
-        "Shop engagement, deck growth, and win rate stayed within acceptable bounds."
-        if reroll_delta["shop_card_buys"] >= -0.05
-        and reroll_delta["win_rate"] >= -0.03
-        and 10.5 <= reroll["averages"]["final_stats"]["deck_size"] <= 12.0
-        else "One or more secondary metrics regressed beyond the desired band."
+    run_quality_assessment = (
+        "Run quality stayed within acceptable bounds."
+        if heal_delta["shop_card_buys"] >= -0.05
+        and heal_delta["win_rate"] >= -0.03
+        and 10.5 <= heal_service["averages"]["final_stats"]["deck_size"] <= 12.0
+        else "One or more run-quality metrics regressed beyond the desired band."
     )
     return "\n".join(
         [
             "Run Economy Audit",
             f"Seeds: {report['start_seed']}..{report['start_seed'] + report['seed_count'] - 1}",
             f"Shop reroll cost: {SHOP_REROLL_BASE_PRICE} + ({SHOP_REROLL_PRICE_STEP} x rerolls used in that shop)",
+            f"Shop heal service: flat {SHOP_HEAL_AMOUNT} HP for {SHOP_HEAL_PRICE} credits",
+            "- Heal model rationale: flat healing is easiest to value at a glance, simple to simulate, and keeps the service readable next to purge and reroll.",
             "",
             "Pre-Tuning Snapshot",
             f"- Win rate: {baseline['win_rate']}",
@@ -797,23 +910,31 @@ def _format_report(report: dict[str, Any]) -> str:
             f"- Avg final deck size: {reroll['averages']['final_stats']['deck_size']}",
             f"- Avg paid sinks: {reroll['averages']['paid_sink_count']}",
             "",
-            "Current Tuned Vs Baseline",
-            f"- Win rate: {tuned_delta['win_rate']:+}",
-            f"- Avg final credits: {tuned_delta['final_credits']:+}",
-            f"- Avg shop card buys: {tuned_delta['shop_card_buys']:+}",
-            f"- Avg shop rerolls: {tuned_delta['shop_rerolls']:+}",
-            f"- Avg final deck size: {tuned_delta['final_deck_size']:+}",
-            f"- Avg paid sinks: {tuned_delta['paid_sink_count']:+}",
+            "Heal-Service Snapshot",
+            f"- Win rate: {heal_service['win_rate']}",
+            f"- Avg final HP: {heal_service['averages']['final_stats']['hp']}",
+            f"- Avg final credits: {heal_service['averages']['final_stats']['credits']}",
+            f"- Avg shop card buys: {heal_service['averages']['shop_card_buys']}",
+            f"- Avg shop rerolls: {heal_service['averages']['shop_rerolls']}",
+            f"- Avg heal-service uses: {heal_service['averages']['shop_heal_uses']}",
+            f"- Avg paid sinks: {heal_service['averages']['paid_sink_count']}",
+            f"- Avg final deck size: {heal_service['averages']['final_stats']['deck_size']}",
             "",
-            "Reroll-Enabled Vs Current Tuned",
-            f"- Win rate: {reroll_delta['win_rate']:+}",
-            f"- Avg final credits: {reroll_delta['final_credits']:+}",
-            f"- Avg shop card buys: {reroll_delta['shop_card_buys']:+}",
-            f"- Avg shop rerolls: {reroll_delta['shop_rerolls']:+}",
-            f"- Avg final deck size: {reroll_delta['final_deck_size']:+}",
-            f"- Avg paid sinks: {reroll_delta['paid_sink_count']:+}",
+            "Heal-Service Vs Reroll-Enabled",
+            f"- Win rate: {heal_delta['win_rate']:+}",
+            f"- Avg final HP: {heal_delta['final_hp']:+}",
+            f"- Avg final credits: {heal_delta['final_credits']:+}",
+            f"- Avg shop card buys: {heal_delta['shop_card_buys']:+}",
+            f"- Avg shop rerolls: {heal_delta['shop_rerolls']:+}",
+            f"- Avg heal-service uses: {heal_delta['shop_heal_uses']:+}",
+            f"- Avg final deck size: {heal_delta['final_deck_size']:+}",
+            f"- Avg paid sinks: {heal_delta['paid_sink_count']:+}",
             "",
-            "Reroll-Enabled Target Checks",
+            "Historical Deltas",
+            f"- Current tuned vs baseline credits: {tuned_delta['final_credits']:+}",
+            f"- Reroll-enabled vs current tuned credits: {reroll_delta['final_credits']:+}",
+            "",
+            "Heal-Service Target Checks",
             *[
                 f"- {target['label']}: {target['value']} (target {target['target_range'][0]}-{target['target_range'][1]})"
                 for key, target in targets.items()
@@ -823,7 +944,8 @@ def _format_report(report: dict[str, Any]) -> str:
             "",
             "Assessment",
             f"- {credit_assessment}",
-            f"- {regression_assessment}",
+            f"- {run_quality_assessment}",
+            f"- Avg heal-service uses: {heal_service['averages']['shop_heal_uses']}",
             f"- Recommendation: {recommendation}",
         ]
     )

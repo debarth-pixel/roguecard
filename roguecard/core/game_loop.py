@@ -23,7 +23,6 @@ from config import (
     DEFAULT_MUSIC_VOLUME,
     DEFAULT_PRESENTATION_SCALE,
     DEFAULT_SCREEN_SHAKE,
-    DEFAULT_SHOW_HELP,
     DEFAULT_UI_SCALE,
     FAST_MODE_MULTIPLIER,
     FRAME_RATE,
@@ -62,8 +61,10 @@ class GameLoop:
         self._logical_surface = None
         self._fullscreen = DEFAULT_FULLSCREEN
         self._fast_mode = DEFAULT_FAST_MODE
-        self._show_help = DEFAULT_SHOW_HELP
+        self._pause_open = False
         self._settings_open = False
+        self._settings_page = "general"
+        self._settings_return_to_pause = False
         self._presentation_scale = DEFAULT_PRESENTATION_SCALE
         self._ui_scale = DEFAULT_UI_SCALE
         self._screen_shake = DEFAULT_SCREEN_SHAKE
@@ -71,6 +72,11 @@ class GameLoop:
         self._notice: dict[str, Any] | None = None
         self._notice_timer = 0.0
         self._interaction_cooldown = 0.0
+        self._title_active = True
+        self._title_confirm_new_run = False
+        self._title_continue_payload: dict[str, Any] | None = None
+        self._title_continue_summary: dict[str, Any] | None = None
+        self._title_status_message = "Choose how to enter the city."
 
     def run(self) -> None:
         if pygame is None:
@@ -100,9 +106,6 @@ class GameLoop:
 
                 screen, consumed = self._handle_global_event(event, screen)
                 if consumed:
-                    continue
-
-                if self._show_help and not self._settings_open:
                     continue
 
                 translated_event = self._translate_event(event, screen)
@@ -135,8 +138,23 @@ class GameLoop:
                 self._trigger_denial_feedback(message)
             return screen
 
-        if action_type in {"toggle_settings", "close_settings", "set_setting", "reset_settings"}:
+        if action_type in {
+            "toggle_settings",
+            "close_settings",
+            "set_setting",
+            "reset_settings",
+            "open_general_settings_page",
+            "open_controls_page",
+        }:
             return self._handle_settings_action(action, screen)
+        if action_type in {
+            "pause_open",
+            "pause_continue",
+            "pause_open_settings",
+            "pause_home",
+            "pause_quit",
+        }:
+            return self._handle_pause_action(action, screen)
 
         if self._action_uses_cooldown(action_type) and self._interaction_cooldown > 0:
             return screen
@@ -144,8 +162,27 @@ class GameLoop:
         before_snapshot = self._snapshot_with_hand()
 
         try:
-            if action_type == "new_run":
-                self.state_manager.start_new_run()
+            if action_type == "title_new_run":
+                if self._title_continue_payload is not None and not self._title_confirm_new_run:
+                    self._title_confirm_new_run = True
+                    self._title_status_message = "Overwrite the current resumable run?"
+                else:
+                    self._begin_new_run()
+            elif action_type == "title_confirm_new_run":
+                self._begin_new_run()
+            elif action_type == "title_cancel_new_run":
+                self._title_confirm_new_run = False
+                self._title_status_message = "Choose how to enter the city."
+            elif action_type == "title_continue":
+                self._continue_saved_run()
+            elif action_type == "title_quit":
+                self.running = False
+            elif action_type == "new_run":
+                self._begin_new_run()
+            elif action_type == "select_run_modifier_offer":
+                self.state_manager.select_run_modifier_offer(action["modifier_id"])
+            elif action_type == "confirm_run_modifier_selection":
+                self.state_manager.confirm_run_modifier_selection()
             elif action_type == "select_node":
                 self.state_manager.select_map_node(action["node_id"])
             elif action_type == "play_card":
@@ -188,7 +225,8 @@ class GameLoop:
             return screen
 
         after_snapshot = self._snapshot_with_hand()
-        self._apply_feedback(action_type, before_snapshot, after_snapshot)
+        if action_type != "title_quit":
+            self._apply_feedback(action_type, before_snapshot, after_snapshot)
         self._persist_run_state(after_snapshot)
         if self._action_uses_cooldown(action_type):
             self._interaction_cooldown = ACTION_COOLDOWN_SECONDS
@@ -198,11 +236,22 @@ class GameLoop:
         action_type = action["type"]
 
         if action_type == "toggle_settings":
-            self._toggle_settings()
+            self._toggle_settings(
+                page=action.get("page"),
+                from_pause=action.get("from_pause"),
+            )
             return screen
 
         if action_type == "close_settings":
             self._toggle_settings(False)
+            return screen
+
+        if action_type == "open_general_settings_page":
+            self._settings_page = "general"
+            return screen
+
+        if action_type == "open_controls_page":
+            self._settings_page = "controls"
             return screen
 
         if action_type == "reset_settings":
@@ -224,15 +273,81 @@ class GameLoop:
         self._trigger_denial_feedback(f"Unsupported settings action: {action_type}")
         return screen
 
+    def _handle_pause_action(self, action: dict[str, Any], screen: Any) -> Any:
+        action_type = action["type"]
+
+        if action_type == "pause_open":
+            if not self._title_active:
+                self._pause_open = True
+                self.animator.trigger("select")
+                self.audio_manager.trigger("menu_open")
+                self._set_notice("Paused.", duration=1.2)
+            return screen
+
+        if action_type == "pause_continue":
+            self._pause_open = False
+            self._set_notice("Resumed.", duration=1.2)
+            return screen
+
+        if action_type == "pause_open_settings":
+            self._toggle_settings(True, page="general", from_pause=True)
+            return screen
+
+        if action_type == "pause_home":
+            if not self._title_active:
+                self._persist_run_state(self.state_manager.get_state_snapshot())
+            self._pause_open = False
+            self._toggle_settings(False)
+            self._bootstrap_run_state()
+            self._set_notice("Returned to the title screen. Continue is available.", level="success", duration=2.0)
+            return screen
+
+        if action_type == "pause_quit":
+            self.running = False
+            return screen
+
+        self._trigger_denial_feedback(f"Unsupported pause action: {action_type}")
+        return screen
+
     def _apply_feedback(
         self,
         action_type: str,
         before_snapshot: dict[str, Any],
         after_snapshot: dict[str, Any],
     ) -> None:
-        if action_type == "new_run":
+        if action_type == "title_new_run":
+            if after_snapshot["current_state"] == "title":
+                self.animator.trigger("select")
+                self.audio_manager.trigger("menu_open")
+                self._set_notice(after_snapshot["status_message"], duration=1.8)
+            else:
+                self.animator.trigger("select")
+                self.audio_manager.trigger("menu_open")
+                self._set_notice("New run prepared. Choose a modifier.", duration=2.4)
+        elif action_type == "title_confirm_new_run":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice("New run prepared. Choose a modifier.", duration=2.4)
+        elif action_type == "title_cancel_new_run":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice("Kept the current resumable run.", duration=1.6)
+        elif action_type == "title_continue":
+            self.animator.trigger(self._animator_state_for_current_state(after_snapshot["current_state"]))
+            self.audio_manager.trigger("menu_open")
+            self._set_notice("Continued the saved run.", level="success", duration=2.4)
+        elif action_type == "new_run":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice("New run prepared. Choose a modifier.", duration=2.4)
+        elif action_type == "select_run_modifier_offer":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("node_select")
+            self._set_notice(after_snapshot["status_message"], duration=1.6)
+        elif action_type == "confirm_run_modifier_selection":
             self.animator.trigger("map")
-            self._set_notice("New run started. Select the next node.", duration=2.4)
+            self.audio_manager.trigger("card_play")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.4)
         elif action_type == "select_node":
             self.animator.trigger("select")
             self.audio_manager.trigger("node_select")
@@ -413,28 +528,39 @@ class GameLoop:
         if event.type != pygame.KEYDOWN:
             return screen, False
 
+        current_state = "title" if self._title_active else self.state_manager.current_state
+
         if event.key == pygame.K_ESCAPE:
             if self._settings_open:
                 self._toggle_settings(False)
                 return screen, True
-            if self._show_help:
-                self._show_help = False
-                self._set_notice("Controls panel closed.", duration=1.4)
+            if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
+                self._pause_open = not self._pause_open
+                self.animator.trigger("select")
+                self.audio_manager.trigger("menu_open")
+                self._set_notice("Paused." if self._pause_open else "Resumed.", duration=1.2)
                 return screen, True
+            if self._title_active and self._title_confirm_new_run:
+                return screen, False
             self.running = False
             return screen, True
 
         if event.key == pygame.K_h:
-            if self._settings_open:
-                return screen, True
-            self._show_help = not self._show_help
-            message = "Controls panel opened." if self._show_help else "Controls panel closed."
-            self.audio_manager.trigger("menu_open")
-            self._set_notice(message, duration=1.4)
+            self._set_notice("Controls moved to Settings -> Controls.", duration=1.6)
+            return screen, True
+
+        if event.key == pygame.K_i:
+            if current_state == "map":
+                self._set_notice("Hover the modifier icons below Pause to inspect them.", duration=1.8)
+            elif current_state in {"modifier_draft", "combat", "reward", "shop", "event"}:
+                self._set_notice("Modifier icons are shown on the map screen.", duration=1.8)
             return screen, True
 
         if event.key == pygame.K_s:
-            self._toggle_settings()
+            if self._settings_open:
+                self._toggle_settings(False)
+            else:
+                self._toggle_settings(True, page="general", from_pause=self._pause_open)
             return screen, True
 
         if event.key == pygame.K_F11:
@@ -550,7 +676,10 @@ class GameLoop:
         return logical_x, logical_y
 
     def _snapshot_with_hand(self) -> dict[str, Any]:
-        snapshot = self.state_manager.get_state_snapshot()
+        if self._title_active:
+            snapshot = self._title_snapshot()
+        else:
+            snapshot = self.state_manager.get_state_snapshot()
         snapshot["presentation"] = self._presentation_state()
         snapshot["ui_notice"] = None if self._notice is None else dict(self._notice)
         return snapshot
@@ -559,8 +688,9 @@ class GameLoop:
         return {
             "fullscreen": self._fullscreen,
             "fast_mode": self._fast_mode,
-            "show_help": self._show_help,
+            "pause_open": self._pause_open,
             "settings_open": self._settings_open,
+            "settings_page": self._settings_page,
             "presentation_scale": round(self._presentation_scale, 2),
             "ui_scale": round(self._ui_scale, 2),
             "screen_shake": self._screen_shake,
@@ -569,6 +699,27 @@ class GameLoop:
             "music_volume": round(self.audio_manager.music_volume, 2),
             "muted": self.audio_manager.muted,
             "animation": self.animator.get_state(),
+        }
+
+    def _title_snapshot(self) -> dict[str, Any]:
+        return {
+            "current_state": "title",
+            "status_message": self._title_status_message,
+            "run_seed": None,
+            "title": {
+                "continue_enabled": self._title_continue_payload is not None,
+                "continue_summary": None if self._title_continue_summary is None else dict(self._title_continue_summary),
+                "confirm_overwrite": self._title_confirm_new_run,
+            },
+            "modifier_draft": None,
+            "run_modifiers": {"active": [], "count": 0, "primary_label": None},
+            "map": None,
+            "combat": None,
+            "event": None,
+            "reward": None,
+            "shop": None,
+            "player": None,
+            "player_hand": [],
         }
 
     def _advance_notice(self, delta_time: float) -> None:
@@ -675,19 +826,33 @@ class GameLoop:
         overlay.fill((*color, alpha))
         surface.blit(overlay, (0, 0))
 
-    def _toggle_settings(self, open_state: bool | None = None) -> None:
+    def _toggle_settings(
+        self,
+        open_state: bool | None = None,
+        *,
+        page: str | None = None,
+        from_pause: bool | None = None,
+    ) -> None:
         target_state = (not self._settings_open) if open_state is None else bool(open_state)
-        if self._settings_open == target_state:
+        if self._settings_open == target_state and page is None and from_pause is None:
             return
 
-        self._settings_open = target_state
         if target_state:
-            self._show_help = False
+            self._settings_open = True
+            self._settings_page = "controls" if page == "controls" else "general"
+            self._settings_return_to_pause = self._pause_open if from_pause is None else bool(from_pause)
             self.animator.trigger("settings")
             self.audio_manager.trigger("menu_open")
             self._set_notice("Settings opened.", duration=1.4)
         else:
-            self._set_notice("Settings closed.", duration=1.4)
+            return_to_pause = self._settings_return_to_pause
+            self._settings_open = False
+            self._settings_return_to_pause = False
+            self._pause_open = return_to_pause
+            self._set_notice(
+                "Returned to pause menu." if return_to_pause else "Settings closed.",
+                duration=1.4,
+            )
 
     def _default_settings(self) -> dict[str, Any]:
         return {
@@ -848,52 +1013,97 @@ class GameLoop:
         self._save_json_atomic(SETTINGS_DATA_PATH, self._persistent_settings_payload())
 
     def _bootstrap_run_state(self) -> tuple[str, str]:
-        restored, restore_message, restore_level = self._restore_saved_run_if_available()
-        if restored:
-            self.animator.trigger(self._animator_state_for_current_state(self.state_manager.current_state))
-            return restore_message, restore_level
+        self._title_active = True
+        self._title_confirm_new_run = False
+        self._pause_open = False
+        self._settings_open = False
+        self._settings_page = "general"
+        self._settings_return_to_pause = False
+        available, restore_message, restore_level = self._inspect_saved_run_if_available()
+        self.animator.trigger("idle")
+        self._title_status_message = (
+            "Continue a saved run or start fresh with a new modifier."
+            if available
+            else "Choose how to enter the city."
+        )
+        return restore_message or "Title screen ready.", restore_level
 
-        self.state_manager.start_new_run()
-        self.animator.trigger("map")
-        self._persist_run_state(self._snapshot_with_hand())
-        if restore_message is not None:
-            return restore_message, restore_level
-        return "Run ready. Choose a route with the mouse or 1-9.", "info"
-
-    def _restore_saved_run_if_available(self) -> tuple[bool, str | None, str]:
+    def _inspect_saved_run_if_available(self) -> tuple[bool, str | None, str]:
         path_exists = RUN_SAVE_DATA_PATH.exists()
         payload = self._load_json(RUN_SAVE_DATA_PATH)
         if payload is None:
             if path_exists:
                 self._clear_run_save()
-                return False, "Saved run data was invalid. Started a fresh run.", "error"
+                self._title_continue_payload = None
+                self._title_continue_summary = None
+                return False, "Saved run data was invalid and has been cleared.", "error"
             return False, None, "info"
 
         if not isinstance(payload, dict):
             self._clear_run_save()
-            return False, "Saved run data was invalid. Started a fresh run.", "error"
+            self._title_continue_payload = None
+            self._title_continue_summary = None
+            return False, "Saved run data was invalid and has been cleared.", "error"
 
         if payload.get("current_state") in {"victory", "game_over"}:
             self._clear_run_save()
-            return False, "Previous run had already ended. Started a fresh run.", "info"
+            self._title_continue_payload = None
+            self._title_continue_summary = None
+            return False, "Previous run had already ended. Start a new one.", "info"
 
         try:
-            snapshot = self.state_manager.restore_save_data(payload)
+            probe_manager = StateManager()
+            snapshot = probe_manager.restore_save_data(payload)
         except Exception as exc:  # pragma: no cover - recovery path.
             LOGGER.warning("Failed to restore saved run: %s", exc)
             self._clear_run_save()
-            return False, "Saved run could not be restored. Started a fresh run.", "error"
+            self._title_continue_payload = None
+            self._title_continue_summary = None
+            return False, "Saved run could not be restored and has been cleared.", "error"
 
-        if snapshot["current_state"] not in {"map", "combat", "reward", "shop", "event"}:
+        if snapshot["current_state"] not in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
             self._clear_run_save()
-            return False, "Saved run was not resumable. Started a fresh run.", "error"
+            self._title_continue_payload = None
+            self._title_continue_summary = None
+            return False, "Saved run was not resumable and has been cleared.", "error"
 
-        self._persist_run_state(snapshot)
-        return True, "Continued your saved run. Press N to start over anytime.", "success"
+        self._title_continue_payload = payload
+        self._title_continue_summary = {
+            "current_state": snapshot["current_state"],
+            "run_seed": snapshot["run_seed"],
+            "status_message": snapshot["status_message"],
+            "modifier_label": snapshot.get("run_modifiers", {}).get("primary_label"),
+        }
+        return True, "Continue is available.", "success"
+
+    def _begin_new_run(self) -> None:
+        self._title_active = False
+        self._title_confirm_new_run = False
+        self._pause_open = False
+        self._settings_open = False
+        self._settings_page = "general"
+        self._settings_return_to_pause = False
+        self.state_manager = StateManager()
+        self.state_manager.start_new_run()
+        self._persist_run_state(self.state_manager.get_state_snapshot())
+
+    def _continue_saved_run(self) -> None:
+        if self._title_continue_payload is None:
+            raise ValueError("No resumable run is available.")
+        self.state_manager = StateManager()
+        self.state_manager.restore_save_data(self._title_continue_payload)
+        self._title_active = False
+        self._title_confirm_new_run = False
+        self._pause_open = False
+        self._settings_open = False
+        self._settings_page = "general"
+        self._settings_return_to_pause = False
 
     def _persist_run_state(self, snapshot: dict[str, Any]) -> None:
         current_state = snapshot.get("current_state")
-        if current_state not in {"map", "combat", "reward", "shop", "event"}:
+        if current_state == "title":
+            return
+        if current_state not in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
             self._clear_run_save()
             return
 
@@ -943,7 +1153,10 @@ class GameLoop:
     def _action_uses_cooldown(self, action_type: str) -> bool:
         return action_type in {
             "new_run",
+            "title_continue",
+            "title_confirm_new_run",
             "select_node",
+            "confirm_run_modifier_selection",
             "play_card",
             "end_turn",
             "confirm_reward_selection",
@@ -959,7 +1172,7 @@ class GameLoop:
     def _animator_state_for_current_state(self, current_state: str) -> str:
         if current_state == "map":
             return "map"
-        if current_state in {"reward", "shop", "event"}:
+        if current_state in {"modifier_draft", "reward", "shop", "event"}:
             return "select"
         if current_state in {"victory", "game_over"}:
             return "idle"
@@ -969,16 +1182,24 @@ class GameLoop:
 def simulate_game_loop() -> dict[str, Any]:
     loop = GameLoop()
     loop._load_settings()
-    start_snapshot = loop.state_manager.start_new_run(seed=31)
-    before_select = loop._snapshot_with_hand()
-    loop.state_manager.select_map_node(start_snapshot["map"]["available_node_ids"][0])
-    after_select = loop._snapshot_with_hand()
-    loop._apply_feedback("select_node", before_select, after_select)
+    boot_message, boot_level = loop._bootstrap_run_state()
+    title_snapshot = loop._snapshot_with_hand()
+    loop._begin_new_run()
+    draft_snapshot = loop._snapshot_with_hand()
+    first_offer_id = draft_snapshot["modifier_draft"]["offers"][0]["id"]
+    loop.state_manager.select_run_modifier_offer(first_offer_id)
+    before_confirm = loop._snapshot_with_hand()
+    loop.state_manager.confirm_run_modifier_selection()
+    after_confirm = loop._snapshot_with_hand()
+    loop._apply_feedback("confirm_run_modifier_selection", before_confirm, after_confirm)
     layout = loop._presentation_layout((1024, 768), SCREEN_SIZE)
     return {
-        "current_state": after_select["current_state"],
-        "run_seed": after_select["run_seed"],
-        "snapshot_keys": sorted(after_select.keys()),
+        "boot_message": boot_message,
+        "boot_level": boot_level,
+        "title_state": title_snapshot["current_state"],
+        "current_state": after_confirm["current_state"],
+        "run_seed": after_confirm["run_seed"],
+        "snapshot_keys": sorted(after_confirm.keys()),
         "animation_state": loop.animator.get_state()["current_state"],
         "audio_history": list(loop.audio_manager.trigger_history),
         "presentation_layout": layout,

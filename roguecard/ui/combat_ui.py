@@ -201,25 +201,24 @@ class CombatUI:
 
         return {
             "status_message": combat_state.get("status_message", ""),
-            "turn_label": f"Turn {combat_state.get('turn_number', 0)} - {combat_state.get('turn_owner', 'player').title()}",
-            "turn_hint": "Play a card or end the turn." if combat_state.get("turn_owner", "player") == "player" else "Enemies are resolving their intents.",
+            "turn_label": f"Turn {combat_state.get('turn_number', 0)}",
+            "turn_owner_label": combat_state.get("turn_owner", "player").title(),
             "player_lines": [
-                f"HP {player['current_hp']}/{player['max_hp']}",
+                f"HP {player['current_hp']}/{player['max_hp']} | Block {player['block']}",
                 f"Energy {player['energy']}/{player['max_energy']}",
-                f"Block {player['block']}",
                 f"Draw {player.get('draw_pile', 0)} | Discard {player.get('discard_pile', 0)} | Exhaust {player.get('exhaust_pile', 0)}",
             ],
             "enemy_summaries": enemy_summaries,
             "hand_cards": hand_cards,
-            "controls": ["1-9 / Click: play card", "Enter / Space / E: end turn", "S: settings", "H: controls"],
             "recent_summary": recent_summary,
             "preview_card": preview_card,
             "preview_target_id": preview_target_id,
             "preview_lines": [] if preview_card is None else list(preview_card["preview_lines"]),
-            "preview_title": "Hovered Card" if self._hovered_card_index is not None else "Action Preview",
-            "end_turn_rect": (1040, 612, 188, 62),
+            "preview_title": "Preview",
+            "end_turn_rect": (1060, 614, 168, 54),
             "end_turn_hovered": self._hovered_end_turn,
-            "end_turn_hint": "No playable cards? End the turn." if not any(card["playable"] for card in hand_cards) else "Ready to continue?",
+            "any_playable": any(card["playable"] for card in hand_cards),
+            "end_turn_hint": "No playable cards left." if not any(card["playable"] for card in hand_cards) else "End turn when ready.",
             "high_contrast": presentation.get("high_contrast", False),
         }
 
@@ -237,29 +236,29 @@ class CombatUI:
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=160, color=(10, 6, 12))
 
-        player_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (332, 210))
-        preview_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (340, 258))
+        player_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (300, 170))
+        preview_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (314, 232))
         enemy_panel = self._scaled_image(resolve_asset_path("enemies", "enemy_placeholder.png"), (178, 178))
         card_panel = self._scaled_image(resolve_asset_path("cards", "card_placeholder.png"), (174, 236))
 
         surface.blit(player_panel, (32, 92))
-        surface.blit(preview_panel, (908, 92))
+        surface.blit(preview_panel, (934, 92))
 
         self._draw_text(surface, layout["turn_label"], (44, 110), self._font)
-        self._draw_text(surface, layout["turn_hint"], (44, 142), self._tiny_font, width=300)
+        self._draw_text(surface, layout["turn_owner_label"], (176, 112), self._small_font, width=120)
         for index, line in enumerate(layout["player_lines"]):
-            self._draw_text(surface, line, (44, 188 + (index * 28)), self._small_font, width=300)
+            self._draw_text(surface, line, (44, 150 + (index * 28)), self._small_font, width=264)
 
-        self._draw_text(surface, layout["preview_title"], (928, 110), self._font)
+        self._draw_text(surface, layout["preview_title"], (952, 110), self._font)
         if preview_card is None:
-            self._draw_text(surface, "Hover a card to inspect it.", (928, 154), self._small_font, width=300)
+            self._draw_text(surface, "Hover a card to inspect its play result.", (952, 154), self._small_font, width=280)
         else:
-            self._draw_text(surface, f"{preview_card['name']} ({preview_card['type']})", (928, 150), self._small_font, width=300)
-            self._draw_text(surface, f"Cost {preview_card['cost']}", (928, 178), self._small_font)
+            self._draw_text(surface, f"{preview_card['name']} ({preview_card['type']})", (952, 150), self._small_font, width=280)
+            self._draw_text(surface, f"Cost {preview_card['cost']}", (952, 178), self._small_font)
             for index, line in enumerate(layout["preview_lines"]):
-                self._draw_text(surface, line, (928, 208 + (index * 20)), self._tiny_font, width=300)
-            self._draw_text(surface, preview_card["target_label"], (928, 286), self._tiny_font, width=300)
-        self._draw_text(surface, f"Recent: {layout['recent_summary']}", (928, 308), self._tiny_font, width=300)
+                self._draw_text(surface, line, (952, 206 + (index * 20)), self._tiny_font, width=280)
+            self._draw_text(surface, preview_card["target_label"], (952, 286), self._tiny_font, width=280)
+        self._draw_text(surface, f"Recent: {layout['recent_summary']}", (952, 302), self._tiny_font, width=280)
 
         if preview_card is not None and preview_card["target_id"] is not None:
             target_rect = next(
@@ -323,7 +322,7 @@ class CombatUI:
                 self._draw_text(surface, card["disabled_reason"], (x + 14, card_y + height - 28), self._tiny_font, width=text_width)
 
         button_rect = pygame.Rect(*layout["end_turn_rect"])
-        button_color = (60, 120, 200) if layout["end_turn_hovered"] else (36, 78, 138)
+        button_color = (60, 120, 200) if layout["end_turn_hovered"] else (32, 64, 102) if layout["any_playable"] else (44, 96, 154)
         if self._pressed_end_turn:
             button_color = (255, 214, 110)
         pygame.draw.rect(surface, button_color, button_rect, border_radius=14)
@@ -331,7 +330,7 @@ class CombatUI:
         button_label = self._small_font.render("End Turn", True, (240, 245, 255))
         label_rect = button_label.get_rect(center=button_rect.center)
         surface.blit(button_label, label_rect)
-        self._draw_text(surface, layout["end_turn_hint"], (924, 684), self._tiny_font, width=310)
+        self._draw_text(surface, layout["end_turn_hint"], (930, 676), self._tiny_font, width=300)
 
     def _build_recent_summary(self, event_log: list[dict[str, Any]]) -> str:
         if not event_log:
@@ -421,9 +420,9 @@ class CombatUI:
                 lines.append(f"Projected: {effect['type']} {effect['value']}")
 
         lines.append(f"After play: {max(0, player['energy'] - card['cost'])} energy")
-        lines.append("After use: discard to pile")
-        lines.append("Playable now" if playable else disabled_reason)
-        return lines[:5]
+        if not playable:
+            lines.append(disabled_reason)
+        return lines[:4]
 
     def _preview_target_id(self, card: dict[str, Any], living_enemy_ids: list[str]) -> str | None:
         if any(effect["type"] == "damage" for effect in card.get("effects", [])):

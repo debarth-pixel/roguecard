@@ -216,5 +216,109 @@
         "effects": []
       }
     ]
+  },
+  {
+    "id": "ghost_warranty_01",
+    "title": "Ghost Warranty",
+    "body": "A market ghost offers to ghost your first reroll at every black market you visit. The price is a silent handshake and no refunds.",
+    "choices": [
+      {
+        "id": "install_warranty",
+        "label": "Install the warranty",
+        "description": "Your first reroll in each shop becomes free.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "ghost_warranty"
+          }
+        ]
+      },
+      {
+        "id": "decline_warranty",
+        "label": "Decline",
+        "description": "Keep your stack clean and walk away.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "street_choir_01",
+    "title": "Street Choir",
+    "body": "A signal choir hums through a broken plaza. Syncing with it would leave a healing refrain in your nervous system for the rest of the run.",
+    "choices": [
+      {
+        "id": "join_the_choir",
+        "label": "Join the choir",
+        "description": "Heal a little after each event resolves.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "street_choir"
+          }
+        ]
+      },
+      {
+        "id": "stay_offline",
+        "label": "Stay offline",
+        "description": "Ignore the hymn and move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "debt_spike_01",
+    "title": "Debt Spike",
+    "body": "A courier broker offers instant access to premium inventory in exchange for a nasty contract rider on your next purchase.",
+    "choices": [
+      {
+        "id": "sign_the_advance",
+        "label": "Sign the advance",
+        "description": "Take on a tradeoff: first card purchase in each shop costs more.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_spike"
+          }
+        ]
+      },
+      {
+        "id": "reject_the_terms",
+        "label": "Reject the terms",
+        "description": "Avoid the contract and keep your run clean.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "black_ice_scar_01",
+    "title": "Black Ice Scar",
+    "body": "A fractured black-ice shard can sharpen every future reward readout if you let it score your nervous system on the way in.",
+    "choices": [
+      {
+        "id": "keep_the_shard",
+        "label": "Keep the shard",
+        "description": "See one extra card in reward drafts, but lose max HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "black_ice_scar"
+          }
+        ]
+      },
+      {
+        "id": "dump_it",
+        "label": "Dump it",
+        "description": "Destroy the shard before it can root itself in you.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
   }
 ]

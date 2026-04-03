@@ -106,10 +106,6 @@ class MapUI:
 
         return {
             "status_message": map_state.get("status_message", ""),
-            "available_labels": [
-                f"{index + 1}. Floor {nodes[node_id]['floor'] + 1} {nodes[node_id]['node_type'].title()}"
-                for index, node_id in enumerate(available)
-            ],
             "selected_label": (
                 "Current Position: Entrance"
                 if selected_node is None
@@ -125,20 +121,9 @@ class MapUI:
             "node_count": len(nodes),
             "route_count": len(available),
             "selected_node_id": selected,
+            "route_summary_lines": self._route_summary_lines(available, nodes),
             "focus_lines": self._focus_lines(focus_node, focused_node_id, map_state),
             "focus_next_nodes": [] if focus_node is None else list(focus_node["next_nodes"]),
-            "legend": [
-                "Gold path: available now",
-                "Green outline: already visited",
-                "White ring: current position or focus",
-                "Dim nodes: unreachable right now",
-            ],
-            "controls": [
-                "Click or press 1-9 to choose a route",
-                "Arrow keys move focus between routes",
-                "Enter / Space confirms the focused route",
-                "S opens settings",
-            ],
             "next_action_hint": (
                 "Next: choose one of the highlighted routes."
                 if available
@@ -162,33 +147,24 @@ class MapUI:
         high_contrast = layout["high_contrast"]
 
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        summary_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (360, 248))
-        detail_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (360, 304))
+        summary_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (360, 220))
+        detail_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (360, 330))
 
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=176)
         surface.blit(summary_panel, (24, 96))
-        surface.blit(detail_panel, (24, 360))
+        surface.blit(detail_panel, (24, 328))
 
-        self._draw_text(surface, "Route Overview", (44, 118), self._font)
+        self._draw_text(surface, "Run Route", (44, 118), self._font)
         self._draw_text(surface, layout["status_message"], (44, 156), self._small_font, width=320)
-        self._draw_text(surface, layout["selected_label"], (44, 224), self._small_font, width=320)
-        self._draw_text(surface, f"Reachable now: {layout['route_count']}", (44, 266), self._small_font)
-        self._draw_text(surface, f"Total nodes: {layout['node_count']}", (44, 296), self._small_font)
-        self._draw_text(surface, layout["next_action_hint"], (44, 324), self._tiny_font, width=320)
+        self._draw_text(surface, layout["selected_label"], (44, 194), self._small_font, width=320)
+        for index, line in enumerate(layout["route_summary_lines"]):
+            self._draw_text(surface, line, (44, 232 + (index * 22)), self._tiny_font, width=320)
+        self._draw_text(surface, layout["next_action_hint"], (44, 286), self._tiny_font, width=320)
 
-        self._draw_text(surface, "Available Now", (44, 382), self._font)
-        available_y = 420
-        if layout["available_labels"]:
-            for label in layout["available_labels"][:4]:
-                self._draw_text(surface, label, (44, available_y), self._tiny_font, width=320)
-                available_y += 18
-        else:
-            self._draw_text(surface, "No immediate route choices.", (44, available_y), self._tiny_font, width=320)
-
-        self._draw_text(surface, "Focused Node", (44, 492), self._font)
+        self._draw_text(surface, "Focused Node", (44, 350), self._font)
         for index, line in enumerate(layout["focus_lines"]):
-            self._draw_text(surface, line, (44, 520 + (index * 16)), self._tiny_font, width=320)
+            self._draw_text(surface, line, (44, 388 + (index * 18)), self._tiny_font, width=320)
 
         for node_id, node in nodes.items():
             start = positions[node_id]
@@ -317,6 +293,25 @@ class MapUI:
             f"Status: {status}",
             f"Leads to: {preview}",
             "Press Enter or click to continue." if focused_node_id in available else "Hover a highlighted route to inspect it.",
+        ]
+
+    def _route_summary_lines(
+        self,
+        available: list[str],
+        nodes: dict[str, dict[str, Any]],
+    ) -> list[str]:
+        if not available:
+            return [
+                "Reachable now: 0",
+                f"Total nodes: {len(nodes)}",
+            ]
+        route_types = ", ".join(nodes[node_id]["node_type"].title() for node_id in available[:3])
+        if len(available) > 3:
+            route_types = f"{route_types}, +{len(available) - 3} more"
+        return [
+            f"Reachable now: {len(available)}",
+            f"Total nodes: {len(nodes)}",
+            f"Open routes: {route_types}",
         ]
 
     def _focused_node_id(self, map_state: dict[str, Any]) -> str | None:

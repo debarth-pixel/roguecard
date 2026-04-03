@@ -21,6 +21,10 @@ from config import (
     REWARD_CARD_POOL_IDS,
     SAVE_FORMAT_VERSION,
     SHOP_CARD_OFFER_COUNT,
+    SHOP_HEAL_AMOUNT,
+    SHOP_HEAL_ENABLED,
+    SHOP_HEAL_OFFER_ID,
+    SHOP_HEAL_PRICE,
     SHOP_PURGE_OFFER_ID,
     SHOP_PURGE_PRICE,
     SHOP_REROLL_BASE_PRICE,
@@ -28,6 +32,8 @@ from config import (
     STARTER_DECK_IDS,
 )
 from core.event_library import EventLibrary
+from core.run_modifier_engine import RunModifierEngine
+from core.run_modifier_library import RunModifierLibrary
 from entities.enemy_library import EnemyLibrary
 from entities.player import Player
 from map.map_generator import MapGenerator
@@ -39,11 +45,17 @@ class StateManager:
         self,
         card_library: CardLibrary | None = None,
         enemy_library: EnemyLibrary | None = None,
+        modifier_library: RunModifierLibrary | None = None,
         event_library: EventLibrary | None = None,
     ) -> None:
         self.card_library = card_library or CardLibrary()
         self.enemy_library = enemy_library or EnemyLibrary()
-        self.event_library = event_library or EventLibrary(card_library=self.card_library)
+        self.run_modifier_library = modifier_library or RunModifierLibrary(card_library=self.card_library)
+        self.run_modifier_engine = RunModifierEngine(self.run_modifier_library)
+        self.event_library = event_library or EventLibrary(
+            card_library=self.card_library,
+            modifier_library=self.run_modifier_library,
+        )
         self.current_state = "boot"
         self.status_message = "Initialize a run."
         self.run_seed: int | None = None
@@ -57,6 +69,9 @@ class StateManager:
         self.active_reward: dict[str, Any] | None = None
         self.active_shop: dict[str, Any] | None = None
         self.active_event: dict[str, Any] | None = None
+        self.active_modifier_draft: dict[str, Any] | None = None
+        self.run_modifiers: list[dict[str, Any]] = []
+        self.modifier_runtime_flags: dict[str, Any] = self._default_modifier_runtime_flags()
         self.seen_event_ids: list[str] = []
 
     def start_new_run(self, seed: int | None = None) -> dict[str, Any]:
@@ -71,8 +86,34 @@ class StateManager:
         self.active_reward = None
         self.active_shop = None
         self.active_event = None
+        self.active_modifier_draft = self._generate_modifier_draft_state()
+        self.run_modifiers = []
+        self.modifier_runtime_flags = self._default_modifier_runtime_flags()
         self.seen_event_ids = []
-        self._enter_map_state(status_message="Select the next node.")
+        self.current_state = "modifier_draft"
+        self.status_message = "Choose a run modifier before entering the city."
+        return self.get_state_snapshot()
+
+    def select_run_modifier_offer(self, modifier_id: str) -> dict[str, Any]:
+        self._require_modifier_draft()
+        if modifier_id not in self.active_modifier_draft["offer_ids"]:
+            raise ValueError(f"Unknown modifier offer: {modifier_id}")
+
+        self.active_modifier_draft["selected_offer_id"] = modifier_id
+        modifier = self.run_modifier_library.get_modifier(modifier_id)
+        self.status_message = f"Selected {modifier['name']}."
+        return self.get_state_snapshot()
+
+    def confirm_run_modifier_selection(self) -> dict[str, Any]:
+        self._require_modifier_draft()
+        modifier_id = self.active_modifier_draft.get("selected_offer_id")
+        if modifier_id is None:
+            raise ValueError("Select a modifier before confirming it.")
+
+        modifier = self.run_modifier_library.get_modifier(modifier_id)
+        self._acquire_run_modifier(modifier_id, source="starter_draft")
+        self.active_modifier_draft = None
+        self._enter_map_state(status_message=f"{modifier['name']} installed. Select the next node.")
         return self.get_state_snapshot()
 
     def select_map_node(self, node_id: str) -> dict[str, Any]:
@@ -215,11 +256,13 @@ class StateManager:
 
     def confirm_shop_purchase(self) -> dict[str, Any]:
         self._require_shop()
+        self._refresh_shop_prices()
         offer = self._selected_shop_offer()
         if offer is None:
             raise ValueError("Select a shop offer before confirming a purchase.")
-        if offer.get("sold_out"):
-            raise ValueError("That shop offer has already been purchased.")
+        can_purchase, disabled_reason = self._shop_offer_purchase_availability(offer)
+        if not can_purchase:
+            raise ValueError(disabled_reason or "That shop purchase is unavailable.")
 
         price = offer["price"]
         self.player.spend_credits(price)
@@ -228,6 +271,7 @@ class StateManager:
             self.player.deck_manager.add_to_starting_deck(card)
             self.player.deck_manager.normalize_overworld_deck()
             summary = f"Purchased {offer['card']['name']} for {price} credits."
+            self._mark_shop_modifier_use("card")
         elif offer["type"] == "purge":
             if len(self.player.deck_manager.starting_deck) <= MIN_STARTING_DECK_SIZE:
                 self.player.gain_credits(price)
@@ -240,12 +284,18 @@ class StateManager:
             self.player.deck_manager.normalize_overworld_deck()
             summary = f"Purged {removed_card.name} for {price} credits."
             self.active_shop["selected_purge_index"] = None
+            self._mark_shop_modifier_use("purge")
+        elif offer["type"] == "heal":
+            healed = self.player.heal(offer["heal_amount"])
+            summary = f"Recovered {healed} HP for {price} credits."
         else:
             self.player.gain_credits(price)
             raise ValueError(f"Unsupported shop offer type: {offer['type']}")
 
-        offer["sold_out"] = True
+        if offer["type"] != "heal":
+            offer["sold_out"] = True
         self.active_shop["selected_offer_id"] = None
+        self._refresh_shop_prices()
         self.status_message = summary
         return self.get_state_snapshot()
 
@@ -258,6 +308,7 @@ class StateManager:
         reroll_price = self._shop_reroll_price()
         self.player.spend_credits(reroll_price)
         self._apply_shop_reroll()
+        self._mark_shop_modifier_use("reroll")
         self.active_shop["selected_offer_id"] = None
         self.active_shop["selected_purge_index"] = None
         self.status_message = f"Rerolled the shop for {reroll_price} credits."
@@ -331,6 +382,15 @@ class StateManager:
             resolution_details = self._apply_event_effects(choice["effects"], target_id=target_id)
             resolution_summary = self._event_resolution_summary(choice, resolution_details)
 
+        if self.player.is_alive():
+            event_value_details = self._apply_post_event_modifier_effects()
+            if event_value_details:
+                resolution_details.extend(event_value_details)
+                resolution_summary = self._compose_status_message(
+                    resolution_summary,
+                    " ".join(event_value_details),
+                )
+
         self.active_event["resolved"] = True
         self.active_event["resolved_choice_id"] = choice["id"]
         self.active_event["resolved_outcome_id"] = resolved_outcome_id
@@ -359,6 +419,8 @@ class StateManager:
             "current_state": self.current_state,
             "status_message": self.status_message,
             "run_seed": self.run_seed,
+            "modifier_draft": self._snapshot_modifier_draft(),
+            "run_modifiers": self.run_modifier_engine.snapshot(self.run_modifiers),
             "map": self._snapshot_map(),
             "combat": self.combat_manager.get_state() if self.combat_manager is not None else None,
             "event": self._snapshot_event(),
@@ -384,6 +446,9 @@ class StateManager:
             "event": self._serialize_event(),
             "reward": self._serialize_reward(),
             "shop": self._serialize_shop(),
+            "modifier_draft": self._serialize_modifier_draft(),
+            "run_modifiers": copy.deepcopy(self.run_modifiers),
+            "modifier_runtime_flags": copy.deepcopy(self.modifier_runtime_flags),
             "seen_event_ids": list(self.seen_event_ids),
         }
 
@@ -392,7 +457,7 @@ class StateManager:
             raise ValueError("Save data must be a dictionary.")
 
         save_version = save_data.get("save_format_version")
-        if save_version not in {2, 3, 4, 5}:
+        if save_version not in {2, 3, 4, 5, 6}:
             raise ValueError(f"Unsupported save format version: {save_version}")
 
         run_seed = save_data.get("run_seed")
@@ -406,6 +471,9 @@ class StateManager:
         reward_data = save_data.get("reward") if save_version >= 3 else None
         shop_data = save_data.get("shop") if save_version >= 4 else None
         seen_event_ids = save_data.get("seen_event_ids") if save_version >= 5 else []
+        modifier_draft_data = save_data.get("modifier_draft") if save_version >= 6 else None
+        run_modifiers_data = save_data.get("run_modifiers") if save_version >= 6 else []
+        modifier_runtime_flags = save_data.get("modifier_runtime_flags") if save_version >= 6 else {}
 
         allowed_states = {"map", "combat", "victory", "game_over"}
         if save_version >= 3:
@@ -414,6 +482,8 @@ class StateManager:
             allowed_states.add("shop")
         if save_version >= 5:
             allowed_states.add("event")
+        if save_version >= 6:
+            allowed_states.add("modifier_draft")
 
         if not isinstance(run_seed, int):
             raise ValueError("Save data is missing a valid run_seed.")
@@ -434,6 +504,9 @@ class StateManager:
         self.active_reward = None
         self.active_shop = None
         self.active_event = None
+        self.active_modifier_draft = None
+        self.run_modifiers = self._restore_run_modifiers(run_modifiers_data)
+        self.modifier_runtime_flags = self._restore_modifier_runtime_flags(modifier_runtime_flags)
         self.seen_event_ids = self._restore_seen_event_ids(seen_event_ids)
 
         if current_state == "combat":
@@ -444,6 +517,8 @@ class StateManager:
             self.active_reward = self._restore_reward(reward_data)
         elif current_state == "shop":
             self.active_shop = self._restore_shop(shop_data)
+        elif current_state == "modifier_draft":
+            self.active_modifier_draft = self._restore_modifier_draft(modifier_draft_data)
 
         return self.get_state_snapshot()
 
@@ -454,6 +529,8 @@ class StateManager:
         enemy = self.enemy_library.create_enemy(enemy_id)
         self.combat_manager = CombatManager(player=self.player, enemies=[enemy])
         self.combat_manager.start_combat()
+        self._apply_combat_modifier_effects("combat_start")
+        self._apply_combat_modifier_effects("turn_one")
         self.current_state = "combat"
         self.status_message = f"Entered {node_type} encounter. Play cards or end your turn."
 
@@ -495,17 +572,22 @@ class StateManager:
         if credits_granted > 0:
             self.player.gain_credits(credits_granted)
 
+        modifier_summary = self._apply_post_victory_modifier_effects(encounter_type)
+
         reward_state = self._generate_reward_state(encounter_type, credits_granted)
         if reward_state is None:
             self.active_reward = None
             self._enter_map_state(
-                status_message=f"Encounter cleared. +{credits_granted} credits. Select the next node."
+                status_message=self._compose_status_message(
+                    f"Encounter cleared. +{credits_granted} credits. Select the next node.",
+                    modifier_summary,
+                )
             )
             return
 
         self.active_reward = reward_state
         self.current_state = "reward"
-        self.status_message = reward_state["intro_message"]
+        self.status_message = self._compose_status_message(reward_state["intro_message"], modifier_summary)
 
     def _snapshot_map(self) -> dict[str, Any] | None:
         if self.map_graph is None:
@@ -518,6 +600,30 @@ class StateManager:
             "available_node_ids": list(self.available_node_ids),
             "visited_node_ids": list(self.visited_node_ids),
             "selected_node_id": self.selected_node_id,
+        }
+
+    def _snapshot_modifier_draft(self) -> dict[str, Any] | None:
+        if self.active_modifier_draft is None:
+            return None
+
+        offers = []
+        for modifier_id in self.active_modifier_draft["offer_ids"]:
+            modifier = self.run_modifier_library.get_modifier(modifier_id)
+            offers.append(
+                {
+                    "id": modifier["id"],
+                    "name": modifier["name"],
+                    "kind": modifier["kind"],
+                    "description": modifier["description"],
+                    "downside": modifier.get("downside"),
+                    "selected": self.active_modifier_draft.get("selected_offer_id") == modifier_id,
+                }
+            )
+
+        return {
+            "offers": offers,
+            "selected_offer_id": self.active_modifier_draft.get("selected_offer_id"),
+            "can_confirm": self.active_modifier_draft.get("selected_offer_id") is not None,
         }
 
     def _snapshot_event(self) -> dict[str, Any] | None:
@@ -580,6 +686,7 @@ class StateManager:
         if self.active_shop is None:
             return None
 
+        self._refresh_shop_prices()
         can_reroll, reroll_disabled_reason = self._shop_reroll_availability()
         return {
             "inventory": copy.deepcopy(self.active_shop["inventory"]),
@@ -590,6 +697,7 @@ class StateManager:
             "can_reroll": can_reroll,
             "reroll_disabled_reason": reroll_disabled_reason,
             "purge_targets": self._shop_purge_targets(),
+            "heal_service_enabled": SHOP_HEAL_ENABLED,
             "can_leave": True,
         }
 
@@ -608,6 +716,12 @@ class StateManager:
             raise ValueError("Event actions require an active event state.")
         if self.current_state != "event":
             raise ValueError("Event actions are only available during the event state.")
+
+    def _require_modifier_draft(self) -> None:
+        if self.player is None or self.player.deck_manager is None or self.active_modifier_draft is None:
+            raise ValueError("Modifier draft actions require an active draft state.")
+        if self.current_state != "modifier_draft":
+            raise ValueError("Modifier draft actions are only available during the draft state.")
 
     def _require_reward(self) -> None:
         if self.player is None or self.player.deck_manager is None or self.active_reward is None:
@@ -659,6 +773,13 @@ class StateManager:
         deck_size = len(self.player.deck_manager.starting_deck)
         if deck_size_at_least is not None and deck_size < deck_size_at_least:
             return False, f"Requires a deck of at least {deck_size_at_least} cards."
+
+        for effect in choice.get("effects", []):
+            if effect["type"] != "gain_modifier":
+                continue
+            modifier = self.run_modifier_library.get_modifier(effect["modifier_id"])
+            if self.run_modifier_engine.has_modifier(self.run_modifiers, effect["modifier_id"]):
+                return False, f"Already installed: {modifier['name']}."
 
         return True, None
 
@@ -728,6 +849,13 @@ class StateManager:
                 self.player.deck_manager.add_to_starting_deck(card)
                 deck_changed = True
                 details.append(f"Gained {card.name}.")
+            elif effect_type == "gain_modifier":
+                modifier_details = self._acquire_run_modifier(
+                    effect["modifier_id"],
+                    source="event",
+                    source_detail=self.active_event["event_id"] if self.active_event is not None else None,
+                )
+                details.extend(modifier_details)
             elif effect_type == "heal":
                 healed = self.player.heal(effect["value"])
                 details.append(f"Recovered {healed} HP.")
@@ -810,6 +938,141 @@ class StateManager:
         player = Player(credits=PLAYER_STARTING_CREDITS)
         player.attach_deck(deck_manager)
         return player
+
+    def _generate_modifier_draft_state(self) -> dict[str, Any]:
+        rng = self._state_rng("modifier_draft")
+        return {
+            "offer_ids": self.run_modifier_engine.generate_starter_offers(rng),
+            "selected_offer_id": None,
+        }
+
+    def _default_modifier_runtime_flags(self) -> dict[str, Any]:
+        return {
+            "clean_slate_used": False,
+            "ghost_warranty_used_shops": [],
+            "debt_spike_used_shops": [],
+        }
+
+    def _acquire_run_modifier(
+        self,
+        modifier_id: str,
+        source: str,
+        source_detail: str | None = None,
+    ) -> list[str]:
+        if self.run_modifier_engine.has_modifier(self.run_modifiers, modifier_id):
+            modifier = self.run_modifier_library.get_modifier(modifier_id)
+            raise ValueError(f"{modifier['name']} is already active for this run.")
+
+        modifier = self.run_modifier_library.get_modifier(modifier_id)
+        self.run_modifiers.append(
+            {
+                "id": modifier_id,
+                "source": source,
+                "source_detail": source_detail,
+            }
+        )
+
+        details = [f"Installed {modifier['name']}."]
+        for effect in modifier.get("hooks", {}).get("on_acquire", []):
+            details.extend(self._apply_modifier_effect(effect))
+        return details
+
+    def _apply_modifier_effect(self, effect: dict[str, Any]) -> list[str]:
+        effect_type = effect["type"]
+        if effect_type == "gain_credits":
+            gained = self.player.gain_credits(effect["value"])
+            return [f"Gained {gained} credits."]
+        if effect_type == "modify_max_hp":
+            delta = self.player.adjust_max_hp(effect["value"])
+            direction = "max HP" if delta >= 0 else "max HP"
+            return [f"{'Gained' if delta >= 0 else 'Lost'} {abs(delta)} {direction}."]
+        if effect_type == "modify_healing_multiplier_percent":
+            multiplier = self.player.adjust_healing_multiplier(effect["value"])
+            return [f"Healing efficiency set to {int(round(multiplier * 100))}%."]
+        if effect_type == "add_card":
+            card = self.card_library.create_card(effect["card_id"])
+            self.player.deck_manager.add_to_starting_deck(card)
+            self.player.deck_manager.normalize_overworld_deck()
+            return [f"Added {card.name} to the deck."]
+        if effect_type == "gain_block":
+            gained = self.player.gain_block(effect["value"])
+            return [f"Gained {gained} Block."]
+        if effect_type == "draw_cards":
+            drawn = self.player.deck_manager.draw_cards(effect["value"])
+            return [f"Drew {len(drawn)} card{'s' if len(drawn) != 1 else ''}."]
+        if effect_type == "gain_energy":
+            self.player.energy += effect["value"]
+            return [f"Gained {effect['value']} Energy."]
+        if effect_type == "heal":
+            healed = self.player.heal(effect["value"])
+            return [f"Recovered {healed} HP."]
+        return []
+
+    def _apply_combat_modifier_effects(self, hook_name: str) -> None:
+        for effect in self.run_modifier_engine.get_effects(self.run_modifiers, hook_name):
+            self._apply_modifier_effect(effect)
+
+    def _apply_post_victory_modifier_effects(self, encounter_type: str | None) -> str | None:
+        summaries: list[str] = []
+        for effect in self.run_modifier_engine.filter_post_victory_effects(self.run_modifiers, encounter_type):
+            summaries.extend(self._apply_modifier_effect(effect))
+        return None if not summaries else " ".join(summaries)
+
+    def _apply_post_event_modifier_effects(self) -> list[str]:
+        bonus_heal = self.run_modifier_engine.event_post_resolution_heal(self.run_modifiers)
+        if bonus_heal <= 0:
+            return []
+        healed = self.player.heal(bonus_heal)
+        if healed <= 0:
+            return []
+        return [f"Street effects restored {healed} HP."]
+
+    def _shop_price(
+        self,
+        offer_type: str,
+        base_price: int,
+        shop_node_id: str | None,
+    ) -> int:
+        return self.run_modifier_engine.price_for_offer(
+            base_price=base_price,
+            offer_type=offer_type,
+            active_modifiers=self.run_modifiers,
+            runtime_flags=self.modifier_runtime_flags,
+            shop_node_id=shop_node_id,
+        )
+
+    def _mark_shop_modifier_use(self, offer_type: str) -> None:
+        shop_node_id = None if self.active_shop is None else self.active_shop.get("shop_node_id")
+        if offer_type == "purge" and self.run_modifier_engine.has_modifier(self.run_modifiers, "clean_slate"):
+            self.modifier_runtime_flags["clean_slate_used"] = True
+        elif offer_type == "reroll" and self.run_modifier_engine.has_modifier(self.run_modifiers, "ghost_warranty"):
+            used_shops = set(self.modifier_runtime_flags.get("ghost_warranty_used_shops", []))
+            if shop_node_id is not None:
+                used_shops.add(shop_node_id)
+            self.modifier_runtime_flags["ghost_warranty_used_shops"] = sorted(used_shops)
+        elif offer_type == "card" and self.run_modifier_engine.has_modifier(self.run_modifiers, "debt_spike"):
+            used_shops = set(self.modifier_runtime_flags.get("debt_spike_used_shops", []))
+            if shop_node_id is not None:
+                used_shops.add(shop_node_id)
+            self.modifier_runtime_flags["debt_spike_used_shops"] = sorted(used_shops)
+
+    def _refresh_shop_prices(self, shop_state: dict[str, Any] | None = None) -> None:
+        target_shop = self.active_shop if shop_state is None else shop_state
+        if target_shop is None:
+            return
+        shop_node_id = target_shop.get("shop_node_id")
+        for offer in target_shop["inventory"]:
+            if offer["type"] == "card":
+                offer["price"] = self._shop_price("card", CARD_SHOP_PRICES[offer["card_id"]], shop_node_id)
+            elif offer["type"] == "heal":
+                offer["price"] = self._shop_price("heal", SHOP_HEAL_PRICE, shop_node_id)
+            elif offer["type"] == "purge":
+                offer["price"] = self._shop_price("purge", SHOP_PURGE_PRICE, shop_node_id)
+
+    def _compose_status_message(self, primary: str, secondary: str | None) -> str:
+        if secondary is None or not secondary.strip():
+            return primary
+        return f"{primary} {secondary}"
 
     def _enter_map_state(self, status_message: str) -> None:
         self.current_state = "map"
@@ -910,7 +1173,9 @@ class StateManager:
         rng = self._state_rng("card_reward")
         card_ids = list(REWARD_CARD_POOL_IDS)
         rng.shuffle(card_ids)
-        chosen_ids = card_ids[: min(REWARD_CARD_CHOICE_COUNT, len(card_ids))]
+        bonus_choices = self.run_modifier_engine.reward_card_choice_bonus(self.run_modifiers)
+        choice_count = min(REWARD_CARD_CHOICE_COUNT + bonus_choices, len(card_ids))
+        chosen_ids = card_ids[:choice_count]
         return {
             "type": "card_offer",
             "title": "Card Reward",
@@ -970,6 +1235,7 @@ class StateManager:
 
     def _generate_shop_state(self) -> dict[str, Any]:
         purge_locked = len(self.player.deck_manager.starting_deck) <= MIN_STARTING_DECK_SIZE
+        shop_node_id = self.selected_node_id
         chosen_ids = self._shop_card_selection(
             slot_count=min(SHOP_CARD_OFFER_COUNT, len(REWARD_CARD_POOL_IDS)),
             seen_card_ids=[],
@@ -977,22 +1243,12 @@ class StateManager:
             current_unsold_ids=[],
             label="shop_inventory:0",
         )
-        inventory = [self._shop_card_offer(card_id) for card_id in chosen_ids]
-        inventory.append(
-            {
-                "offer_id": SHOP_PURGE_OFFER_ID,
-                "type": "purge",
-                "label": "Purge Service",
-                "description": (
-                    "Deck too small to purge further."
-                    if purge_locked
-                    else "Remove one card from the deck."
-                ),
-                "price": SHOP_PURGE_PRICE,
-                "sold_out": purge_locked,
-            }
-        )
+        inventory = [self._shop_card_offer(card_id, shop_node_id=shop_node_id) for card_id in chosen_ids]
+        if SHOP_HEAL_ENABLED:
+            inventory.append(self._shop_heal_offer(shop_node_id=shop_node_id))
+        inventory.append(self._shop_purge_offer(shop_node_id=shop_node_id, purge_locked=purge_locked))
         return {
+            "shop_node_id": shop_node_id,
             "inventory": inventory,
             "selected_offer_id": None,
             "selected_purge_index": None,
@@ -1000,22 +1256,73 @@ class StateManager:
             "seen_card_ids": list(chosen_ids),
         }
 
-    def _shop_card_offer(self, card_id: str) -> dict[str, Any]:
+    def _shop_card_offer(self, card_id: str, shop_node_id: str | None = None) -> dict[str, Any]:
         return {
             "offer_id": f"card:{card_id}",
             "type": "card",
             "card_id": card_id,
             "card": self.card_library.create_card(card_id).to_dict(),
             "label": self.card_library.get_card(card_id).name,
-            "price": CARD_SHOP_PRICES[card_id],
+            "price": self._shop_price("card", CARD_SHOP_PRICES[card_id], shop_node_id=shop_node_id),
             "sold_out": False,
         }
 
+    def _shop_heal_offer(self, shop_node_id: str | None = None) -> dict[str, Any]:
+        return {
+            "offer_id": SHOP_HEAL_OFFER_ID,
+            "type": "heal",
+            "label": "Clinic Patch",
+            "description": f"Recover {SHOP_HEAL_AMOUNT} HP now.",
+            "price": self._shop_price("heal", SHOP_HEAL_PRICE, shop_node_id=shop_node_id),
+            "heal_amount": SHOP_HEAL_AMOUNT,
+            "sold_out": False,
+        }
+
+    def _shop_purge_offer(self, shop_node_id: str | None, purge_locked: bool) -> dict[str, Any]:
+        return {
+            "offer_id": SHOP_PURGE_OFFER_ID,
+            "type": "purge",
+            "label": "Purge Service",
+            "description": (
+                "Deck too small to purge further."
+                if purge_locked
+                else "Remove one card from the deck."
+            ),
+            "price": self._shop_price("purge", SHOP_PURGE_PRICE, shop_node_id=shop_node_id),
+            "sold_out": purge_locked,
+        }
+
+    def _shop_offer_purchase_availability(self, offer: dict[str, Any]) -> tuple[bool, str | None]:
+        if offer.get("sold_out"):
+            return False, "That shop offer has already been purchased."
+
+        if offer["price"] > self.player.credits:
+            return False, f"Requires {offer['price']} credits."
+
+        if offer["type"] == "purge":
+            if len(self.player.deck_manager.starting_deck) <= MIN_STARTING_DECK_SIZE:
+                return False, "The deck is too small to purge any further."
+            if self.active_shop.get("selected_purge_index") is None:
+                return False, "Choose a deck card to purge before purchasing the service."
+            return True, None
+
+        if offer["type"] == "heal":
+            if self.player.current_hp >= self.player.max_hp:
+                return False, "Heal service is only available below max HP."
+            return True, None
+
+        return True, None
+
     def _shop_reroll_price(self) -> int:
         if self.active_shop is None:
-            return SHOP_REROLL_BASE_PRICE
+            return self._shop_price("reroll", SHOP_REROLL_BASE_PRICE, shop_node_id=None)
         reroll_count = int(self.active_shop.get("reroll_count", 0))
-        return SHOP_REROLL_BASE_PRICE + (reroll_count * SHOP_REROLL_PRICE_STEP)
+        base_price = SHOP_REROLL_BASE_PRICE + (reroll_count * SHOP_REROLL_PRICE_STEP)
+        return self._shop_price(
+            "reroll",
+            base_price,
+            shop_node_id=self.active_shop.get("shop_node_id"),
+        )
 
     def _shop_reroll_availability(self) -> tuple[bool, str | None]:
         if self.active_shop is None:
@@ -1086,12 +1393,16 @@ class StateManager:
             raise ValueError("No replacement card offers remain for this shop.")
 
         for offer_index, card_id in zip(unsold_offer_indices, new_card_ids):
-            self.active_shop["inventory"][offer_index] = self._shop_card_offer(card_id)
+            self.active_shop["inventory"][offer_index] = self._shop_card_offer(
+                card_id,
+                shop_node_id=self.active_shop.get("shop_node_id"),
+            )
 
         self.active_shop["reroll_count"] = int(self.active_shop.get("reroll_count", 0)) + 1
         seen_card_ids = set(self.active_shop.get("seen_card_ids", []))
         seen_card_ids.update(new_card_ids)
         self.active_shop["seen_card_ids"] = sorted(seen_card_ids)
+        self._refresh_shop_prices()
 
     def _shop_card_selection(
         self,
@@ -1170,6 +1481,7 @@ class StateManager:
             "block": self.player.block,
             "draw_per_turn": self.player.draw_per_turn,
             "credits": self.player.credits,
+            "healing_multiplier": self.player.healing_multiplier,
         }
 
     def _serialize_deck(self, deck_manager: DeckManager) -> dict[str, Any]:
@@ -1224,6 +1536,9 @@ class StateManager:
 
     def _serialize_shop(self) -> dict[str, Any] | None:
         return None if self.active_shop is None else copy.deepcopy(self.active_shop)
+
+    def _serialize_modifier_draft(self) -> dict[str, Any] | None:
+        return None if self.active_modifier_draft is None else copy.deepcopy(self.active_modifier_draft)
 
     def _restore_player(
         self,
@@ -1280,6 +1595,7 @@ class StateManager:
             block=player_data["block"],
             draw_per_turn=player_data["draw_per_turn"],
             credits=credits,
+            healing_multiplier=float(player_data.get("healing_multiplier", 1.0)),
         )
         player.attach_deck(deck_manager)
         return player
@@ -1417,7 +1733,93 @@ class StateManager:
 
         restored_shop["reroll_count"] = reroll_count
         restored_shop["seen_card_ids"] = list(dict.fromkeys(seen_card_ids))
+        restored_shop["shop_node_id"] = restored_shop.get("shop_node_id", self.selected_node_id)
+        if SHOP_HEAL_ENABLED and not any(
+            isinstance(offer, dict) and offer.get("offer_id") == SHOP_HEAL_OFFER_ID
+            for offer in restored_shop["inventory"]
+        ):
+            purge_index = next(
+                (
+                    index
+                    for index, offer in enumerate(restored_shop["inventory"])
+                    if isinstance(offer, dict) and offer.get("offer_id") == SHOP_PURGE_OFFER_ID
+                ),
+                len(restored_shop["inventory"]),
+            )
+            restored_shop["inventory"].insert(
+                purge_index,
+                self._shop_heal_offer(shop_node_id=restored_shop["shop_node_id"]),
+            )
+        self._refresh_shop_prices(restored_shop)
         return restored_shop
+
+    def _restore_modifier_draft(self, modifier_draft_data: dict[str, Any] | None) -> dict[str, Any]:
+        if not isinstance(modifier_draft_data, dict):
+            raise ValueError("Modifier draft save data is required to restore the draft state.")
+        offer_ids = modifier_draft_data.get("offer_ids")
+        selected_offer_id = modifier_draft_data.get("selected_offer_id")
+        if not isinstance(offer_ids, list) or not offer_ids or not all(isinstance(modifier_id, str) for modifier_id in offer_ids):
+            raise ValueError("Modifier draft offer_ids must be a non-empty list of modifier ids.")
+        for modifier_id in offer_ids:
+            self.run_modifier_library.get_modifier(modifier_id)
+        if selected_offer_id is not None:
+            if not isinstance(selected_offer_id, str) or selected_offer_id not in offer_ids:
+                raise ValueError("Modifier draft selected_offer_id must point to one of the offered modifiers.")
+        return {"offer_ids": list(offer_ids), "selected_offer_id": selected_offer_id}
+
+    def _restore_run_modifiers(self, run_modifiers_data: Any) -> list[dict[str, Any]]:
+        if run_modifiers_data in (None, []):
+            return []
+        if not isinstance(run_modifiers_data, list):
+            raise ValueError("Saved run_modifiers must be a list.")
+
+        restored: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for modifier_record in run_modifiers_data:
+            if not isinstance(modifier_record, dict):
+                raise ValueError("Saved run modifier entries must be dictionaries.")
+            modifier_id = modifier_record.get("id")
+            source = modifier_record.get("source")
+            source_detail = modifier_record.get("source_detail")
+            if not isinstance(modifier_id, str) or not modifier_id:
+                raise ValueError("Saved run modifier ids must be non-empty strings.")
+            if not isinstance(source, str) or not source:
+                raise ValueError("Saved run modifier sources must be non-empty strings.")
+            if modifier_id in seen_ids:
+                raise ValueError(f"Saved run modifiers contain a duplicate id: {modifier_id}")
+            self.run_modifier_library.get_modifier(modifier_id)
+            seen_ids.add(modifier_id)
+            restored.append(
+                {
+                    "id": modifier_id,
+                    "source": source,
+                    "source_detail": source_detail if isinstance(source_detail, str) else None,
+                }
+            )
+        return restored
+
+    def _restore_modifier_runtime_flags(self, modifier_runtime_flags: Any) -> dict[str, Any]:
+        restored = self._default_modifier_runtime_flags()
+        if modifier_runtime_flags in (None, {}):
+            return restored
+        if not isinstance(modifier_runtime_flags, dict):
+            raise ValueError("Saved modifier_runtime_flags must be a dictionary.")
+
+        clean_slate_used = modifier_runtime_flags.get("clean_slate_used", False)
+        ghost_warranty_used_shops = modifier_runtime_flags.get("ghost_warranty_used_shops", [])
+        debt_spike_used_shops = modifier_runtime_flags.get("debt_spike_used_shops", [])
+
+        if not isinstance(clean_slate_used, bool):
+            raise ValueError("clean_slate_used must be a boolean.")
+        if not isinstance(ghost_warranty_used_shops, list) or not all(isinstance(value, str) for value in ghost_warranty_used_shops):
+            raise ValueError("ghost_warranty_used_shops must be a list of node ids.")
+        if not isinstance(debt_spike_used_shops, list) or not all(isinstance(value, str) for value in debt_spike_used_shops):
+            raise ValueError("debt_spike_used_shops must be a list of node ids.")
+
+        restored["clean_slate_used"] = clean_slate_used
+        restored["ghost_warranty_used_shops"] = list(dict.fromkeys(ghost_warranty_used_shops))
+        restored["debt_spike_used_shops"] = list(dict.fromkeys(debt_spike_used_shops))
+        return restored
 
     def _restore_seen_event_ids(self, seen_event_ids: Any) -> list[str]:
         if seen_event_ids in (None, []):
@@ -1436,7 +1838,10 @@ class StateManager:
 
 def simulate_state_manager() -> dict[str, Any]:
     manager = StateManager()
-    start_snapshot = manager.start_new_run(seed=29)
+    draft_snapshot = manager.start_new_run(seed=29)
+    first_offer_id = draft_snapshot["modifier_draft"]["offers"][0]["id"]
+    manager.select_run_modifier_offer(first_offer_id)
+    start_snapshot = manager.confirm_run_modifier_selection()
     manager.selected_node_id = "event_test"
     manager.active_event = manager._generate_event_state()
     manager.current_state = "event"
@@ -1464,7 +1869,8 @@ def simulate_state_manager() -> dict[str, Any]:
     manager.current_state = "shop"
     shop_snapshot = manager.get_state_snapshot()
     return {
-        "start_state": start_snapshot["current_state"],
+        "start_state": draft_snapshot["current_state"],
+        "post_draft_state": start_snapshot["current_state"],
         "event_title": event_snapshot["event"]["title"],
         "post_event_state": "map",
         "reward_sections": len(reward_snapshot["reward"]["sections"]),

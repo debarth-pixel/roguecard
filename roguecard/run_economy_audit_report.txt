@@ -1,6 +1,8 @@
 Run Economy Audit
 Seeds: 1..200
 Shop reroll cost: 12 + (8 x rerolls used in that shop)
+Shop heal service: flat 14 HP for 18 credits
+- Heal model rationale: flat healing is easiest to value at a glance, simple to simulate, and keeps the service readable next to purge and reroll.
 
 Pre-Tuning Snapshot
 - Win rate: 0.92
@@ -25,30 +27,39 @@ Reroll-Enabled Snapshot
 - Avg final deck size: 11.55
 - Avg paid sinks: 0.85
 
-Current Tuned Vs Baseline
-- Win rate: +0.02
-- Avg final credits: -5.55
-- Avg shop card buys: +0.09
+Heal-Service Snapshot
+- Win rate: 0.94
+- Avg final HP: 37.92
+- Avg final credits: 57.71
+- Avg shop card buys: 0.5
+- Avg shop rerolls: 0.04
+- Avg heal-service uses: 0.29
+- Avg paid sinks: 1.03
+- Avg final deck size: 11.62
+
+Heal-Service Vs Reroll-Enabled
+- Win rate: +0.0
+- Avg final HP: +3.29
+- Avg final credits: -0.56
+- Avg shop card buys: -0.01
 - Avg shop rerolls: +0.0
-- Avg final deck size: +0.12
+- Avg heal-service uses: +0.29
+- Avg final deck size: +0.07
 - Avg paid sinks: +0.18
 
-Reroll-Enabled Vs Current Tuned
-- Win rate: +0.0
-- Avg final credits: -0.15
-- Avg shop card buys: -0.02
-- Avg shop rerolls: +0.04
-- Avg final deck size: -0.03
-- Avg paid sinks: +0.04
+Historical Deltas
+- Current tuned vs baseline credits: -5.55
+- Reroll-enabled vs current tuned credits: -0.15
 
-Reroll-Enabled Target Checks
-- Average shop card buys per run: 0.51 (target 0.5-1.0)
-- Average final credits: 58.27 (target 15.0-35.0)
-- Average final deck size: 11.55 (target 10.5-12.0)
-- Average paid sinks per run: 0.85 (target 1.0-2.0)
+Heal-Service Target Checks
+- Average shop card buys per run: 0.5 (target 0.5-1.0)
+- Average final credits: 57.71 (target 15.0-35.0)
+- Average final deck size: 11.62 (target 10.5-12.0)
+- Average paid sinks per run: 1.03 (target 1.0-2.0)
 - All targets met: False
 
 Assessment
 - End-of-run excess credits did not drop meaningfully.
-- Shop engagement, deck growth, and win rate stayed within acceptable bounds.
-- Recommendation: A second shop-only sink is still recommended.
+- Run quality stayed within acceptable bounds.
+- Avg heal-service uses: 0.29
+- Recommendation: A third shop-only sink is still recommended.

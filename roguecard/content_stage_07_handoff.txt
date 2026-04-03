@@ -1,0 +1,72 @@
+Stage 07: Title Screen + Run Modifiers
+Status: complete
+
+Objective
+- Add a real title/start flow with New Run, Continue, Settings, and Quit.
+- Add a data-driven run-modifier system with a 1-of-3 starter draft and event-granted blessings/curses.
+- Persist active modifiers and pending draft state safely through save/load.
+
+Short Audit
+- The game previously booted directly into a run and had no front-door flow for continue/new-run decisions.
+- Runs had no persistent identity layer beyond cards, rewards, and events.
+- Event, shop, reward, and combat systems were mature enough to support modifier hooks without a large content rewrite.
+
+What Shipped
+- Launch now opens on a title screen instead of auto-starting a run.
+- Continue is enabled only when a valid resumable v5/v6 run exists.
+- New Run now enters a modifier draft before the map.
+- Added 20 data-driven run modifiers in `data/run_modifiers.json`.
+- Added modifier loader/validation and a shared modifier engine.
+- Added modifier hooks for:
+  - on acquire
+  - combat start
+  - turn one
+  - post victory
+  - reward generation
+  - shop pricing
+  - event value
+- Added 4 modifier-grant events so blessings/curses can occur from random events.
+- Added in-run visibility through a top-bar modifier chip and `I` overlay.
+- Save format upgraded to v6 with backward-compatible v5 restore.
+
+Files Touched
+- `config.py`
+- `data/events.json`
+- `data/run_modifiers.json`
+- `entities/player.py`
+- `core/event_library.py`
+- `core/run_modifier_library.py`
+- `core/run_modifier_engine.py`
+- `core/state_manager.py`
+- `core/game_loop.py`
+- `core/run_economy_report.py`
+- `core/visual_audit_capture.py`
+- `ui/ui_manager.py`
+- `ui/title_ui.py`
+- `ui/modifier_draft_ui.py`
+
+Verification Performed
+- `py -3.13 -m py_compile` on all touched Stage 07 modules.
+- Headless checks for:
+  - deterministic modifier draft save/restore
+  - v5 restore compatibility with zero active modifiers
+  - combat-start and turn-one modifier effects
+  - reward and shop modifier hooks
+  - event-granted modifier acquisition
+  - duplicate modifier-event choice disabling
+  - title continue disabled/enabled against temp save data
+- Dummy-SDL render smoke through:
+  - title
+  - modifier draft
+  - map after modifier confirmation
+
+Known Remaining Issues
+- The current modifier overlay is intentionally compact and can get visually dense if many event modifiers stack up in one run.
+- The headless visual capture harness now handles the modifier draft, but it still does not synthesize the GameLoop-owned title screen.
+- The run economy has not yet been re-audited with starter modifiers as a major balancing dimension.
+
+Exact Next Recommended Stage
+- Stage 08: Modifier-Aware Balance Audit
+  - rerun economy/progression sampling with draft-selected modifiers in the loop
+  - check whether specific starter modifiers are over-centralizing early-run choices
+  - tune event-granted blessing/curse frequency before expanding the modifier pool

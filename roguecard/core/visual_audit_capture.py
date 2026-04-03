@@ -50,6 +50,10 @@ def capture_visual_audit(
             manager.select_map_node(_choose_map_node(snapshot, captured_paths))
             continue
 
+        if manager.current_state == "modifier_draft":
+            _resolve_modifier_draft(manager)
+            continue
+
         if manager.current_state == "combat":
             _play_simple_combat(manager)
             continue
@@ -84,8 +88,9 @@ def _presentation_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
     snapshot["presentation"] = {
         "fullscreen": False,
         "fast_mode": False,
-        "show_help": False,
+        "pause_open": False,
         "settings_open": False,
+        "settings_page": "general",
         "presentation_scale": 1.0,
         "ui_scale": DEFAULT_UI_SCALE,
         "screen_shake": False,
@@ -120,6 +125,7 @@ def _capture_screen(
 
 def _capture_name_for_state(current_state: str) -> str:
     return {
+        "modifier_draft": "modifier_draft",
         "map": "map",
         "combat": "combat",
         "reward": "reward",
@@ -197,6 +203,24 @@ def _play_simple_combat(manager: StateManager) -> None:
         _, hand_index, chosen_card = max(candidates)
         target_id = living_enemy_id if any(effect["type"] == "damage" for effect in chosen_card["effects"]) else None
         manager.play_card_from_hand(hand_index, target_id=target_id)
+
+
+def _resolve_modifier_draft(manager: StateManager) -> None:
+    draft_state = manager.get_state_snapshot()["modifier_draft"]
+    preferred_ids = (
+        "carbon_weave",
+        "market_key",
+        "signal_router",
+        "overclock_relay",
+        "flash_cache",
+    )
+    offers = draft_state["offers"]
+    chosen_offer = next(
+        (offer for preferred_id in preferred_ids for offer in offers if offer["id"] == preferred_id),
+        offers[0],
+    )
+    manager.select_run_modifier_offer(chosen_offer["id"])
+    manager.confirm_run_modifier_selection()
 
 
 def _resolve_reward(manager: StateManager) -> None:

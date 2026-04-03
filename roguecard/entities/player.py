@@ -21,6 +21,7 @@ class Player:
     block: int = 0
     draw_per_turn: int = PLAYER_STARTING_DRAW
     credits: int = PLAYER_STARTING_CREDITS
+    healing_multiplier: float = 1.0
     deck_manager: DeckManager | None = None
 
     def attach_deck(self, deck_manager: DeckManager) -> None:
@@ -62,9 +63,24 @@ class Player:
     def heal(self, amount: int) -> int:
         if amount < 0:
             raise ValueError("Healing cannot be negative.")
-        healed = min(self.max_hp - self.current_hp, amount)
+        effective_amount = max(0, int(round(amount * self.healing_multiplier)))
+        healed = min(self.max_hp - self.current_hp, effective_amount)
         self.current_hp += healed
         return healed
+
+    def adjust_max_hp(self, amount: int) -> int:
+        if not isinstance(amount, int):
+            raise ValueError("Max HP adjustment must be an integer.")
+        previous_max_hp = self.max_hp
+        self.max_hp = max(1, self.max_hp + amount)
+        self.current_hp = min(self.current_hp, self.max_hp)
+        return self.max_hp - previous_max_hp
+
+    def adjust_healing_multiplier(self, percent_delta: int) -> float:
+        if not isinstance(percent_delta, int):
+            raise ValueError("Healing multiplier changes must be integer percents.")
+        self.healing_multiplier = max(0.1, self.healing_multiplier + (percent_delta / 100.0))
+        return self.healing_multiplier
 
     def is_alive(self) -> bool:
         return self.current_hp > 0
@@ -92,6 +108,7 @@ class Player:
             "block": self.block,
             "draw_per_turn": self.draw_per_turn,
             "credits": self.credits,
+            "healing_multiplier": round(self.healing_multiplier, 2),
         }
         if self.deck_manager is not None:
             state.update(
@@ -109,13 +126,17 @@ def simulate_player() -> dict[str, Any]:
     player = Player()
     player.energy = 0
     player.start_turn()
+    player.adjust_healing_multiplier(-25)
     player.gain_block(5)
     player.gain_credits(20)
     player.spend_credits(5)
     damage_taken = player.take_damage(8)
+    player.current_hp = 40
+    healed = player.heal(12)
     return {
         "damage_taken": damage_taken,
         "energy_after_reset": player.energy,
         "credits": player.credits,
+        "healed": healed,
         "state": player.get_state(),
     }

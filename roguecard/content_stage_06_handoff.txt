@@ -1,0 +1,72 @@
+Content Stage 06 Handoff: Shop Heal Service
+
+Completion Status
+- Completed and verified on 2026-04-03.
+
+Objective
+- Add a second shop-only credit sink with immediate player value.
+- Reduce excess end-of-run credits without destabilizing the current reward, shop, event, save, or QoL systems.
+
+What Shipped
+- Added a repeatable shop heal service directly into the existing shop inventory flow.
+- Chosen heal model:
+  - flat `14 HP` for `18 credits`
+  - reasoning: a flat service is easy to read, easy to value at a glance, and easy to keep consistent in UI, save state, and economy simulation.
+- The heal service:
+  - appears as a normal shop offer alongside card offers, reroll, and purge
+  - is usable only while the player is below max HP
+  - stays repeatable within the same shop visit
+  - clears selection cleanly after purchase
+  - blocks wasteful or invalid purchases with readable reasons
+- Older `v5` active-shop saves restore safely:
+  - missing reroll keys still default correctly
+  - missing heal service gets inserted back into old active shops without a save-format bump
+
+Audit Findings
+- The heal sink does add real spend pressure and modestly improves run survivability, but it is not strong enough by itself to fix the excess-currency problem.
+- On 200 seeds, the heal-enabled stage averaged:
+  - `57.71` final credits
+  - `1.03` paid sinks
+  - `0.29` heal-service uses
+  - `0.94` win rate
+  - `37.92` final HP
+  - `11.62` final deck size
+- Compared with the reroll-only Stage 05 economy:
+  - final credits improved by `0.56`
+  - paid sinks improved by `0.18`
+  - heal uses improved by `0.29`
+  - win rate stayed flat
+  - final HP improved by `3.29`
+- Result:
+  - the economy is still not healthy
+  - a third shop-only sink is still recommended
+
+Files Touched
+- `config.py`
+- `core/state_manager.py`
+- `ui/shop_ui.py`
+- `core/run_economy_report.py`
+- `run_economy_audit_report.txt`
+- `content_stage_06_handoff.txt`
+
+Verification Performed
+- Python compile checks for the touched Stage 06 modules.
+- Headless shop-heal checks confirming:
+  - heal offer appears with the expected flat amount and price
+  - full-HP purchases are blocked cleanly
+  - partial-heal and capped-heal purchases apply the correct HP changes
+  - heal service remains repeatable instead of selling out
+  - older `v5` active shops without the heal offer restore safely
+- 200-seed economy audit via `simulate_run_economy(seed_count=200, start_seed=1)`.
+
+Known Remaining Issues
+- End-of-run credits are still too high on average.
+- The heal sink mostly helps injured runs; it does not capture enough excess currency from healthier runs.
+- Shops still need one more compelling spend option for players who are healthy and already satisfied with the current card row.
+
+Recommendation
+- The next safe balancing step is a third shop-only sink aimed at healthy runs.
+- Best fit:
+  - a small permanent max-HP service or similarly immediate non-deck-bloating purchase
+- Reason:
+  - heal is only attractive when injured, so healthy runs still exit shops with too much currency.

@@ -8,7 +8,13 @@ try:
 except ImportError:  # pragma: no cover - pygame is optional for headless verification.
     pygame = None
 
-from config import MAX_UI_SCALE, MIN_UI_SCALE, SHOP_PURGE_OFFER_ID, resolve_asset_path
+from config import (
+    MAX_UI_SCALE,
+    MIN_UI_SCALE,
+    SHOP_HEAL_AMOUNT,
+    SHOP_PURGE_OFFER_ID,
+    resolve_asset_path,
+)
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 
 
@@ -110,20 +116,32 @@ class ShopUI:
             and selected_offer["type"] == "purge"
             and not selected_offer.get("sold_out")
         )
+        player_credits = shop_state["player"]["credits"]
+        player_current_hp = shop_state["player"]["current_hp"]
+        player_max_hp = shop_state["player"]["max_hp"]
+
         if selected_offer is None:
             purchase_disabled_reason = "Select a shop offer before purchasing it."
             can_purchase = False
         elif selected_offer.get("sold_out"):
             purchase_disabled_reason = "That shop offer has already been purchased."
             can_purchase = False
+        elif selected_offer["price"] > player_credits:
+            purchase_disabled_reason = f"Requires {selected_offer['price']} credits."
+            can_purchase = False
         elif selected_offer["type"] == "purge" and shop_state["shop"]["selected_purge_index"] is None:
             purchase_disabled_reason = "Choose a deck card to purge before purchasing the service."
+            can_purchase = False
+        elif selected_offer["type"] == "heal" and player_current_hp >= player_max_hp:
+            purchase_disabled_reason = "Heal service is only available below max HP."
             can_purchase = False
         else:
             purchase_disabled_reason = "Purchase ready."
             can_purchase = True
         return {
-            "player_credits": shop_state["player"]["credits"],
+            "player_credits": player_credits,
+            "player_current_hp": player_current_hp,
+            "player_max_hp": player_max_hp,
             "offers": offers,
             "selected_offer": selected_offer,
             "selected_offer_id": shop_state["shop"]["selected_offer_id"],
@@ -139,6 +157,14 @@ class ShopUI:
             "reroll_price": shop_state["shop"].get("reroll_price", 0),
             "can_reroll": shop_state["shop"].get("can_reroll", False),
             "reroll_disabled_reason": shop_state["shop"].get("reroll_disabled_reason") or "Reroll unavailable.",
+            "purchase_label": (
+                "Purchase"
+                if selected_offer is None
+                else "Sold Out"
+                if selected_offer.get("sold_out")
+                else f"Buy {selected_offer['price']}"
+            ),
+            "reroll_label": f"Reroll {shop_state['shop'].get('reroll_price', 0)}",
         }
 
     def render(self, surface: Any, shop_state: dict[str, Any]) -> None:
@@ -151,8 +177,8 @@ class ShopUI:
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 96))
         left_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (438, 430))
-        right_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (762, 238))
-        lower_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (762, 190))
+        right_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (762, 212))
+        lower_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (762, 182))
         card_panel = self._scaled_image(resolve_asset_path("cards", "card_placeholder.png"), (220, 132))
 
         surface.blit(background, (0, 0))
@@ -160,12 +186,17 @@ class ShopUI:
         surface.blit(panel, (24, 96))
         surface.blit(left_panel, (24, 174))
         surface.blit(right_panel, (486, 174))
-        surface.blit(lower_panel, (486, 430))
+        surface.blit(lower_panel, (486, 412))
 
         self._draw_text(surface, "Black Market", (44, 118), self._font)
         self._draw_text(surface, f"Credits: {layout['player_credits']}", (44, 150), self._small_font)
-        reroll_label = f"Reroll {layout['reroll_price']} cr"
-        self._draw_text(surface, reroll_label, (270, 150), self._small_font, width=240)
+        self._draw_text(
+            surface,
+            f"Integrity: {layout['player_current_hp']}/{layout['player_max_hp']}",
+            (270, 150),
+            self._small_font,
+            width=220,
+        )
         self._draw_text(surface, shop_state["status_message"], (560, 118), self._tiny_font, width=646)
         self._draw_text(surface, "Inventory", (44, 188), self._small_font)
 
@@ -186,7 +217,10 @@ class ShopUI:
             pygame.draw.rect(surface, fill, rect, border_radius=14)
             pygame.draw.rect(surface, border, rect, 2, border_radius=14)
             self._draw_text(surface, offer["label"], (rect.x + 16, rect.y + 12), self._small_font, width=220)
-            subtitle = offer.get("description", self._card_summary(offer["card"]) if offer["type"] == "card" else "Remove one card from the deck.")
+            subtitle = offer.get(
+                "description",
+                self._card_summary(offer["card"]) if offer["type"] == "card" else "Service",
+            )
             self._draw_text(surface, subtitle, (rect.x + 16, rect.y + 40), self._tiny_font, width=260)
             price_label = "Sold Out" if offer.get("sold_out") else f"{offer['price']} cr"
             self._draw_text(surface, price_label, (rect.x + 316, rect.y + 24), self._small_font, width=86)
@@ -197,24 +231,52 @@ class ShopUI:
                 badge = self._tiny_font.render(str(offer["shortcut"]), True, (255, 214, 110))
                 surface.blit(badge, badge.get_rect(center=badge_rect.center))
 
-        self._draw_text(surface, "Offer Details", (506, 188), self._small_font)
+        self._draw_text(surface, "Selected Offer", (506, 188), self._small_font)
         selected_offer = layout["selected_offer"]
         if selected_offer is None:
-            self._draw_text(surface, "Choose an offer from the list to inspect and buy it.", (506, 226), self._small_font, width=720)
-            self._draw_text(surface, "Tip: reroll refreshes only unsold card offers in this shop.", (506, 258), self._tiny_font, width=720)
+            self._draw_text(surface, "Choose an offer from the list to inspect it.", (506, 226), self._small_font, width=720)
+            self._draw_text(surface, "Reroll refreshes unsold card offers only. Purchased slots stay sold out.", (506, 258), self._tiny_font, width=720)
         elif selected_offer["type"] == "card":
             surface.blit(card_panel, (520, 230))
             self._draw_text(surface, selected_offer["card"]["name"], (536, 246), self._small_font, width=188)
             self._draw_text(surface, self._card_summary(selected_offer["card"]), (536, 278), self._tiny_font, width=188)
-            self._draw_text(surface, f"Price: {selected_offer['price']} credits", (766, 236), self._small_font)
-            self._draw_text(surface, "Adds this card to the run deck immediately.", (766, 268), self._tiny_font, width=428)
+            self._draw_text(surface, "Adds this card to the run deck immediately.", (766, 236), self._tiny_font, width=428)
             if selected_offer.get("sold_out"):
-                self._draw_text(surface, "Already purchased in this shop.", (766, 300), self._tiny_font, width=428)
+                self._draw_text(surface, "Already purchased in this shop.", (766, 268), self._tiny_font, width=428)
             else:
-                self._draw_text(surface, "Select Purchase to claim it.", (766, 300), self._tiny_font, width=428)
+                self._draw_text(surface, "Use the Buy button below to claim it.", (766, 268), self._tiny_font, width=428)
+        elif selected_offer["type"] == "heal":
+            self._draw_text(surface, "Clinic Patch", (520, 236), self._small_font)
+            self._draw_text(
+                surface,
+                f"Recover {selected_offer.get('heal_amount', SHOP_HEAL_AMOUNT)} HP immediately.",
+                (520, 268),
+                self._tiny_font,
+                width=660,
+            )
+            if layout["player_current_hp"] >= layout["player_max_hp"]:
+                self._draw_text(
+                    surface,
+                    "Already at full integrity. Come back after a rougher fight.",
+                    (520, 300),
+                    self._tiny_font,
+                    width=660,
+                )
+            else:
+                healed_preview = min(
+                    layout["player_max_hp"],
+                    layout["player_current_hp"] + selected_offer.get("heal_amount", SHOP_HEAL_AMOUNT),
+                )
+                self._draw_text(
+                    surface,
+                    f"After treatment: {healed_preview}/{layout['player_max_hp']} HP.",
+                    (520, 300),
+                    self._tiny_font,
+                    width=660,
+                )
         else:
             self._draw_text(surface, "Purge Service", (520, 236), self._small_font)
-            self._draw_text(surface, f"Price: {selected_offer['price']} credits", (520, 268), self._tiny_font)
+            self._draw_text(surface, "Remove one card from the run deck.", (520, 268), self._tiny_font, width=660)
             if selected_offer.get("sold_out"):
                 self._draw_text(surface, "Already used in this shop.", (520, 300), self._tiny_font, width=660)
             elif layout["selected_purge_index"] is None:
@@ -222,10 +284,9 @@ class ShopUI:
             else:
                 self._draw_text(surface, "Target locked in. Purchase to remove that card from the run.", (520, 300), self._tiny_font, width=660)
 
-        self._draw_text(surface, "Shop State", (506, 446), self._small_font)
-        self._draw_text(surface, f"Rerolls used here: {layout['reroll_count']}", (520, 480), self._tiny_font)
+        self._draw_text(surface, "Shop State", (506, 428), self._small_font)
         if layout["show_purge_targets"]:
-            self._draw_text(surface, "Purge Targets", (760, 446), self._small_font)
+            self._draw_text(surface, "Purge Targets", (520, 460), self._tiny_font)
             for target in layout["purge_targets"]:
                 rect = pygame.Rect(*target["rect"])
                 hovered = self._hovered_action == f"purge:{target['deck_index']}"
@@ -241,12 +302,16 @@ class ShopUI:
                 pygame.draw.rect(surface, border, rect, 2, border_radius=12)
                 self._draw_text(surface, target["card"]["name"], (rect.x + 10, rect.y + 7), self._tiny_font, width=138)
         else:
-            reroll_status = "Reroll ready: refresh unsold card offers." if layout["can_reroll"] else layout["reroll_disabled_reason"]
-            self._draw_text(surface, reroll_status, (520, 512), self._small_font, width=690)
+            self._draw_text(surface, f"Rerolls used here: {layout['reroll_count']}", (520, 464), self._tiny_font, width=690)
+            self._draw_text(surface, f"Next reroll cost: {layout['reroll_price']} credits", (520, 486), self._tiny_font, width=690)
+            state_text = "Ready to buy." if layout["can_purchase"] else layout["purchase_disabled_reason"]
+            self._draw_text(surface, state_text, (520, 518), self._tiny_font, width=690)
+            if not layout["can_reroll"]:
+                self._draw_text(surface, layout["reroll_disabled_reason"], (520, 540), self._tiny_font, width=690)
 
         self._draw_button(surface, layout["leave_rect"], "Leave", self._hovered_action == "leave", self._pressed_action == "leave", enabled=True)
-        self._draw_button(surface, layout["reroll_rect"], f"Reroll {layout['reroll_price']}", self._hovered_action == "reroll", self._pressed_action == "reroll", enabled=layout["can_reroll"])
-        self._draw_button(surface, layout["purchase_rect"], "Purchase", self._hovered_action == "purchase", self._pressed_action == "purchase", enabled=layout["can_purchase"])
+        self._draw_button(surface, layout["reroll_rect"], layout["reroll_label"], self._hovered_action == "reroll", self._pressed_action == "reroll", enabled=layout["can_reroll"])
+        self._draw_button(surface, layout["purchase_rect"], layout["purchase_label"], self._hovered_action == "purchase", self._pressed_action == "purchase", enabled=layout["can_purchase"])
 
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "purchase":
@@ -273,9 +338,9 @@ class ShopUI:
             for target in layout["purge_targets"]:
                 if point_in_rect(position, target["rect"]):
                     return f"purge:{target['deck_index']}"
-        if layout["can_purchase"] and point_in_rect(position, layout["purchase_rect"]):
+        if point_in_rect(position, layout["purchase_rect"]):
             return "purchase"
-        if layout["can_reroll"] and point_in_rect(position, layout["reroll_rect"]):
+        if point_in_rect(position, layout["reroll_rect"]):
             return "reroll"
         if point_in_rect(position, layout["leave_rect"]):
             return "leave"
