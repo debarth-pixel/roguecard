@@ -80,6 +80,8 @@ class UIManager:
 
     def handle_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
         presentation = state_snapshot.get("presentation", {})
+        if pygame is not None:
+            self._ensure_fonts(presentation.get("ui_scale", 1.0))
         if presentation.get("settings_open"):
             return self._handle_settings_event(event, presentation)
         if presentation.get("pause_open"):
@@ -297,6 +299,9 @@ class UIManager:
             pygame.draw.rect(surface, accent, state_rect, 2, border_radius=12)
             self._draw_text(surface, layout["state_label"], (state_rect.x + 16, state_rect.y + 10), self._tiny_font, width=state_rect.width - 32)
 
+        for stat in layout["stats"]:
+            self._draw_top_stat_chip(surface, stat, high_contrast)
+
         pause_rect = pygame.Rect(*layout["pause_rect"])
         hovered = self._pause_hovered_action == "top_pause"
         pressed = self._pause_pressed_action == "top_pause"
@@ -323,13 +328,75 @@ class UIManager:
         }.get(current_state, current_state.replace("_", " ").title())
         run_seed = state_snapshot.get("run_seed")
         label = f"{state_label} | Seed {run_seed}" if run_seed is not None and current_state in {"map", "modifier_draft"} else state_label
-        state_rect = (24, 14, 228 if current_state in {"map", "modifier_draft"} else 152, 34)
         pause_rect = (1280 - PAUSE_BUTTON_WIDTH - 24, 12, PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)
+        state_width = max(152, self._tiny_font.size(label)[0] + 32)
+        state_rect = (24, 14, state_width, 34)
+        stats = []
+        cursor_x = state_rect[0] + state_rect[2] + 12
+        max_x = pause_rect[0] - 12
+        for item in self._top_bar_stat_items(state_snapshot):
+            chip_width = max(82, self._tiny_font.size(item["label"])[0] + 34)
+            if cursor_x + chip_width > max_x:
+                break
+            stats.append({**item, "rect": (cursor_x, 14, chip_width, 34)})
+            cursor_x += chip_width + 10
         return {
             "state_rect": state_rect,
             "state_label": label,
             "pause_rect": pause_rect,
+            "stats": stats,
         }
+
+    def _top_bar_stat_items(self, state_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+        player = state_snapshot.get("player")
+        current_state = state_snapshot.get("current_state")
+        items: list[dict[str, Any]] = []
+        if isinstance(player, dict):
+            items.append(
+                {
+                    "label": f"HP {player.get('current_hp', 0)}/{player.get('max_hp', 0)}",
+                    "accent": (232, 106, 112),
+                }
+            )
+            items.append(
+                {
+                    "label": f"Credits {player.get('credits', 0)}",
+                    "accent": (240, 196, 96),
+                }
+            )
+
+        if current_state == "map" and isinstance(state_snapshot.get("map"), dict):
+            map_state = state_snapshot["map"]
+            nodes = map_state.get("nodes", {})
+            selected_node_id = map_state.get("selected_node_id")
+            selected_node = nodes.get(selected_node_id) if isinstance(nodes, dict) and selected_node_id is not None else None
+            if selected_node is None:
+                progress_label = "Progress Entrance"
+            else:
+                progress_label = f"Progress F{selected_node['floor'] + 1} {selected_node['node_type'].title()}"
+            items.append({"label": progress_label, "accent": (92, 198, 240)})
+            items.append(
+                {
+                    "label": f"Routes {len(map_state.get('available_node_ids', []))}",
+                    "accent": (255, 214, 110),
+                }
+            )
+        return items
+
+    def _draw_top_stat_chip(
+        self,
+        surface: Any,
+        stat: dict[str, Any],
+        high_contrast: bool,
+    ) -> None:
+        rect = pygame.Rect(*stat["rect"])
+        accent = stat["accent"]
+        fill = (14, 22, 34)
+        border = (220, 230, 255) if high_contrast else accent
+        pygame.draw.rect(surface, fill, rect, border_radius=12)
+        pygame.draw.rect(surface, border, rect, 2, border_radius=12)
+        pygame.draw.rect(surface, accent, pygame.Rect(rect.x + 6, rect.y + 7, 6, rect.height - 14), border_radius=3)
+        self._draw_text(surface, stat["label"], (rect.x + 18, rect.y + 10), self._tiny_font, width=rect.width - 28)
 
     def _handle_top_bar_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
         if pygame is None:

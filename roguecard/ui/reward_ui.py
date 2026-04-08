@@ -9,6 +9,7 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
+from ui.card_renderer import compact_card_summary, draw_card
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 
 
@@ -28,7 +29,6 @@ class RewardUI:
         for path in (
             resolve_asset_path("ui", "bg_map.png"),
             resolve_asset_path("ui", "panel.png"),
-            resolve_asset_path("cards", "card_placeholder.png"),
         ):
             self._load_image(path)
 
@@ -138,7 +138,6 @@ class RewardUI:
         layout = self.build_layout(reward_state)
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 78))
-        card_panel = self._scaled_image(resolve_asset_path("cards", "card_placeholder.png"), (184, 108))
 
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=176)
@@ -177,26 +176,38 @@ class RewardUI:
             else:
                 for option in section["option_entries"]:
                     option_rect = pygame.Rect(*option["rect"])
-                    if option["kind"] == "card":
-                        surface.blit(card_panel, option_rect.topleft)
-                    else:
+                    if option["kind"] != "card":
                         pygame.draw.rect(surface, (24, 34, 50), option_rect, border_radius=12)
 
                     selected = section["selected_option_id"] == option["option_id"]
                     hovered = self._hovered_action == option["action_id"]
                     pressed = self._pressed_action == option["action_id"]
-                    border = (255, 214, 110) if selected else (255, 255, 255) if hovered else (190, 205, 230) if high_contrast else (104, 118, 146)
-                    if pressed:
-                        border = (255, 236, 140)
-                    pygame.draw.rect(surface, border, option_rect, 3, border_radius=14)
-                    self._draw_text(surface, option["title"], (option_rect.x + 12, option_rect.y + 12), self._tiny_font, width=option_rect.width - 24)
-                    self._draw_text(surface, option["subtitle"], (option_rect.x + 12, option_rect.y + 42), self._tiny_font, width=option_rect.width - 24)
-                    if option["shortcut"] is not None:
-                        badge_rect = pygame.Rect(option_rect.x + option_rect.width - 30, option_rect.y + 8, 22, 22)
-                        pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=11)
-                        pygame.draw.rect(surface, (255, 214, 110), badge_rect, 2, border_radius=11)
-                        badge = self._tiny_font.render(str(option["shortcut"]), True, (255, 214, 110))
-                        surface.blit(badge, badge.get_rect(center=badge_rect.center))
+                    if option["kind"] == "card":
+                        draw_card(
+                            surface,
+                            option["rect"],
+                            option["card"],
+                            {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                            variant="compact",
+                            shortcut_label=str(option["shortcut"]) if option["shortcut"] is not None else None,
+                            selected=selected,
+                            hovered=hovered,
+                            pressed=pressed,
+                            high_contrast=high_contrast,
+                        )
+                    else:
+                        border = (255, 214, 110) if selected else (255, 255, 255) if hovered else (190, 205, 230) if high_contrast else (104, 118, 146)
+                        if pressed:
+                            border = (255, 236, 140)
+                        pygame.draw.rect(surface, border, option_rect, 3, border_radius=14)
+                        self._draw_text(surface, option["title"], (option_rect.x + 12, option_rect.y + 12), self._tiny_font, width=option_rect.width - 24)
+                        self._draw_text(surface, option["subtitle"], (option_rect.x + 12, option_rect.y + 42), self._tiny_font, width=option_rect.width - 24)
+                        if option["shortcut"] is not None:
+                            badge_rect = pygame.Rect(option_rect.x + option_rect.width - 30, option_rect.y + 8, 22, 22)
+                            pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=11)
+                            pygame.draw.rect(surface, (255, 214, 110), badge_rect, 2, border_radius=11)
+                            badge = self._tiny_font.render(str(option["shortcut"]), True, (255, 214, 110))
+                            surface.blit(badge, badge.get_rect(center=badge_rect.center))
 
                 self._draw_button(surface, section["confirm_rect"], "Confirm", self._hovered_action == f"confirm:{section['id']}", self._pressed_action == f"confirm:{section['id']}", enabled=section["selected_option_id"] is not None)
                 self._draw_button(surface, section["skip_rect"], "Skip", self._hovered_action == f"skip:{section['id']}", self._pressed_action == f"skip:{section['id']}", enabled=section["can_skip"])
@@ -220,6 +231,7 @@ class RewardUI:
                         "action_id": f"option:{section['id']}:{option['option_id']}",
                         "option_id": option["option_id"],
                         "kind": "card",
+                        "card": option["card"],
                         "rect": (panel_rect[0] + 332 + (index * 206), panel_rect[1] + 26, 184, 108),
                         "title": option["card"]["name"],
                         "subtitle": self._card_summary(option["card"]),
@@ -244,8 +256,7 @@ class RewardUI:
         return entries
 
     def _card_summary(self, card: dict[str, Any]) -> str:
-        effect = card["effects"][0]
-        return f"Cost {card['cost']} | {effect['type']} {effect['value']}"
+        return compact_card_summary(card)
 
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "continue":
@@ -375,6 +386,7 @@ def simulate_reward_ui() -> dict[str, Any]:
                                     "id": "surge_strike_01",
                                     "name": "Surge Strike",
                                     "cost": 2,
+                                    "type": "attack",
                                     "effects": [{"type": "damage", "value": 12}],
                                 },
                             }

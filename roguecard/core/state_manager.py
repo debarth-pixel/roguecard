@@ -457,7 +457,7 @@ class StateManager:
             raise ValueError("Save data must be a dictionary.")
 
         save_version = save_data.get("save_format_version")
-        if save_version not in {2, 3, 4, 5, 6}:
+        if save_version not in {2, 3, 4, 5, 6, 7}:
             raise ValueError(f"Unsupported save format version: {save_version}")
 
         run_seed = save_data.get("run_seed")
@@ -1482,6 +1482,7 @@ class StateManager:
             "draw_per_turn": self.player.draw_per_turn,
             "credits": self.player.credits,
             "healing_multiplier": self.player.healing_multiplier,
+            "resources": self.player.snapshot_resources(),
         }
 
     def _serialize_deck(self, deck_manager: DeckManager) -> dict[str, Any]:
@@ -1587,6 +1588,7 @@ class StateManager:
         deck_manager.exhaust_pile = self._cards_from_ids(deck_data["exhaust_pile"])
 
         credits = player_data.get("credits", PLAYER_STARTING_CREDITS if save_version >= 3 else 0)
+        resources = self._restore_player_resources(player_data.get("resources"), save_version)
         player = Player(
             max_hp=player_data["max_hp"],
             current_hp=player_data["current_hp"],
@@ -1596,9 +1598,39 @@ class StateManager:
             draw_per_turn=player_data["draw_per_turn"],
             credits=credits,
             healing_multiplier=float(player_data.get("healing_multiplier", 1.0)),
+            resources=resources,
         )
         player.attach_deck(deck_manager)
         return player
+
+    def _restore_player_resources(
+        self,
+        resources_data: Any,
+        save_version: int,
+    ) -> dict[str, dict[str, int]]:
+        if save_version < 7 or resources_data in (None, {}):
+            return {}
+        if not isinstance(resources_data, dict):
+            raise ValueError("Player resources save data must be a dictionary.")
+
+        restored: dict[str, dict[str, int]] = {}
+        for resource_id, resource_state in resources_data.items():
+            if not isinstance(resource_id, str) or not resource_id:
+                raise ValueError("Saved player resource ids must be non-empty strings.")
+            if not isinstance(resource_state, dict):
+                raise ValueError("Saved player resource states must be dictionaries.")
+
+            current = resource_state.get("current")
+            maximum = resource_state.get("max")
+            if not isinstance(current, int) or current < 0:
+                raise ValueError("Saved player resource current values must be non-negative integers.")
+            if not isinstance(maximum, int) or maximum < 0:
+                raise ValueError("Saved player resource max values must be non-negative integers.")
+            restored[resource_id] = {
+                "current": current,
+                "max": maximum,
+            }
+        return restored
 
     def _restore_map(self, map_data: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(map_data, dict):

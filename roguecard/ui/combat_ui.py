@@ -9,6 +9,7 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from config import CARD_HOVER_LIFT, MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
+from ui.card_renderer import draw_card
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 
 
@@ -32,7 +33,6 @@ class CombatUI:
         for path in (
             resolve_asset_path("ui", "bg_combat.png"),
             resolve_asset_path("ui", "panel.png"),
-            resolve_asset_path("cards", "card_placeholder.png"),
             resolve_asset_path("enemies", "enemy_placeholder.png"),
         ):
             self._load_image(path)
@@ -153,11 +153,11 @@ class CombatUI:
             target_id = self._preview_target_id(card, living_enemy_ids)
             card_layout = {
                 "index": index,
+                "card": card,
                 "card_id": card["id"],
                 "name": card["name"],
                 "type": card["type"].title(),
                 "cost": card["cost"],
-                "effects": self._card_effect_lines(card),
                 "playable": playable,
                 "disabled_reason": disabled_reason,
                 "target_label": self._target_label(card, target_id, enemy_lookup),
@@ -237,9 +237,8 @@ class CombatUI:
         draw_screen_scrim(surface, alpha=160, color=(10, 6, 12))
 
         player_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (300, 170))
-        preview_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (314, 232))
+        preview_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (326, 404))
         enemy_panel = self._scaled_image(resolve_asset_path("enemies", "enemy_placeholder.png"), (178, 178))
-        card_panel = self._scaled_image(resolve_asset_path("cards", "card_placeholder.png"), (174, 236))
 
         surface.blit(player_panel, (32, 92))
         surface.blit(preview_panel, (934, 92))
@@ -251,14 +250,28 @@ class CombatUI:
 
         self._draw_text(surface, layout["preview_title"], (952, 110), self._font)
         if preview_card is None:
-            self._draw_text(surface, "Hover a card to inspect its play result.", (952, 154), self._small_font, width=280)
+            self._draw_text(surface, "Hover a card to inspect it.", (952, 154), self._small_font, width=280)
         else:
-            self._draw_text(surface, f"{preview_card['name']} ({preview_card['type']})", (952, 150), self._small_font, width=280)
-            self._draw_text(surface, f"Cost {preview_card['cost']}", (952, 178), self._small_font)
-            for index, line in enumerate(layout["preview_lines"]):
-                self._draw_text(surface, line, (952, 206 + (index * 20)), self._tiny_font, width=280)
-            self._draw_text(surface, preview_card["target_label"], (952, 286), self._tiny_font, width=280)
-        self._draw_text(surface, f"Recent: {layout['recent_summary']}", (952, 302), self._tiny_font, width=280)
+            draw_card(
+                surface,
+                (952, 144, 286, 292),
+                preview_card["card"],
+                {"title": self._small_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="full",
+                footer_label=preview_card["target_label"],
+                note_label=None if preview_card["playable"] else preview_card["disabled_reason"],
+                selected=True,
+                high_contrast=high_contrast,
+            )
+            preview_text_y = 448
+            self._draw_text(surface, preview_card["target_label"], (952, preview_text_y), self._tiny_font, width=286)
+            preview_text_y += 20
+            self._draw_text(surface, f"Recent: {layout['recent_summary']}", (952, preview_text_y), self._tiny_font, width=286)
+            preview_text_y += 20
+            if not preview_card["playable"]:
+                self._draw_text(surface, preview_card["disabled_reason"], (952, preview_text_y), self._tiny_font, width=286)
+        if preview_card is None:
+            self._draw_text(surface, f"Recent: {layout['recent_summary']}", (952, 178), self._tiny_font, width=286)
 
         if preview_card is not None and preview_card["target_id"] is not None:
             target_rect = next(
@@ -270,7 +283,7 @@ class CombatUI:
                 None,
             )
             if target_rect is not None:
-                pygame.draw.line(surface, (255, 214, 110), (963, 302), self._rect_center(target_rect), 3)
+                pygame.draw.line(surface, (255, 214, 110), (1234, 292), self._rect_center(target_rect), 3)
 
         for enemy in layout["enemy_summaries"]:
             x, y, width, height = enemy["rect"]
@@ -291,35 +304,20 @@ class CombatUI:
         for card in layout["hand_cards"]:
             x, y, width, height = card["rect"]
             card_y = y - CARD_HOVER_LIFT if card["index"] == self._hovered_card_index else y
-            rect = pygame.Rect(x, card_y, width, height)
-            pygame.draw.rect(surface, (18, 24, 36), rect, border_radius=16)
-            pygame.draw.rect(surface, (54, 70, 98), rect.inflate(-16, -24), 1, border_radius=14)
-            if not card["playable"]:
-                dimmer = pygame.Surface((width, height), pygame.SRCALPHA)
-                dimmer.fill((10, 14, 20, 170))
-                surface.blit(dimmer, rect.topleft)
-
-            outline_color = (255, 255, 255) if card["index"] == self._hovered_card_index else (190, 205, 230) if high_contrast else (100, 120, 150)
-            if not card["playable"]:
-                outline_color = (180, 80, 100)
-            if card["index"] == self._pressed_card_index:
-                outline_color = (255, 214, 110)
-            pygame.draw.rect(surface, outline_color, rect, 3, border_radius=16)
-
-            self._draw_badge(surface, str(card["index"] + 1), (x + 12, card_y + 12), (255, 214, 110))
-            self._draw_badge(surface, str(card["cost"]), (x + width - 36, card_y + 12), (80, 220, 255))
-            text_width = width - 28
-            self._draw_text(surface, card["name"], (x + 14, card_y + 46), self._small_font, width=text_width)
-            self._draw_text(surface, card["type"], (x + 14, card_y + 72), self._tiny_font)
-
-            effect_y = card_y + 104
-            for line in card["effects"]:
-                self._draw_text(surface, line, (x + 14, effect_y), self._tiny_font, width=text_width)
-                effect_y += 18
-
-            self._draw_text(surface, card["target_label"], (x + 14, card_y + height - 50), self._tiny_font, width=text_width)
-            if not card["playable"]:
-                self._draw_text(surface, card["disabled_reason"], (x + 14, card_y + height - 28), self._tiny_font, width=text_width)
+            draw_card(
+                surface,
+                (x, card_y, width, height),
+                card["card"],
+                {"title": self._small_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="full",
+                shortcut_label=str(card["index"] + 1),
+                footer_label=card["target_label"],
+                note_label=None if card["playable"] else card["disabled_reason"],
+                hovered=card["index"] == self._hovered_card_index,
+                pressed=card["index"] == self._pressed_card_index,
+                disabled=not card["playable"],
+                high_contrast=high_contrast,
+            )
 
         button_rect = pygame.Rect(*layout["end_turn_rect"])
         button_color = (60, 120, 200) if layout["end_turn_hovered"] else (32, 64, 102) if layout["any_playable"] else (44, 96, 154)
@@ -346,25 +344,6 @@ class CombatUI:
         ]
         summary = ", ".join(resolution_parts) if resolution_parts else "No effect."
         return f"{latest_event['card_id']}: {summary}"
-
-    def _card_effect_lines(self, card: dict[str, Any]) -> list[str]:
-        effect_lines = []
-        for effect in card.get("effects", []):
-            effect_type = effect["type"]
-            value = effect["value"]
-            if effect_type == "damage":
-                effect_lines.append(f"Deal {value} damage")
-            elif effect_type == "block":
-                effect_lines.append(f"Gain {value} block")
-            elif effect_type == "heal":
-                effect_lines.append(f"Heal {value}")
-            elif effect_type == "draw":
-                effect_lines.append(f"Draw {value}")
-            elif effect_type == "energy":
-                effect_lines.append(f"Gain {value} energy")
-            else:
-                effect_lines.append(f"{effect_type.title()} {value}")
-        return effect_lines
 
     def _card_playability(
         self,
@@ -434,12 +413,9 @@ class CombatUI:
     def _preview_damage_value(self, card_layout: dict[str, Any]) -> int | None:
         if card_layout is None:
             return None
-        for line in card_layout["effects"]:
-            if line.startswith("Deal "):
-                try:
-                    return int(line.split()[1])
-                except (IndexError, ValueError):
-                    return None
+        for effect in card_layout["card"].get("effects", []):
+            if effect.get("type") == "damage" and isinstance(effect.get("value"), int):
+                return effect["value"]
         return None
 
     def _card_rects(self, hand_count: int) -> list[tuple[int, int, int, int]]:

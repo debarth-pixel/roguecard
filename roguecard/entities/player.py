@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from cards.deck_manager import DeckManager
@@ -22,7 +22,11 @@ class Player:
     draw_per_turn: int = PLAYER_STARTING_DRAW
     credits: int = PLAYER_STARTING_CREDITS
     healing_multiplier: float = 1.0
+    resources: dict[str, dict[str, int]] = field(default_factory=dict)
     deck_manager: DeckManager | None = None
+
+    def __post_init__(self) -> None:
+        self.resources = self._normalized_additional_resources(self.resources)
 
     def attach_deck(self, deck_manager: DeckManager) -> None:
         self.deck_manager = deck_manager
@@ -99,6 +103,20 @@ class Player:
         self.credits -= amount
         return amount
 
+    def snapshot_resources(self) -> dict[str, dict[str, int]]:
+        snapshot = {
+            "energy": {
+                "current": self.energy,
+                "max": self.max_energy,
+            }
+        }
+        for resource_id, resource_state in self.resources.items():
+            snapshot[resource_id] = {
+                "current": resource_state["current"],
+                "max": resource_state["max"],
+            }
+        return snapshot
+
     def get_state(self) -> dict[str, Any]:
         state = {
             "max_hp": self.max_hp,
@@ -109,6 +127,7 @@ class Player:
             "draw_per_turn": self.draw_per_turn,
             "credits": self.credits,
             "healing_multiplier": round(self.healing_multiplier, 2),
+            "resources": self.snapshot_resources(),
         }
         if self.deck_manager is not None:
             state.update(
@@ -121,9 +140,37 @@ class Player:
             )
         return state
 
+    def _normalized_additional_resources(
+        self,
+        resources: dict[str, Any],
+    ) -> dict[str, dict[str, int]]:
+        if not isinstance(resources, dict):
+            raise ValueError("Player resources must be a dictionary.")
+
+        normalized: dict[str, dict[str, int]] = {}
+        for resource_id, resource_state in resources.items():
+            if resource_id == "energy":
+                continue
+            if not isinstance(resource_id, str) or not resource_id:
+                raise ValueError("Player resource ids must be non-empty strings.")
+            if not isinstance(resource_state, dict):
+                raise ValueError("Player resource states must be dictionaries.")
+
+            current = resource_state.get("current")
+            maximum = resource_state.get("max")
+            if not isinstance(current, int) or current < 0:
+                raise ValueError("Player resource current values must be non-negative integers.")
+            if not isinstance(maximum, int) or maximum < 0:
+                raise ValueError("Player resource max values must be non-negative integers.")
+            normalized[resource_id] = {
+                "current": current,
+                "max": maximum,
+            }
+        return normalized
+
 
 def simulate_player() -> dict[str, Any]:
-    player = Player()
+    player = Player(resources={"heat": {"current": 1, "max": 3}})
     player.energy = 0
     player.start_turn()
     player.adjust_healing_multiplier(-25)

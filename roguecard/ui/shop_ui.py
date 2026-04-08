@@ -15,6 +15,7 @@ from config import (
     SHOP_PURGE_OFFER_ID,
     resolve_asset_path,
 )
+from ui.card_renderer import compact_card_summary, draw_card
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 
 
@@ -34,7 +35,6 @@ class ShopUI:
         for path in (
             resolve_asset_path("ui", "bg_map.png"),
             resolve_asset_path("ui", "panel.png"),
-            resolve_asset_path("cards", "card_placeholder.png"),
         ):
             self._load_image(path)
 
@@ -179,7 +179,6 @@ class ShopUI:
         left_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (438, 430))
         right_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (762, 212))
         lower_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (762, 182))
-        card_panel = self._scaled_image(resolve_asset_path("cards", "card_placeholder.png"), (220, 132))
 
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=176)
@@ -216,12 +215,23 @@ class ShopUI:
                 border = (120, 88, 100)
             pygame.draw.rect(surface, fill, rect, border_radius=14)
             pygame.draw.rect(surface, border, rect, 2, border_radius=14)
-            self._draw_text(surface, offer["label"], (rect.x + 16, rect.y + 12), self._small_font, width=220)
-            subtitle = offer.get(
-                "description",
-                self._card_summary(offer["card"]) if offer["type"] == "card" else "Service",
-            )
-            self._draw_text(surface, subtitle, (rect.x + 16, rect.y + 40), self._tiny_font, width=260)
+            if offer["type"] == "card":
+                draw_card(
+                    surface,
+                    (rect.x + 10, rect.y + 8, 284, rect.height - 16),
+                    offer["card"],
+                    {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                    variant="compact",
+                    selected=selected,
+                    hovered=hovered,
+                    pressed=pressed,
+                    disabled=bool(offer.get("sold_out")),
+                    high_contrast=high_contrast,
+                )
+            else:
+                self._draw_text(surface, offer["label"], (rect.x + 16, rect.y + 12), self._small_font, width=220)
+                subtitle = offer.get("description", "Service")
+                self._draw_text(surface, subtitle, (rect.x + 16, rect.y + 40), self._tiny_font, width=260)
             price_label = "Sold Out" if offer.get("sold_out") else f"{offer['price']} cr"
             self._draw_text(surface, price_label, (rect.x + 316, rect.y + 24), self._small_font, width=86)
             if offer["shortcut"] is not None:
@@ -237,14 +247,22 @@ class ShopUI:
             self._draw_text(surface, "Choose an offer from the list to inspect it.", (506, 226), self._small_font, width=720)
             self._draw_text(surface, "Reroll refreshes unsold card offers only. Purchased slots stay sold out.", (506, 258), self._tiny_font, width=720)
         elif selected_offer["type"] == "card":
-            surface.blit(card_panel, (520, 230))
-            self._draw_text(surface, selected_offer["card"]["name"], (536, 246), self._small_font, width=188)
-            self._draw_text(surface, self._card_summary(selected_offer["card"]), (536, 278), self._tiny_font, width=188)
+            draw_card(
+                surface,
+                (520, 228, 220, 132),
+                selected_offer["card"],
+                {"title": self._small_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="compact",
+                selected=True,
+                disabled=bool(selected_offer.get("sold_out")),
+                high_contrast=high_contrast,
+            )
             self._draw_text(surface, "Adds this card to the run deck immediately.", (766, 236), self._tiny_font, width=428)
+            self._draw_text(surface, self._card_summary(selected_offer["card"]), (766, 258), self._tiny_font, width=428)
             if selected_offer.get("sold_out"):
-                self._draw_text(surface, "Already purchased in this shop.", (766, 268), self._tiny_font, width=428)
+                self._draw_text(surface, "Already purchased in this shop.", (766, 286), self._tiny_font, width=428)
             else:
-                self._draw_text(surface, "Use the Buy button below to claim it.", (766, 268), self._tiny_font, width=428)
+                self._draw_text(surface, "Use Buy below to claim it.", (766, 286), self._tiny_font, width=428)
         elif selected_offer["type"] == "heal":
             self._draw_text(surface, "Clinic Patch", (520, 236), self._small_font)
             self._draw_text(
@@ -347,8 +365,7 @@ class ShopUI:
         return None
 
     def _card_summary(self, card: dict[str, Any]) -> str:
-        effect_text = ", ".join(f"{effect['type']} {effect['value']}" for effect in card["effects"])
-        return f"Cost {card['cost']} | {effect_text}"
+        return compact_card_summary(card)
 
     def _draw_button(
         self,
@@ -428,6 +445,7 @@ def simulate_shop_ui() -> dict[str, Any]:
                             "id": "surge_strike_01",
                             "name": "Surge Strike",
                             "cost": 2,
+                            "type": "attack",
                             "effects": [{"type": "damage", "value": 12}],
                         },
                         "label": "Surge Strike",
@@ -454,7 +472,7 @@ def simulate_shop_ui() -> dict[str, Any]:
                     }
                 ],
             },
-            "player": {"credits": 80},
+            "player": {"credits": 80, "current_hp": 52, "max_hp": 70},
             "presentation": {"ui_scale": 1.0},
         }
     )

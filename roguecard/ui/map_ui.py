@@ -101,16 +101,9 @@ class MapUI:
         visited = set(map_state.get("visited_node_ids", []))
         selected = map_state.get("selected_node_id")
         focused_node_id = self._focused_node_id(map_state)
-        focus_node = nodes.get(focused_node_id) if focused_node_id is not None else None
-        selected_node = nodes.get(selected) if selected is not None else None
 
         return {
             "status_message": map_state.get("status_message", ""),
-            "selected_label": (
-                "Current Position: Entrance"
-                if selected_node is None
-                else f"Current Position: Floor {selected_node['floor'] + 1} {selected_node['node_type'].title()}"
-            ),
             "node_statuses": {
                 node_id: self._node_status(node_id, available_set, visited, selected)
                 for node_id in nodes
@@ -118,17 +111,9 @@ class MapUI:
             "focused_node_id": focused_node_id,
             "hovered_node_id": self._hovered_node_id,
             "available_numbers": {node_id: index + 1 for index, node_id in enumerate(available)},
-            "node_count": len(nodes),
-            "route_count": len(available),
             "selected_node_id": selected,
-            "route_summary_lines": self._route_summary_lines(available, nodes),
-            "focus_lines": self._focus_lines(focus_node, focused_node_id, map_state),
-            "focus_next_nodes": [] if focus_node is None else list(focus_node["next_nodes"]),
-            "next_action_hint": (
-                "Next: choose one of the highlighted routes."
-                if available
-                else "No route is available from this position."
-            ),
+            "focused_node_label": self._focused_node_label(focused_node_id, nodes),
+            "map_bounds": self._map_bounds(),
             "high_contrast": map_state.get("presentation", {}).get("high_contrast", False),
         }
 
@@ -147,38 +132,31 @@ class MapUI:
         high_contrast = layout["high_contrast"]
 
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        summary_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (360, 220))
-        detail_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (360, 330))
+        map_bounds = pygame.Rect(*layout["map_bounds"])
 
         surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=176)
-        surface.blit(summary_panel, (24, 96))
-        surface.blit(detail_panel, (24, 328))
-
-        self._draw_text(surface, "Run Route", (44, 118), self._font)
-        self._draw_text(surface, layout["status_message"], (44, 156), self._small_font, width=320)
-        self._draw_text(surface, layout["selected_label"], (44, 194), self._small_font, width=320)
-        for index, line in enumerate(layout["route_summary_lines"]):
-            self._draw_text(surface, line, (44, 232 + (index * 22)), self._tiny_font, width=320)
-        self._draw_text(surface, layout["next_action_hint"], (44, 286), self._tiny_font, width=320)
-
-        self._draw_text(surface, "Focused Node", (44, 350), self._font)
-        for index, line in enumerate(layout["focus_lines"]):
-            self._draw_text(surface, line, (44, 388 + (index * 18)), self._tiny_font, width=320)
+        draw_screen_scrim(surface, alpha=148)
+        map_panel = pygame.Surface(map_bounds.size, pygame.SRCALPHA)
+        map_panel.fill((12, 18, 28, 132))
+        surface.blit(map_panel, map_bounds.topleft)
+        pygame.draw.rect(surface, (104, 118, 146), map_bounds, 2, border_radius=28)
 
         for node_id, node in nodes.items():
             start = positions[node_id]
             for next_node_id in node["next_nodes"]:
-                line_color = (100, 108, 125)
+                line_color = (108, 114, 128)
                 width = 3
                 if next_node_id in available_set:
-                    line_color = (255, 221, 105)
-                    width = 5
-                elif node_id == focus_node_id or next_node_id == focus_node_id:
-                    line_color = (240, 245, 255) if high_contrast else (180, 196, 224)
+                    line_color = (255, 214, 110)
                     width = 4
-                elif node_id == selected_node_id:
+                elif node_id == selected_node_id or next_node_id == selected_node_id:
+                    line_color = (240, 245, 255)
+                    width = 4
+                elif node_id in map_state.get("visited_node_ids", []) or next_node_id in map_state.get("visited_node_ids", []):
                     line_color = (120, 244, 170)
+                    width = 3
+                elif node_id == focus_node_id or next_node_id == focus_node_id:
+                    line_color = (190, 205, 230) if high_contrast else (146, 164, 194)
                     width = 4
                 pygame.draw.line(surface, line_color, start, positions[next_node_id], width)
 
@@ -196,6 +174,16 @@ class MapUI:
                 shortcut_label=layout["available_numbers"].get(node_id),
                 high_contrast=high_contrast,
             )
+
+        if focus_node_id is not None and layout["focused_node_label"] and focus_node_id in positions:
+            label = layout["focused_node_label"]
+            label_width = max(96, self._small_font.size(label)[0] + 22)
+            center = positions[focus_node_id]
+            pill_y = max(map_bounds.y + 10, center[1] - 94)
+            pill_rect = pygame.Rect(center[0] - (label_width // 2), pill_y, label_width, 26)
+            pygame.draw.rect(surface, (14, 20, 32), pill_rect, border_radius=13)
+            pygame.draw.rect(surface, (255, 214, 110), pill_rect, 2, border_radius=13)
+            self._draw_text(surface, label, (pill_rect.x + 12, pill_rect.y + 6), self._tiny_font, width=pill_rect.width - 24)
 
     def _draw_node(
         self,
@@ -249,10 +237,6 @@ class MapUI:
             you_rect = you_label.get_rect(center=(center[0], center[1] - 70))
             surface.blit(you_label, you_rect)
 
-        label = self._small_font.render(node["node_type"].title(), True, (240, 245, 255))
-        label_rect = label.get_rect(center=(center[0], center[1] + 66))
-        surface.blit(label, label_rect)
-
         if shortcut_label is not None:
             badge_rect = pygame.Rect(center[0] + 26, center[1] - 56, 24, 24)
             pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=12)
@@ -260,6 +244,16 @@ class MapUI:
             shortcut = self._tiny_font.render(str(shortcut_label), True, (255, 226, 112))
             shortcut_rect = shortcut.get_rect(center=badge_rect.center)
             surface.blit(shortcut, shortcut_rect)
+
+    def _focused_node_label(
+        self,
+        focused_node_id: str | None,
+        nodes: dict[str, dict[str, Any]],
+    ) -> str | None:
+        if focused_node_id is None or focused_node_id not in nodes:
+            return None
+        node = nodes[focused_node_id]
+        return f"{node['node_type'].title()} F{node['floor'] + 1}"
 
     def _focus_lines(
         self,
@@ -345,12 +339,39 @@ class MapUI:
         return "inactive"
 
     def _node_positions(self, nodes: dict[str, dict[str, Any]]) -> dict[str, tuple[int, int]]:
+        bounds = self._map_bounds()
+        left = bounds[0] + 84
+        top = bounds[1] + 46
+        right = bounds[0] + bounds[2] - 84
+        bottom = bounds[1] + bounds[3] - 56
         positions: dict[str, tuple[int, int]] = {}
+        if not nodes:
+            return positions
+
+        max_floor = max(node["floor"] for node in nodes.values())
+        max_column = max(node["column"] for node in nodes.values())
+        lane_count = max(1, max_column + 1)
+        lane_spacing = 0 if lane_count == 1 else (right - left) / (lane_count - 1)
+        floor_spacing = 0 if max_floor == 0 else (bottom - top) / max_floor
+
+        floor_lookup: dict[int, list[tuple[str, dict[str, Any]]]] = {}
         for node_id, node in nodes.items():
-            x = 502 + (node["column"] * 212)
-            y = 136 + (node["floor"] * 92)
-            positions[node_id] = (x, y)
+            floor_lookup.setdefault(node["floor"], []).append((node_id, node))
+
+        for floor, floor_nodes in floor_lookup.items():
+            row_y = int(top + (floor * floor_spacing))
+            if len(floor_nodes) == 1:
+                node_id, _node = floor_nodes[0]
+                positions[node_id] = (int((left + right) / 2), row_y)
+                continue
+
+            for node_id, node in sorted(floor_nodes, key=lambda item: item[1]["column"]):
+                row_x = int(left + (node["column"] * lane_spacing)) if lane_count > 1 else int((left + right) / 2)
+                positions[node_id] = (row_x, row_y)
         return positions
+
+    def _map_bounds(self) -> tuple[int, int, int, int]:
+        return (104, 92, 1036, 594)
 
     def _node_at_position(self, map_state: dict[str, Any], position: tuple[int, int]) -> str | None:
         nodes = map_state["nodes"]
