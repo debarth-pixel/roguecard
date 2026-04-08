@@ -2,12 +2,15 @@
   {
     "id": "dead_drop_01",
     "title": "Dead Drop",
-    "body": "A blinking courier cache hums beneath a busted tram bench. The lock is cracked and nobody is claiming it.",
+    "body": "A courier cache blinks beneath a tram bench.",
+    "rarity": "common",
+    "base_weight": 10,
+    "tags": ["economy", "narrative"],
     "choices": [
       {
         "id": "crack_cache",
         "label": "Crack the cache",
-        "description": "Pull a clean stack of credits before the owner can trace the ping.",
+        "description": "Gain 25 credits.",
         "choice_type": "effect",
         "effects": [
           {
@@ -19,7 +22,7 @@
       {
         "id": "walk_away",
         "label": "Walk away",
-        "description": "Leave the drop untouched and move on before it turns into a problem.",
+        "description": "Move on.",
         "choice_type": "effect",
         "effects": []
       }
@@ -28,12 +31,15 @@
   {
     "id": "street_clinic_01",
     "title": "Street Clinic",
-    "body": "A basement ripperdoc offers fast patchwork surgery under a neon privacy sheet. The work looks rough, but real.",
+    "body": "A ripperdoc offers rough repairs under a neon sheet.",
+    "rarity": "common",
+    "base_weight": 9,
+    "tags": ["recovery", "merchant_style"],
     "choices": [
       {
         "id": "pay_for_treatment",
         "label": "Pay for treatment",
-        "description": "Spend credits for emergency repairs and a quick reboot.",
+        "description": "Spend 15 credits. Heal 15.",
         "choice_type": "effect",
         "requirements": {
           "credits_at_least": 18,
@@ -51,9 +57,28 @@
         ]
       },
       {
+        "id": "purge_corruption",
+        "label": "Purge the corruption",
+        "description": "Remove System Corruption. Heal 4.",
+        "choice_type": "effect",
+        "requirements": {
+          "modifier_active": "system_corruption"
+        },
+        "effects": [
+          {
+            "type": "remove_modifier",
+            "modifier_id": "system_corruption"
+          },
+          {
+            "type": "heal",
+            "value": 4
+          }
+        ]
+      },
+      {
         "id": "decline_treatment",
         "label": "Decline",
-        "description": "Keep your credits and limp onward.",
+        "description": "Move on.",
         "choice_type": "effect",
         "effects": []
       }
@@ -62,12 +87,15 @@
   {
     "id": "memory_scrubber_01",
     "title": "Memory Scrubber",
-    "body": "A gray-market technician offers to erase one combat routine from your stack. The process is permanent and surprisingly cheap.",
+    "body": "A gray-market tech offers to scrub one routine from your stack.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": ["deck_edit", "merchant_style"],
     "choices": [
       {
         "id": "purge_card",
         "label": "Scrub a card",
-        "description": "Delete one card from the deck forever.",
+        "description": "Remove 1 deck card.",
         "choice_type": "purge",
         "requirements": {
           "deck_size_at_least": 2
@@ -79,9 +107,9 @@
         ]
       },
       {
-        "id": "leave_deck_alone",
+        "id": "keep_deck_alone",
         "label": "Keep the stack intact",
-        "description": "Back out before the scrubber touches your memories.",
+        "description": "Leave it.",
         "choice_type": "effect",
         "effects": []
       }
@@ -90,12 +118,15 @@
   {
     "id": "black_ice_cache_01",
     "title": "Black Ice Cache",
-    "body": "A locked shard pulses with hostile countermeasures. If you force it open, something valuable may still be buried inside.",
+    "body": "A locked shard still holds something worth stealing.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": ["deck_edit", "gamble"],
     "choices": [
       {
         "id": "force_the_cache",
         "label": "Force the cache",
-        "description": "Take the backlash and rip out the protected combat routine.",
+        "description": "Lose 6 HP. Gain Firewall.",
         "choice_type": "effect",
         "effects": [
           {
@@ -111,7 +142,7 @@
       {
         "id": "leave_the_shard",
         "label": "Leave it sealed",
-        "description": "The city will hand you another edge later.",
+        "description": "Leave it.",
         "choice_type": "effect",
         "effects": []
       }
@@ -120,12 +151,15 @@
   {
     "id": "credit_shakedown_01",
     "title": "Credit Shakedown",
-    "body": "Two local enforcers block the alley and demand a \"safety tax\" for passing through their district.",
+    "body": "Two enforcers block the alley and ask for a tax.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": ["economy", "gamble"],
     "choices": [
       {
         "id": "pay_the_tax",
         "label": "Pay the tax",
-        "description": "Lose credits and keep the peace.",
+        "description": "Lose 12 credits.",
         "choice_type": "effect",
         "requirements": {
           "credits_at_least": 12
@@ -140,7 +174,7 @@
       {
         "id": "refuse",
         "label": "Refuse",
-        "description": "Take a beating rather than hand over your wallet.",
+        "description": "Lose 6 HP.",
         "choice_type": "effect",
         "effects": [
           {
@@ -154,18 +188,21 @@
   {
     "id": "glitch_lottery_01",
     "title": "Glitch Lottery",
-    "body": "A hacked vending terminal invites you to spin a corrupted payout daemon. The odds are murky, but the jackpot is very real.",
+    "body": "A hacked terminal offers one corrupt spin.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": ["gamble", "anomaly"],
     "choices": [
       {
         "id": "spin_the_daemon",
         "label": "Spin the daemon",
-        "description": "Risk credits, blood, or luck for a glitched payout.",
+        "description": "Roll credits, damage, or a card.",
         "choice_type": "risk",
         "outcomes": [
           {
             "id": "jackpot_credits",
             "weight": 45,
-            "summary": "You spoof the payout daemon and drain a hidden account.",
+            "summary": "The exploit lands cleanly. You drain a hidden account.",
             "effects": [
               {
                 "type": "gain_credits",
@@ -176,7 +213,7 @@
           {
             "id": "neural_burn",
             "weight": 25,
-            "summary": "The machine tags you with a neural burn before it unlocks.",
+            "summary": "The machine snaps back with a neural burn.",
             "effects": [
               {
                 "type": "damage",
@@ -211,7 +248,7 @@
       {
         "id": "ignore_terminal",
         "label": "Ignore it",
-        "description": "Leave the roulette to someone else.",
+        "description": "Walk past.",
         "choice_type": "effect",
         "effects": []
       }
@@ -220,12 +257,15 @@
   {
     "id": "ghost_warranty_01",
     "title": "Ghost Warranty",
-    "body": "A market ghost offers to ghost your first reroll at every black market you visit. The price is a silent handshake and no refunds.",
+    "body": "A market ghost offers a free first reroll in every shop.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": ["blessing", "merchant_style"],
     "choices": [
       {
         "id": "install_warranty",
         "label": "Install the warranty",
-        "description": "Your first reroll in each shop becomes free.",
+        "description": "Gain Ghost Warranty.",
         "choice_type": "effect",
         "effects": [
           {
@@ -237,7 +277,7 @@
       {
         "id": "decline_warranty",
         "label": "Decline",
-        "description": "Keep your stack clean and walk away.",
+        "description": "Decline it.",
         "choice_type": "effect",
         "effects": []
       }
@@ -246,12 +286,15 @@
   {
     "id": "street_choir_01",
     "title": "Street Choir",
-    "body": "A signal choir hums through a broken plaza. Syncing with it would leave a healing refrain in your nervous system for the rest of the run.",
+    "body": "A signal choir hums through a broken plaza.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": ["blessing", "status_gain", "recovery"],
     "choices": [
       {
         "id": "join_the_choir",
         "label": "Join the choir",
-        "description": "Heal a little after each event resolves.",
+        "description": "Gain Street Choir.",
         "choice_type": "effect",
         "effects": [
           {
@@ -263,7 +306,7 @@
       {
         "id": "stay_offline",
         "label": "Stay offline",
-        "description": "Ignore the hymn and move on.",
+        "description": "Stay offline.",
         "choice_type": "effect",
         "effects": []
       }
@@ -272,12 +315,15 @@
   {
     "id": "debt_spike_01",
     "title": "Debt Spike",
-    "body": "A courier broker offers instant access to premium inventory in exchange for a nasty contract rider on your next purchase.",
+    "body": "A courier broker offers premium access with a nasty rider.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": ["curse", "status_risk", "merchant_style"],
     "choices": [
       {
         "id": "sign_the_advance",
         "label": "Sign the advance",
-        "description": "Take on a tradeoff: first card purchase in each shop costs more.",
+        "description": "Gain Debt Spike.",
         "choice_type": "effect",
         "effects": [
           {
@@ -287,9 +333,9 @@
         ]
       },
       {
-        "id": "reject_the_terms",
-        "label": "Reject the terms",
-        "description": "Avoid the contract and keep your run clean.",
+        "id": "decline_contract",
+        "label": "Decline",
+        "description": "Decline it.",
         "choice_type": "effect",
         "effects": []
       }
@@ -298,12 +344,15 @@
   {
     "id": "black_ice_scar_01",
     "title": "Black Ice Scar",
-    "body": "A fractured black-ice shard can sharpen every future reward readout if you let it score your nervous system on the way in.",
+    "body": "A scarred shard promises power and leaves a mark.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": ["curse", "status_gain", "anomaly"],
     "choices": [
       {
-        "id": "keep_the_shard",
-        "label": "Keep the shard",
-        "description": "See one extra card in reward drafts, but lose max HP.",
+        "id": "take_the_scar",
+        "label": "Take the scar",
+        "description": "Gain Black Ice Scar.",
         "choice_type": "effect",
         "effects": [
           {
@@ -313,9 +362,299 @@
         ]
       },
       {
-        "id": "dump_it",
-        "label": "Dump it",
-        "description": "Destroy the shard before it can root itself in you.",
+        "id": "step_back",
+        "label": "Step back",
+        "description": "Step back.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "unstable_chip_01",
+    "title": "Unstable Chip",
+    "body": "An illicit chip hums with hot, unstable power.",
+    "rarity": "rare",
+    "base_weight": 3,
+    "tags": ["status_risk", "combat_prep", "anomaly"],
+    "choices": [
+      {
+        "id": "install_chip",
+        "label": "Install the chip",
+        "description": "Gain Adrenal Surge. Gain Overheat.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "adrenal_surge"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "overheat"
+          }
+        ]
+      },
+      {
+        "id": "leave_chip",
+        "label": "Leave it alone",
+        "description": "Leave it.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "backalley_casino_01",
+    "title": "Back-Alley Casino",
+    "body": "A hidden pit boss offers fast winnings with strings attached.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["economy", "gamble", "status_risk"],
+    "choices": [
+      {
+        "id": "take_the_odds",
+        "label": "Take the odds",
+        "description": "Gain High Roller.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "high_roller"
+          }
+        ]
+      },
+      {
+        "id": "take_the_advance",
+        "label": "Take the advance",
+        "description": "Gain 30 credits. Gain Debt Mark.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 30
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ]
+      },
+      {
+        "id": "cash_out",
+        "label": "Cash out",
+        "description": "Walk away.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "relay_tuner_01",
+    "title": "Relay Tuner",
+    "body": "A quiet tuner offers to rewrite your stack timing.",
+    "rarity": "rare",
+    "base_weight": 3,
+    "tags": ["status_gain", "combat_prep", "anomaly"],
+    "choices": [
+      {
+        "id": "optimize_flow",
+        "label": "Optimize the flow",
+        "description": "Roll a tuned utility status.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_types": ["status", "blessing"],
+            "allow_rarities": ["common", "uncommon", "rare"],
+            "include_tags": ["energy", "draw", "scaling"],
+            "exclude_tags": ["curse", "risk"],
+            "fallback_effects": [
+              {
+                "type": "gain_modifier",
+                "modifier_id": "efficient"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "install_echo",
+        "label": "Install echo routing",
+        "description": "Gain Echo.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "echo"
+          }
+        ]
+      },
+      {
+        "id": "keep_it_stock",
+        "label": "Keep it stock",
+        "description": "Keep it stock.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "crash_chassis_01",
+    "title": "Crash Chassis",
+    "body": "A stripped combat frame still has lessons worth stealing.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["combat_prep", "economy"],
+    "choices": [
+      {
+        "id": "study_the_rhythm",
+        "label": "Study the rhythm",
+        "description": "Gain Momentum.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "momentum"
+          }
+        ]
+      },
+      {
+        "id": "wear_the_plate",
+        "label": "Wear the broken plate",
+        "description": "Gain Fractured Armor.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "fractured_armor"
+          }
+        ]
+      },
+      {
+        "id": "strip_the_parts",
+        "label": "Strip the parts",
+        "description": "Gain 15 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "glitch_shrine_01",
+    "title": "Glitch Shrine",
+    "body": "A shrine of scavenged monitors flickers between blessing and malfunction.",
+    "rarity": "special",
+    "base_weight": 2,
+    "tags": ["anomaly", "status_risk", "narrative"],
+    "exclusion_tags": ["anomaly"],
+    "min_floor": 3,
+    "choices": [
+      {
+        "id": "embrace_the_glitch",
+        "label": "Embrace the glitch",
+        "description": "Roll a volatile anomaly status.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "risky",
+            "allow_types": ["status", "blessing", "curse"],
+            "allow_rarities": ["uncommon", "rare", "cursed"],
+            "include_tags": ["volatility", "risk"],
+            "exclude_tags": ["shop"],
+            "fallback_effects": [
+              {
+                "type": "gain_modifier",
+                "modifier_id": "glitch_state"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sign_in_blood",
+        "label": "Sign in blood",
+        "description": "Gain Blood Pact.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "blood_pact"
+          }
+        ]
+      },
+      {
+        "id": "leave_the_shrine",
+        "label": "Leave it alone",
+        "description": "Leave it.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "stim_lab_01",
+    "title": "Stim Lab",
+    "body": "A cracked med-station still pushes live stimulants.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["combat_prep", "status_gain", "merchant_style"],
+    "choices": [
+      {
+        "id": "take_clean_stims",
+        "label": "Take the clean stims",
+        "description": "Roll a combat-prep status.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_types": ["status", "blessing"],
+            "allow_rarities": ["common", "uncommon"],
+            "include_tags": ["energy", "offense"],
+            "exclude_tags": ["curse", "shop"],
+            "duration": {
+              "type": "combat",
+              "value": 3
+            },
+            "fallback_effects": [
+              {
+                "type": "gain_modifier",
+                "modifier_id": "stim_boost"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "take_dirty_stims",
+        "label": "Take the dirty stims",
+        "description": "Gain 25 credits. Next combat: System Corruption.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 25
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "system_corruption"
+          }
+        ]
+      },
+      {
+        "id": "walk_past",
+        "label": "Walk past",
+        "description": "Walk past.",
         "choice_type": "effect",
         "effects": []
       }

@@ -46,6 +46,20 @@ class DeckManager:
     def exhaust_card(self, card: CardBase) -> None:
         self._move_from_hand(card, self.exhaust_pile)
 
+    def remove_card_from_hand(self, card: CardBase) -> CardBase:
+        for index, hand_card in enumerate(self.hand):
+            if hand_card is card:
+                return self.hand.pop(index)
+        raise ValueError(f"Card {card.id} is not currently in hand.")
+
+    def add_to_discard(self, card: CardBase) -> None:
+        self.discard_pile.append(card)
+
+    def add_to_draw_pile(self, card: CardBase, *, shuffle: bool = False) -> None:
+        self.draw_pile.append(card)
+        if shuffle:
+            self.shuffle_deck()
+
     def shuffle_deck(self) -> None:
         if not self.draw_pile and self.discard_pile:
             self.draw_pile.extend(self.discard_pile)
@@ -60,8 +74,10 @@ class DeckManager:
         self.shuffle_deck()
 
     def discard_hand(self) -> None:
-        for card in list(self.hand):
-            self.discard_card(card)
+        retained_cards = [card for card in self.hand if card.has_keyword("retain")]
+        discarded_cards = [card for card in self.hand if not card.has_keyword("retain")]
+        self.discard_pile.extend(discarded_cards)
+        self.hand = retained_cards
 
     def add_to_starting_deck(self, card: CardBase) -> None:
         self.starting_deck.append(card)
@@ -87,12 +103,7 @@ class DeckManager:
         return True
 
     def _move_from_hand(self, card: CardBase, destination: list[CardBase]) -> None:
-        for index, hand_card in enumerate(self.hand):
-            if hand_card is card:
-                destination.append(self.hand.pop(index))
-                return
-
-        raise ValueError(f"Card {card.id} is not currently in hand.")
+        destination.append(self.remove_card_from_hand(card))
 
 
 def simulate_deck_manager() -> dict[str, int]:
@@ -103,20 +114,14 @@ def simulate_deck_manager() -> dict[str, int]:
         library.create_card("strike_01"),
         library.create_card("strike_01"),
         library.create_card("strike_01"),
-        library.create_card("strike_01"),
-        library.create_card("strike_01"),
-        library.create_card("strike_01"),
         library.create_card("defend_01"),
         library.create_card("defend_01"),
-        library.create_card("defend_01"),
-        library.create_card("defend_01"),
-        library.create_card("defend_01"),
-        library.create_card("defend_01"),
+        library.create_card("operator_lock_in_01"),
     ]
     deck = DeckManager(starter_cards, rng=random.Random(7))
-    first_draw = deck.draw_cards(10)
+    first_draw = deck.draw_cards(5)
     deck.discard_hand()
-    redraw = deck.draw_cards(3)
+    redraw = deck.draw_cards(2)
     deck.exhaust_card(redraw[0])
     deck.add_to_starting_deck(library.create_card("volley_01"))
     removed_card = deck.remove_from_starting_deck(0)

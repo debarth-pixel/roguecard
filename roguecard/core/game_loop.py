@@ -179,6 +179,10 @@ class GameLoop:
                 self.running = False
             elif action_type == "new_run":
                 self._begin_new_run()
+            elif action_type == "select_character":
+                self.state_manager.select_character(action["character_id"])
+            elif action_type == "confirm_character_selection":
+                self.state_manager.confirm_character_selection()
             elif action_type == "select_run_modifier_offer":
                 self.state_manager.select_run_modifier_offer(action["modifier_id"])
             elif action_type == "confirm_run_modifier_selection":
@@ -323,11 +327,11 @@ class GameLoop:
             else:
                 self.animator.trigger("select")
                 self.audio_manager.trigger("menu_open")
-                self._set_notice("New run prepared. Choose a modifier.", duration=2.4)
+                self._set_notice("New run prepared. Choose a character.", duration=2.4)
         elif action_type == "title_confirm_new_run":
             self.animator.trigger("select")
             self.audio_manager.trigger("menu_open")
-            self._set_notice("New run prepared. Choose a modifier.", duration=2.4)
+            self._set_notice("New run prepared. Choose a character.", duration=2.4)
         elif action_type == "title_cancel_new_run":
             self.animator.trigger("select")
             self.audio_manager.trigger("menu_open")
@@ -339,7 +343,15 @@ class GameLoop:
         elif action_type == "new_run":
             self.animator.trigger("select")
             self.audio_manager.trigger("menu_open")
-            self._set_notice("New run prepared. Choose a modifier.", duration=2.4)
+            self._set_notice("New run prepared. Choose a character.", duration=2.4)
+        elif action_type == "select_character":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], duration=1.6)
+        elif action_type == "confirm_character_selection":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], duration=2.0)
         elif action_type == "select_run_modifier_offer":
             self.animator.trigger("select")
             self.audio_manager.trigger("node_select")
@@ -550,10 +562,8 @@ class GameLoop:
             return screen, True
 
         if event.key == pygame.K_i:
-            if current_state == "map":
-                self._set_notice("Hover the modifier icons below Pause to inspect them.", duration=1.8)
-            elif current_state in {"modifier_draft", "combat", "reward", "shop", "event"}:
-                self._set_notice("Modifier icons are shown on the map screen.", duration=1.8)
+            if current_state in {"map", "combat", "reward", "shop", "event", "modifier_draft"}:
+                self._set_notice("Hover the status icons in the top bar to inspect them.", duration=1.8)
             return screen, True
 
         if event.key == pygame.K_s:
@@ -712,6 +722,8 @@ class GameLoop:
                 "confirm_overwrite": self._title_confirm_new_run,
             },
             "modifier_draft": None,
+            "character": None,
+            "character_select": None,
             "run_modifiers": {"active": [], "count": 0, "primary_label": None},
             "map": None,
             "combat": None,
@@ -1022,7 +1034,7 @@ class GameLoop:
         available, restore_message, restore_level = self._inspect_saved_run_if_available()
         self.animator.trigger("idle")
         self._title_status_message = (
-            "Continue a saved run or start fresh with a new modifier."
+            "Continue a saved run or start fresh with a new character."
             if available
             else "Choose how to enter the city."
         )
@@ -1061,7 +1073,7 @@ class GameLoop:
             self._title_continue_summary = None
             return False, "Saved run could not be restored and has been cleared.", "error"
 
-        if snapshot["current_state"] not in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
+        if snapshot["current_state"] not in {"character_select", "modifier_draft", "map", "combat", "reward", "shop", "event"}:
             self._clear_run_save()
             self._title_continue_payload = None
             self._title_continue_summary = None
@@ -1073,6 +1085,7 @@ class GameLoop:
             "run_seed": snapshot["run_seed"],
             "status_message": snapshot["status_message"],
             "modifier_label": snapshot.get("run_modifiers", {}).get("primary_label"),
+            "character_name": None if snapshot.get("character") is None else snapshot["character"].get("name"),
         }
         return True, "Continue is available.", "success"
 
@@ -1103,7 +1116,7 @@ class GameLoop:
         current_state = snapshot.get("current_state")
         if current_state == "title":
             return
-        if current_state not in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
+        if current_state not in {"character_select", "modifier_draft", "map", "combat", "reward", "shop", "event"}:
             self._clear_run_save()
             return
 
@@ -1155,6 +1168,7 @@ class GameLoop:
             "new_run",
             "title_continue",
             "title_confirm_new_run",
+            "confirm_character_selection",
             "select_node",
             "confirm_run_modifier_selection",
             "play_card",
@@ -1172,7 +1186,7 @@ class GameLoop:
     def _animator_state_for_current_state(self, current_state: str) -> str:
         if current_state == "map":
             return "map"
-        if current_state in {"modifier_draft", "reward", "shop", "event"}:
+        if current_state in {"character_select", "modifier_draft", "reward", "shop", "event"}:
             return "select"
         if current_state in {"victory", "game_over"}:
             return "idle"
@@ -1185,6 +1199,9 @@ def simulate_game_loop() -> dict[str, Any]:
     boot_message, boot_level = loop._bootstrap_run_state()
     title_snapshot = loop._snapshot_with_hand()
     loop._begin_new_run()
+    select_snapshot = loop._snapshot_with_hand()
+    loop.state_manager.select_character("enforcer")
+    loop.state_manager.confirm_character_selection()
     draft_snapshot = loop._snapshot_with_hand()
     first_offer_id = draft_snapshot["modifier_draft"]["offers"][0]["id"]
     loop.state_manager.select_run_modifier_offer(first_offer_id)
@@ -1197,6 +1214,7 @@ def simulate_game_loop() -> dict[str, Any]:
         "boot_message": boot_message,
         "boot_level": boot_level,
         "title_state": title_snapshot["current_state"],
+        "character_select_state": select_snapshot["current_state"],
         "current_state": after_confirm["current_state"],
         "run_seed": after_confirm["run_seed"],
         "snapshot_keys": sorted(after_confirm.keys()),

@@ -45,13 +45,17 @@ PAUSE_BUTTON_HEIGHT = 40
 MODIFIER_ICON_SIZE = 46
 MODIFIER_ICON_GAP = 10
 MODIFIER_TOOLTIP_WIDTH = 270
+STATUS_ICON_SIZE = 30
+STATUS_ICON_GAP = 8
+STATUS_TOOLTIP_WIDTH = 300
 
 GAME_VERSION = "0.1.0"
 CARD_SCHEMA_VERSION = 2
+CHARACTER_SCHEMA_VERSION = 1
 ENEMY_SCHEMA_VERSION = 1
 EVENT_SCHEMA_VERSION = 1
 RUN_MODIFIER_SCHEMA_VERSION = 1
-SAVE_FORMAT_VERSION = 7
+SAVE_FORMAT_VERSION = 10
 
 MAX_HAND_SIZE = 10
 PLAYER_STARTING_HP = 70
@@ -66,24 +70,12 @@ MAP_FLOORS = 6
 MAP_BRANCHES = 3
 
 CARDS_DATA_PATH = DATA_ROOT / "cards.json"
+CHARACTERS_DATA_PATH = DATA_ROOT / "characters.json"
 ENEMIES_DATA_PATH = DATA_ROOT / "enemies.json"
 EVENTS_DATA_PATH = DATA_ROOT / "events.json"
 RUN_MODIFIERS_DATA_PATH = DATA_ROOT / "run_modifiers.json"
 SETTINGS_DATA_PATH = DATA_ROOT / "settings.json"
 RUN_SAVE_DATA_PATH = DATA_ROOT / "run_save.json"
-
-STARTER_DECK_IDS = (
-    "strike_01",
-    "strike_01",
-    "strike_01",
-    "strike_01",
-    "strike_01",
-    "defend_01",
-    "defend_01",
-    "defend_01",
-    "defend_01",
-    "defend_01",
-)
 
 ENCOUNTER_ENEMY_IDS = {
     "combat": "enemy_basic_01",
@@ -91,14 +83,6 @@ ENCOUNTER_ENEMY_IDS = {
     "boss": "enemy_boss_01",
 }
 
-REWARD_CARD_POOL_IDS = (
-    "surge_strike_01",
-    "firewall_01",
-    "patch_kit_01",
-    "cache_draw_01",
-    "overclock_01",
-    "volley_01",
-)
 REWARD_CARD_CHOICE_COUNT = 3
 SHOP_CARD_OFFER_COUNT = 3
 REGULAR_COMBAT_CREDIT_REWARD = 20
@@ -115,15 +99,94 @@ SHOP_PURGE_OFFER_ID = "purge_service"
 SHOP_PURGE_PRICE = 40
 SHOP_REROLL_BASE_PRICE = 12
 SHOP_REROLL_PRICE_STEP = 8
-CARD_SHOP_PRICES = {
-    "surge_strike_01": 49,
-    "firewall_01": 44,
-    "patch_kit_01": 42,
-    "cache_draw_01": 46,
-    "overclock_01": 52,
-    "volley_01": 47,
+EVENT_RARITY_WEIGHTS = {
+    "common": 1.0,
+    "uncommon": 0.55,
+    "rare": 0.22,
+    "special": 0.0,
 }
-
-
+STATUS_RARITY_WEIGHTS = {
+    "positive": {
+        "common": 1.0,
+        "uncommon": 0.5,
+        "rare": 0.18,
+        "cursed": 0.0,
+        "special": 0.0,
+    },
+    "risky": {
+        "common": 0.85,
+        "uncommon": 0.55,
+        "rare": 0.22,
+        "cursed": 0.35,
+        "special": 0.0,
+    },
+}
+EVENT_RECENTLY_SEEN_PENALTY = 0.2
+EVENT_SAME_TAG_REPEAT_PENALTY = 0.45
+EARLY_MID_LATE_RUN_WEIGHT_MODIFIERS = {
+    "early": {
+        "common": 1.15,
+        "uncommon": 0.9,
+        "rare": 0.6,
+        "special": 0.0,
+    },
+    "mid": {
+        "common": 1.0,
+        "uncommon": 1.0,
+        "rare": 1.0,
+        "special": 1.0,
+    },
+    "late": {
+        "common": 0.9,
+        "uncommon": 1.0,
+        "rare": 1.25,
+        "special": 1.0,
+    },
+}
+MAX_SEEN_EVENT_MEMORY = 4
+STATUS_DUPLICATE_RULES = {
+    "no_duplicate": "Ignore duplicate rolls and reroll within the same weighted pool.",
+    "refresh_duration": "Refresh the duration on the active entry instead of adding a duplicate.",
+    "stack_intensity": "Increase a modifier intensity multiplier on the existing record.",
+    "stack_count": "Increase a stack counter and repeat safe numeric effects per stack.",
+}
+EVENT_TAGS = (
+    "economy",
+    "recovery",
+    "status_gain",
+    "status_risk",
+    "deck_edit",
+    "gamble",
+    "upgrade",
+    "curse",
+    "blessing",
+    "combat_prep",
+    "merchant_style",
+    "anomaly",
+    "narrative",
+)
+STATUS_TAGS = (
+    "economy",
+    "offense",
+    "defense",
+    "energy",
+    "draw",
+    "risk",
+    "recovery",
+    "scaling",
+    "volatility",
+    "shop",
+    "event",
+    "curse",
+    "blessing",
+)
+STATUS_SOURCE_TYPES = (
+    "event",
+    "relic",
+    "run_start",
+    "shop",
+    "combat_reward",
+    "boss_reward",
+)
 def resolve_asset_path(*parts: str) -> Path:
     return ASSETS_ROOT.joinpath(*parts)

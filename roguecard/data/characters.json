@@ -1,0 +1,77 @@
+[
+  {
+    "id": "enforcer",
+    "name": "The Enforcer",
+    "subtitle": "Brute Force",
+    "description": "Heavy offense, strength scaling, and pressure that snowballs once combat starts.",
+    "accent_color": [232, 88, 72],
+    "palette_key": "enforcer_crimson",
+    "starting_deck_ids": [
+      "enforcer_bash_protocol_01",
+      "enforcer_bash_protocol_01",
+      "enforcer_bash_protocol_01",
+      "enforcer_bash_protocol_01",
+      "enforcer_guard_stance_01",
+      "enforcer_guard_stance_01",
+      "enforcer_guard_stance_01",
+      "enforcer_battle_roar_01",
+      "enforcer_double_tap_01",
+      "enforcer_war_engine_01"
+    ],
+    "preview_card_ids": [
+      "enforcer_bash_protocol_01",
+      "enforcer_battle_roar_01",
+      "enforcer_war_engine_01"
+    ]
+  },
+  {
+    "id": "operator",
+    "name": "The Operator",
+    "subtitle": "Control / Tech",
+    "description": "Card flow, cost control, and efficient turns that reward planning and chain-building.",
+    "accent_color": [72, 214, 226],
+    "palette_key": "operator_teal",
+    "starting_deck_ids": [
+      "operator_needle_ping_01",
+      "operator_needle_ping_01",
+      "operator_needle_ping_01",
+      "operator_deflect_mesh_01",
+      "operator_deflect_mesh_01",
+      "operator_deflect_mesh_01",
+      "operator_cache_cycle_01",
+      "operator_cache_cycle_01",
+      "operator_priority_queue_01",
+      "operator_auto_tuner_01"
+    ],
+    "preview_card_ids": [
+      "operator_needle_ping_01",
+      "operator_priority_queue_01",
+      "operator_auto_tuner_01"
+    ]
+  },
+  {
+    "id": "bio_hacker",
+    "name": "The Bio-Hacker",
+    "subtitle": "Risk / Sustain",
+    "description": "Trade HP for tempo, recover through pressure, and weaponize the mess in your deck.",
+    "accent_color": [110, 220, 126],
+    "palette_key": "bio_hacker_verdant",
+    "starting_deck_ids": [
+      "bio_leech_jab_01",
+      "bio_leech_jab_01",
+      "bio_leech_jab_01",
+      "bio_scar_tissue_01",
+      "bio_scar_tissue_01",
+      "bio_scar_tissue_01",
+      "bio_triage_loop_01",
+      "bio_triage_loop_01",
+      "bio_hemorrhage_01",
+      "bio_symbiote_mesh_01"
+    ],
+    "preview_card_ids": [
+      "bio_leech_jab_01",
+      "bio_triage_loop_01",
+      "bio_symbiote_mesh_01"
+    ]
+  }
+]

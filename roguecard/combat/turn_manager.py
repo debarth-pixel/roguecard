@@ -15,8 +15,7 @@ class TurnManager:
         self.turn_number += 1
         self.turn_owner = "player"
         player.start_turn()
-        drawn_cards = player.deck_manager.draw_cards(player.draw_per_turn)
-        return {"turn_number": self.turn_number, "drawn_cards": [card.id for card in drawn_cards]}
+        return {"turn_number": self.turn_number}
 
     def end_player_turn(self, player: Any) -> None:
         if player.deck_manager is None:

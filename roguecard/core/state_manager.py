@@ -8,7 +8,6 @@ from cards.card_library import CardLibrary
 from cards.deck_manager import DeckManager
 from combat.combat_manager import CombatManager
 from config import (
-    CARD_SHOP_PRICES,
     ELITE_COMBAT_CREDIT_REWARD,
     ENCOUNTER_ENEMY_IDS,
     MIN_STARTING_DECK_SIZE,
@@ -18,7 +17,6 @@ from config import (
     REGULAR_REWARD_CHANCE,
     REGULAR_REWARD_PURGE_WEIGHT,
     REWARD_CARD_CHOICE_COUNT,
-    REWARD_CARD_POOL_IDS,
     SAVE_FORMAT_VERSION,
     SHOP_CARD_OFFER_COUNT,
     SHOP_HEAL_AMOUNT,
@@ -29,15 +27,18 @@ from config import (
     SHOP_PURGE_PRICE,
     SHOP_REROLL_BASE_PRICE,
     SHOP_REROLL_PRICE_STEP,
-    STARTER_DECK_IDS,
 )
+from core.character_library import CharacterLibrary
 from core.event_library import EventLibrary
+from core.event_selector import EventSelector
 from core.run_modifier_engine import RunModifierEngine
 from core.run_modifier_library import RunModifierLibrary
 from entities.enemy_library import EnemyLibrary
 from entities.player import Player
 from map.map_generator import MapGenerator
 from map.node import Node
+
+CARD_SHOP_PRICE_OVERRIDES: dict[str, int] = {}
 
 
 class StateManager:
@@ -49,9 +50,11 @@ class StateManager:
         event_library: EventLibrary | None = None,
     ) -> None:
         self.card_library = card_library or CardLibrary()
+        self.character_library = CharacterLibrary(card_library=self.card_library)
         self.enemy_library = enemy_library or EnemyLibrary()
         self.run_modifier_library = modifier_library or RunModifierLibrary(card_library=self.card_library)
         self.run_modifier_engine = RunModifierEngine(self.run_modifier_library)
+        self.event_selector = EventSelector()
         self.event_library = event_library or EventLibrary(
             card_library=self.card_library,
             modifier_library=self.run_modifier_library,
@@ -70,14 +73,51 @@ class StateManager:
         self.active_shop: dict[str, Any] | None = None
         self.active_event: dict[str, Any] | None = None
         self.active_modifier_draft: dict[str, Any] | None = None
+        self.active_character_select: dict[str, Any] | None = None
         self.run_modifiers: list[dict[str, Any]] = []
         self.modifier_runtime_flags: dict[str, Any] = self._default_modifier_runtime_flags()
-        self.seen_event_ids: list[str] = []
+        self.event_history: list[dict[str, Any]] = []
+        self.character_id: str | None = None
 
     def start_new_run(self, seed: int | None = None) -> dict[str, Any]:
         self.run_seed = seed if seed is not None else random.randrange(1, 1_000_000)
+        self.character_id = None
+        self.player = None
+        self.map_graph = None
+        self.available_node_ids = []
+        self.visited_node_ids = []
+        self.selected_node_id = None
+        self.combat_manager = None
+        self.active_reward = None
+        self.active_shop = None
+        self.active_event = None
+        self.active_modifier_draft = None
+        self.active_character_select = {"selected_character_id": None}
+        self.run_modifiers = []
+        self.modifier_runtime_flags = self._default_modifier_runtime_flags()
+        self.event_history = []
+        self.current_state = "character_select"
+        self.status_message = "Choose a runner before drafting a modifier."
+        return self.get_state_snapshot()
 
-        self.player = self._create_player(self.run_seed)
+    def select_character(self, character_id: str) -> dict[str, Any]:
+        self._require_character_select()
+        self.character_library.get_character(character_id)
+        self.character_id = character_id
+        self.active_character_select["selected_character_id"] = character_id
+        character = self.character_library.get_character(character_id)
+        self.status_message = f"Selected {character['name']}."
+        return self.get_state_snapshot()
+
+    def confirm_character_selection(self) -> dict[str, Any]:
+        self._require_character_select()
+        character_id = self.active_character_select.get("selected_character_id")
+        if character_id is None:
+            raise ValueError("Select a character before confirming.")
+
+        character = self.character_library.get_character(character_id)
+        self.character_id = character_id
+        self.player = self._create_player(character_id, self.run_seed)
         self.map_graph = MapGenerator(rng=random.Random(self.run_seed)).generate_map()
         self.available_node_ids = list(self.map_graph["start_nodes"])
         self.visited_node_ids = []
@@ -87,11 +127,9 @@ class StateManager:
         self.active_shop = None
         self.active_event = None
         self.active_modifier_draft = self._generate_modifier_draft_state()
-        self.run_modifiers = []
-        self.modifier_runtime_flags = self._default_modifier_runtime_flags()
-        self.seen_event_ids = []
+        self.active_character_select = None
         self.current_state = "modifier_draft"
-        self.status_message = "Choose a run modifier before entering the city."
+        self.status_message = f"{character['name']} ready. Choose a run modifier."
         return self.get_state_snapshot()
 
     def select_run_modifier_offer(self, modifier_id: str) -> dict[str, Any]:
@@ -122,6 +160,7 @@ class StateManager:
             raise ValueError(f"Node {node_id} is not currently available.")
 
         node = self.map_graph["nodes"][node_id]
+        self._advance_floor_modifier_effects(node.floor)
         self.selected_node_id = node_id
         if node_id not in self.visited_node_ids:
             self.visited_node_ids.append(node_id)
@@ -149,8 +188,21 @@ class StateManager:
             raise IndexError("Requested hand index is out of range.")
 
         card = hand[hand_index]
+        if getattr(card, "type", "") == "status":
+            raise ValueError("Status cards cannot be played.")
         target = self.combat_manager.get_enemy(target_id) if target_id else None
-        self.combat_manager.resolve_action({"card": card, "target": target})
+        play_context = self._combat_card_context(card)
+        resolution = self.combat_manager.resolve_action(
+            {
+                "card": card,
+                "target": target,
+                "cost": play_context["cost"],
+                "damage_bonus": play_context["damage_bonus"],
+                "repeat_count": play_context["repeat_count"],
+                "block_penalty": play_context["block_penalty"],
+            }
+        )
+        self._record_combat_card_play(card, resolution)
 
         if not self.combat_manager.combat_active:
             self._close_combat()
@@ -159,10 +211,13 @@ class StateManager:
 
     def end_combat_turn(self) -> dict[str, Any]:
         self._require_combat()
+        self._lock_in_turn_history()
         self.combat_manager.end_turn()
 
         if not self.combat_manager.combat_active:
             self._close_combat()
+        else:
+            self._start_player_turn_runtime()
 
         return self.get_state_snapshot()
 
@@ -419,6 +474,8 @@ class StateManager:
             "current_state": self.current_state,
             "status_message": self.status_message,
             "run_seed": self.run_seed,
+            "character": self._snapshot_character(),
+            "character_select": self._snapshot_character_select(),
             "modifier_draft": self._snapshot_modifier_draft(),
             "run_modifiers": self.run_modifier_engine.snapshot(self.run_modifiers),
             "map": self._snapshot_map(),
@@ -431,14 +488,41 @@ class StateManager:
         }
 
     def build_save_data(self) -> dict[str, Any]:
-        if self.player is None or self.player.deck_manager is None or self.run_seed is None:
+        if self.run_seed is None:
             raise ValueError("Cannot build save data before a run has been initialized.")
+
+        if self.current_state == "character_select":
+            return {
+                "save_format_version": SAVE_FORMAT_VERSION,
+                "current_state": self.current_state,
+                "status_message": self.status_message,
+                "run_seed": self.run_seed,
+                "character": self.character_id,
+                "character_select": self._serialize_character_select(),
+                "player": None,
+                "deck": None,
+                "map": None,
+                "combat": None,
+                "event": None,
+                "reward": None,
+                "shop": None,
+                "modifier_draft": None,
+                "run_modifiers": [],
+                "modifier_runtime_flags": self._default_modifier_runtime_flags(),
+                "event_history": [],
+                "seen_event_ids": [],
+            }
+
+        if self.player is None or self.player.deck_manager is None or self.map_graph is None:
+            raise ValueError("Cannot build save data before a character has entered a run.")
 
         return {
             "save_format_version": SAVE_FORMAT_VERSION,
             "current_state": self.current_state,
             "status_message": self.status_message,
             "run_seed": self.run_seed,
+            "character": self._active_character_id(),
+            "character_select": None,
             "player": self._serialize_player(),
             "deck": self._serialize_deck(self.player.deck_manager),
             "map": self._serialize_map(),
@@ -449,7 +533,8 @@ class StateManager:
             "modifier_draft": self._serialize_modifier_draft(),
             "run_modifiers": copy.deepcopy(self.run_modifiers),
             "modifier_runtime_flags": copy.deepcopy(self.modifier_runtime_flags),
-            "seen_event_ids": list(self.seen_event_ids),
+            "event_history": copy.deepcopy(self.event_history),
+            "seen_event_ids": self._seen_event_ids(),
         }
 
     def restore_save_data(self, save_data: dict[str, Any]) -> dict[str, Any]:
@@ -457,33 +542,38 @@ class StateManager:
             raise ValueError("Save data must be a dictionary.")
 
         save_version = save_data.get("save_format_version")
-        if save_version not in {2, 3, 4, 5, 6, 7}:
+        if save_version != SAVE_FORMAT_VERSION:
             raise ValueError(f"Unsupported save format version: {save_version}")
 
         run_seed = save_data.get("run_seed")
         current_state = save_data.get("current_state")
         status_message = save_data.get("status_message")
+        character_id = save_data.get("character")
+        character_select_data = save_data.get("character_select")
         player_data = save_data.get("player")
         deck_data = save_data.get("deck")
         map_data = save_data.get("map")
         combat_data = save_data.get("combat")
-        event_data = save_data.get("event") if save_version >= 5 else None
-        reward_data = save_data.get("reward") if save_version >= 3 else None
-        shop_data = save_data.get("shop") if save_version >= 4 else None
-        seen_event_ids = save_data.get("seen_event_ids") if save_version >= 5 else []
-        modifier_draft_data = save_data.get("modifier_draft") if save_version >= 6 else None
-        run_modifiers_data = save_data.get("run_modifiers") if save_version >= 6 else []
-        modifier_runtime_flags = save_data.get("modifier_runtime_flags") if save_version >= 6 else {}
+        event_data = save_data.get("event")
+        reward_data = save_data.get("reward")
+        shop_data = save_data.get("shop")
+        seen_event_ids = save_data.get("seen_event_ids")
+        event_history_data = save_data.get("event_history")
+        modifier_draft_data = save_data.get("modifier_draft")
+        run_modifiers_data = save_data.get("run_modifiers")
+        modifier_runtime_flags = save_data.get("modifier_runtime_flags")
 
-        allowed_states = {"map", "combat", "victory", "game_over"}
-        if save_version >= 3:
-            allowed_states.add("reward")
-        if save_version >= 4:
-            allowed_states.add("shop")
-        if save_version >= 5:
-            allowed_states.add("event")
-        if save_version >= 6:
-            allowed_states.add("modifier_draft")
+        allowed_states = {
+            "character_select",
+            "modifier_draft",
+            "map",
+            "combat",
+            "reward",
+            "shop",
+            "event",
+            "victory",
+            "game_over",
+        }
 
         if not isinstance(run_seed, int):
             raise ValueError("Save data is missing a valid run_seed.")
@@ -493,21 +583,36 @@ class StateManager:
             raise ValueError("Save data must include a non-empty status_message.")
 
         self.run_seed = run_seed
-        self.player = self._restore_player(player_data, deck_data, run_seed, save_version)
-        self.map_graph = self._restore_map(map_data)
+        self.character_id = None if character_id is None else self._restore_character_id(character_id)
         self.status_message = status_message
         self.current_state = current_state
-        self.available_node_ids = list(map_data["available_node_ids"])
-        self.visited_node_ids = list(map_data["visited_node_ids"])
-        self.selected_node_id = map_data["selected_node_id"]
         self.combat_manager = None
         self.active_reward = None
         self.active_shop = None
         self.active_event = None
         self.active_modifier_draft = None
+        self.active_character_select = None
+        self.run_modifiers = []
+        self.modifier_runtime_flags = self._default_modifier_runtime_flags()
+        self.event_history = []
+        self.player = None
+        self.map_graph = None
+        self.available_node_ids = []
+        self.visited_node_ids = []
+        self.selected_node_id = None
+
+        if current_state == "character_select":
+            self.active_character_select = self._restore_character_select(character_select_data, self.character_id)
+            return self.get_state_snapshot()
+
+        self.player = self._restore_player(player_data, deck_data, run_seed)
+        self.map_graph = self._restore_map(map_data)
+        self.available_node_ids = list(map_data["available_node_ids"])
+        self.visited_node_ids = list(map_data["visited_node_ids"])
+        self.selected_node_id = map_data["selected_node_id"]
         self.run_modifiers = self._restore_run_modifiers(run_modifiers_data)
         self.modifier_runtime_flags = self._restore_modifier_runtime_flags(modifier_runtime_flags)
-        self.seen_event_ids = self._restore_seen_event_ids(seen_event_ids)
+        self.event_history = self._restore_event_history(event_history_data, seen_event_ids)
 
         if current_state == "combat":
             self.combat_manager = self._restore_combat(combat_data)
@@ -528,8 +633,11 @@ class StateManager:
         enemy_id = ENCOUNTER_ENEMY_IDS[node_type]
         enemy = self.enemy_library.create_enemy(enemy_id)
         self.combat_manager = CombatManager(player=self.player, enemies=[enemy])
+        self.combat_manager.set_card_factory(self.card_library.create_card)
         self.combat_manager.start_combat()
+        self._begin_combat_modifier_runtime()
         self._apply_combat_modifier_effects("combat_start")
+        self._apply_combat_modifier_effects("on_turn_start")
         self._apply_combat_modifier_effects("turn_one")
         self.current_state = "combat"
         self.status_message = f"Entered {node_type} encounter. Play cards or end your turn."
@@ -554,6 +662,8 @@ class StateManager:
 
         encounter_type = self._current_node_type()
         self.combat_manager = None
+        self.player.end_combat()
+        self._end_combat_modifier_runtime()
 
         if not self.player.is_alive():
             self.active_reward = None
@@ -602,6 +712,47 @@ class StateManager:
             "selected_node_id": self.selected_node_id,
         }
 
+    def _snapshot_character(self) -> dict[str, Any] | None:
+        character_id = self._active_character_id()
+        if character_id is None:
+            return None
+        character = self.character_library.get_character(character_id)
+        return {
+            "id": character["id"],
+            "name": character["name"],
+            "subtitle": character["subtitle"],
+            "description": character["description"],
+            "accent_color": list(character["accent_color"]),
+            "palette_key": character["palette_key"],
+        }
+
+    def _snapshot_character_select(self) -> dict[str, Any] | None:
+        if self.active_character_select is None:
+            return None
+        selected_character_id = self.active_character_select.get("selected_character_id")
+        characters: list[dict[str, Any]] = []
+        for character in self.character_library.list_characters():
+            preview_cards = [
+                self.card_library.create_card(card_id).to_dict()
+                for card_id in character["preview_card_ids"]
+            ]
+            characters.append(
+                {
+                    "id": character["id"],
+                    "name": character["name"],
+                    "subtitle": character["subtitle"],
+                    "description": character["description"],
+                    "accent_color": list(character["accent_color"]),
+                    "preview_cards": preview_cards,
+                    "selected": character["id"] == selected_character_id,
+                }
+            )
+        return {
+            "selected_character_id": selected_character_id,
+            "characters": characters,
+            "can_confirm": selected_character_id is not None,
+        }
+
     def _snapshot_modifier_draft(self) -> dict[str, Any] | None:
         if self.active_modifier_draft is None:
             return None
@@ -613,7 +764,9 @@ class StateManager:
                 {
                     "id": modifier["id"],
                     "name": modifier["name"],
-                    "kind": modifier["kind"],
+                    "type": modifier["type"],
+                    "kind": modifier["type"],
+                    "rarity": modifier["rarity"],
                     "description": modifier["description"],
                     "downside": modifier.get("downside"),
                     "selected": self.active_modifier_draft.get("selected_offer_id") == modifier_id,
@@ -705,6 +858,10 @@ class StateManager:
         if self.map_graph is None or self.current_state != "map":
             raise ValueError("Map selection is only available while in the map state.")
 
+    def _require_character_select(self) -> None:
+        if self.current_state != "character_select" or self.active_character_select is None:
+            raise ValueError("Character selection is only available while choosing a character.")
+
     def _require_combat(self) -> None:
         if self.player is None or self.player.deck_manager is None or self.combat_manager is None:
             raise ValueError("Combat action requested without an active combat manager.")
@@ -759,10 +916,19 @@ class StateManager:
         return None if selected_choice is None else selected_choice["choice_type"]
 
     def _event_choice_availability(self, choice: dict[str, Any]) -> tuple[bool, str | None]:
+        character_ids = choice.get("character_ids", [])
+        active_character_id = self._active_character_id()
+        if character_ids and active_character_id not in character_ids:
+            return False, "Unavailable for this character."
+
         requirements = choice.get("requirements", {})
         credits_at_least = requirements.get("credits_at_least")
         if credits_at_least is not None and self.player.credits < credits_at_least:
             return False, f"Requires at least {credits_at_least} credits."
+
+        credits_at_most = requirements.get("credits_at_most")
+        if credits_at_most is not None and self.player.credits > credits_at_most:
+            return False, f"Requires at most {credits_at_most} credits."
 
         missing_hp_at_least = requirements.get("missing_hp_at_least")
         missing_hp = self.player.max_hp - self.player.current_hp
@@ -774,12 +940,42 @@ class StateManager:
         if deck_size_at_least is not None and deck_size < deck_size_at_least:
             return False, f"Requires a deck of at least {deck_size_at_least} cards."
 
+        status_count_at_most = requirements.get("status_count_at_most")
+        if status_count_at_most is not None and len(self.run_modifiers) > status_count_at_most:
+            return False, f"Requires at most {status_count_at_most} active statuses."
+
+        modifier_active = requirements.get("modifier_active")
+        if modifier_active is not None and not self.run_modifier_engine.has_modifier(self.run_modifiers, modifier_active):
+            modifier = self.run_modifier_library.get_modifier(modifier_active)
+            return False, f"Requires active status: {modifier['name']}."
+
+        modifier_missing = requirements.get("modifier_missing")
+        if modifier_missing is not None and self.run_modifier_engine.has_modifier(self.run_modifiers, modifier_missing):
+            modifier = self.run_modifier_library.get_modifier(modifier_missing)
+            return False, f"Unavailable while {modifier['name']} is active."
+
         for effect in choice.get("effects", []):
-            if effect["type"] != "gain_modifier":
+            if effect["type"] == "gain_modifier":
+                available, disabled_reason = self.run_modifier_engine.can_gain_modifier(
+                    self.run_modifiers,
+                    effect["modifier_id"],
+                )
+                if not available:
+                    return False, disabled_reason
                 continue
-            modifier = self.run_modifier_library.get_modifier(effect["modifier_id"])
-            if self.run_modifier_engine.has_modifier(self.run_modifiers, effect["modifier_id"]):
-                return False, f"Already installed: {modifier['name']}."
+
+            if effect["type"] == "gain_random_modifier":
+                candidates = self.run_modifier_engine.weighted_modifier_candidates(
+                    self.run_modifiers,
+                    source_type=effect["source_type"],
+                    rarity_profile=effect["rarity_profile"],
+                    allow_types=effect.get("allow_types"),
+                    allow_rarities=effect.get("allow_rarities"),
+                    include_tags=effect.get("include_tags"),
+                    exclude_tags=effect.get("exclude_tags"),
+                )
+                if not candidates and not effect.get("fallback_effects"):
+                    return False, "No compatible statuses are available right now."
 
         return True, None
 
@@ -854,8 +1050,51 @@ class StateManager:
                     effect["modifier_id"],
                     source="event",
                     source_detail=self.active_event["event_id"] if self.active_event is not None else None,
+                    duration_override=effect.get("duration"),
                 )
                 details.extend(modifier_details)
+            elif effect_type == "gain_random_modifier":
+                effect_label = "unknown"
+                if self.active_event is not None:
+                    effect_label = (
+                        f"{self.active_event['event_id']}:"
+                        f"{self.active_event.get('selected_choice_id', 'choice')}:"
+                        f"{len(details)}"
+                    )
+                chosen_modifier = self.run_modifier_engine.choose_weighted_modifier(
+                    rng=self._state_rng(f"event_random_modifier:{effect_label}"),
+                    active_modifiers=self.run_modifiers,
+                    source_type=effect["source_type"],
+                    rarity_profile=effect["rarity_profile"],
+                    allow_types=effect.get("allow_types"),
+                    allow_rarities=effect.get("allow_rarities"),
+                    include_tags=effect.get("include_tags"),
+                    exclude_tags=effect.get("exclude_tags"),
+                )
+                if chosen_modifier is None:
+                    fallback_effects = effect.get("fallback_effects", [])
+                    if fallback_effects:
+                        details.extend(self._apply_event_effects(fallback_effects, target_id=target_id))
+                    else:
+                        details.append("No compatible status was available.")
+                else:
+                    details.extend(
+                        self._acquire_run_modifier(
+                            chosen_modifier["id"],
+                            source="event",
+                            source_detail=self.active_event["event_id"] if self.active_event is not None else None,
+                            duration_override=effect.get("duration"),
+                        )
+                    )
+            elif effect_type == "remove_modifier":
+                details.extend(self._remove_run_modifier(effect["modifier_id"]))
+            elif effect_type == "refresh_modifier":
+                details.extend(
+                    self._refresh_run_modifier(
+                        effect["modifier_id"],
+                        duration_override=effect.get("duration"),
+                    )
+                )
             elif effect_type == "heal":
                 healed = self.player.heal(effect["value"])
                 details.append(f"Recovered {healed} HP.")
@@ -924,6 +1163,8 @@ class StateManager:
     def _snapshot_hand(self) -> list[dict[str, Any]]:
         if self.player is None or self.player.deck_manager is None:
             return []
+        if self.current_state == "combat" and self.combat_manager is not None:
+            return [self._combat_card_snapshot(card) for card in self.player.deck_manager.hand]
         return [card.to_dict() for card in self.player.deck_manager.hand]
 
     def _current_node_type(self) -> str | None:
@@ -932,10 +1173,33 @@ class StateManager:
         node = self.map_graph["nodes"].get(self.selected_node_id)
         return None if node is None else node.node_type
 
-    def _create_player(self, seed: int) -> Player:
-        starter_cards = [self.card_library.create_card(card_id) for card_id in STARTER_DECK_IDS]
+    def _current_node_floor(self) -> int:
+        if self.map_graph is None or self.selected_node_id is None:
+            return 0
+        node = self.map_graph["nodes"].get(self.selected_node_id)
+        return 0 if node is None else node.floor
+
+    def _active_character_id(self) -> str | None:
+        if self.player is not None and self.player.character_id is not None:
+            return self.player.character_id
+        if self.character_id is not None:
+            return self.character_id
+        if self.active_character_select is not None:
+            selected_character_id = self.active_character_select.get("selected_character_id")
+            if isinstance(selected_character_id, str):
+                return selected_character_id
+        return None
+
+    def _active_character(self) -> dict[str, Any]:
+        character_id = self._active_character_id()
+        if character_id is None:
+            raise ValueError("No character is currently selected.")
+        return self.character_library.get_character(character_id)
+
+    def _create_player(self, character_id: str, seed: int) -> Player:
+        starter_cards = [self.card_library.create_card(card_id) for card_id in self.character_library.get_character(character_id)["starting_deck_ids"]]
         deck_manager = DeckManager(starter_cards, rng=random.Random(seed))
-        player = Player(credits=PLAYER_STARTING_CREDITS)
+        player = Player(credits=PLAYER_STARTING_CREDITS, character_id=character_id)
         player.attach_deck(deck_manager)
         return player
 
@@ -951,37 +1215,116 @@ class StateManager:
             "clean_slate_used": False,
             "ghost_warranty_used_shops": [],
             "debt_spike_used_shops": [],
+            "last_floor_status_tick": 0,
+            "combat": self._default_combat_runtime_flags(),
         }
+
+    def _default_combat_runtime_flags(self) -> dict[str, Any]:
+        return {
+            "active_modifier_ids": [],
+            "cards_played_this_combat": 0,
+            "cards_played_this_turn": 0,
+            "current_turn_attack_played": False,
+            "last_turn_attack_played": False,
+            "first_block_penalty_remaining": 0,
+        }
+
+    def _combat_runtime_flags(self) -> dict[str, Any]:
+        combat_flags = self.modifier_runtime_flags.get("combat")
+        if not isinstance(combat_flags, dict):
+            combat_flags = self._default_combat_runtime_flags()
+            self.modifier_runtime_flags["combat"] = combat_flags
+        return combat_flags
 
     def _acquire_run_modifier(
         self,
         modifier_id: str,
         source: str,
         source_detail: str | None = None,
+        duration_override: dict[str, Any] | None = None,
     ) -> list[str]:
-        if self.run_modifier_engine.has_modifier(self.run_modifiers, modifier_id):
-            modifier = self.run_modifier_library.get_modifier(modifier_id)
-            raise ValueError(f"{modifier['name']} is already active for this run.")
-
         modifier = self.run_modifier_library.get_modifier(modifier_id)
+        available, disabled_reason = self.run_modifier_engine.can_gain_modifier(self.run_modifiers, modifier_id)
+        if not available:
+            raise ValueError(disabled_reason or f"{modifier['name']} cannot be acquired right now.")
+
+        existing = self.run_modifier_engine.get_modifier_record(self.run_modifiers, modifier_id)
+        if existing is not None:
+            if modifier["stack_behavior"] == "refresh_duration":
+                self.run_modifier_engine.refresh_modifier_record(existing, duration_override=duration_override)
+                duration_label = self.run_modifier_engine.hydrate_modifier(existing).get("duration_label")
+                refreshed_text = f"Refreshed: {modifier['name']}."
+                if duration_label:
+                    refreshed_text = f"{refreshed_text} {duration_label.title()}."
+                return [refreshed_text]
+
+            self.run_modifier_engine.increment_modifier_record(existing, duration_override=duration_override)
+            hydrated_modifier = self.run_modifier_engine.hydrate_modifier(existing)
+            if modifier["stack_behavior"] == "stack_intensity":
+                return [f"Intensified: {modifier['name']} x{hydrated_modifier['stack_intensity']}."]
+            if modifier["stack_behavior"] == "stack_count":
+                return [f"Stacked: {modifier['name']} x{hydrated_modifier['stack_count']}."]
+            duration_label = self.run_modifier_engine.hydrate_modifier(existing).get("duration_label")
+            refreshed_text = f"Refreshed: {modifier['name']}."
+            if duration_label:
+                refreshed_text = f"{refreshed_text} {duration_label.title()}."
+            return [refreshed_text]
+
         self.run_modifiers.append(
-            {
-                "id": modifier_id,
-                "source": source,
-                "source_detail": source_detail,
-            }
+            self.run_modifier_engine.create_modifier_record(
+                modifier_id,
+                source=source,
+                source_detail=source_detail,
+                duration_override=duration_override,
+            )
         )
 
-        details = [f"Installed {modifier['name']}."]
+        details = [f"Gained: {modifier['name']}."]
         for effect in modifier.get("hooks", {}).get("on_acquire", []):
             details.extend(self._apply_modifier_effect(effect))
         return details
+
+    def _remove_run_modifier(self, modifier_id: str) -> list[str]:
+        modifier = self.run_modifier_library.get_modifier(modifier_id)
+        remaining_records = [record for record in self.run_modifiers if record.get("id") != modifier_id]
+        if len(remaining_records) == len(self.run_modifiers):
+            return [f"{modifier['name']} was not active."]
+        self.run_modifiers = remaining_records
+        combat_flags = self._combat_runtime_flags()
+        combat_flags["active_modifier_ids"] = [
+            active_id for active_id in combat_flags.get("active_modifier_ids", []) if active_id != modifier_id
+        ]
+        return [f"Removed: {modifier['name']}."]
+
+    def _refresh_run_modifier(
+        self,
+        modifier_id: str,
+        duration_override: dict[str, Any] | None = None,
+    ) -> list[str]:
+        record = self.run_modifier_engine.get_modifier_record(self.run_modifiers, modifier_id)
+        modifier = self.run_modifier_library.get_modifier(modifier_id)
+        if record is None:
+            return [f"{modifier['name']} is not active."]
+        self.run_modifier_engine.refresh_modifier_record(record, duration_override=duration_override)
+        duration_label = self.run_modifier_engine.hydrate_modifier(record).get("duration_label")
+        refreshed_text = f"Refreshed: {modifier['name']}."
+        if duration_label:
+            refreshed_text = f"{refreshed_text} {duration_label.title()}."
+        return [refreshed_text]
 
     def _apply_modifier_effect(self, effect: dict[str, Any]) -> list[str]:
         effect_type = effect["type"]
         if effect_type == "gain_credits":
             gained = self.player.gain_credits(effect["value"])
             return [f"Gained {gained} credits."]
+        if effect_type == "lose_credits":
+            lost = min(effect["value"], self.player.credits)
+            if lost > 0:
+                self.player.spend_credits(lost)
+            return [f"Lost {lost} credits."]
+        if effect_type == "damage":
+            damage = self.player.take_damage(effect["value"])
+            return [f"Lost {damage} HP."]
         if effect_type == "modify_max_hp":
             delta = self.player.adjust_max_hp(effect["value"])
             direction = "max HP" if delta >= 0 else "max HP"
@@ -997,6 +1340,10 @@ class StateManager:
         if effect_type == "gain_block":
             gained = self.player.gain_block(effect["value"])
             return [f"Gained {gained} Block."]
+        if effect_type == "lose_block":
+            lost = min(effect["value"], self.player.block)
+            self.player.block -= lost
+            return [f"Lost {lost} Block."]
         if effect_type == "draw_cards":
             drawn = self.player.deck_manager.draw_cards(effect["value"])
             return [f"Drew {len(drawn)} card{'s' if len(drawn) != 1 else ''}."]
@@ -1006,10 +1353,21 @@ class StateManager:
         if effect_type == "heal":
             healed = self.player.heal(effect["value"])
             return [f"Recovered {healed} HP."]
+        if effect_type == "heal_after_event":
+            healed = self.player.heal(effect["value"])
+            return [] if healed <= 0 else [f"Recovered {healed} HP."]
+        if effect_type == "random_one_of":
+            option = self._resolve_random_modifier_option(effect)
+            nested_details: list[str] = []
+            for nested_effect in option["effects"]:
+                nested_details.extend(self._apply_modifier_effect(nested_effect))
+            if option.get("summary"):
+                return [option["summary"], *nested_details]
+            return nested_details
         return []
 
     def _apply_combat_modifier_effects(self, hook_name: str) -> None:
-        for effect in self.run_modifier_engine.get_effects(self.run_modifiers, hook_name):
+        for effect in self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), hook_name):
             self._apply_modifier_effect(effect)
 
     def _apply_post_victory_modifier_effects(self, encounter_type: str | None) -> str | None:
@@ -1019,13 +1377,179 @@ class StateManager:
         return None if not summaries else " ".join(summaries)
 
     def _apply_post_event_modifier_effects(self) -> list[str]:
-        bonus_heal = self.run_modifier_engine.event_post_resolution_heal(self.run_modifiers)
-        if bonus_heal <= 0:
-            return []
-        healed = self.player.heal(bonus_heal)
-        if healed <= 0:
-            return []
-        return [f"Street effects restored {healed} HP."]
+        summaries: list[str] = []
+        for effect in self.run_modifier_engine.event_post_resolution_effects(self.run_modifiers):
+            summaries.extend(self._apply_modifier_effect(effect))
+        return summaries
+
+    def _begin_combat_modifier_runtime(self) -> None:
+        combat_flags = self._default_combat_runtime_flags()
+        combat_active_ids: list[str] = []
+
+        for record in self.run_modifiers:
+            duration_type = record.get("duration_type", "permanent")
+            remaining = record.get("remaining")
+            record["active_in_current_combat"] = False
+            if duration_type == "combat" and isinstance(remaining, int) and remaining > 0:
+                combat_active_ids.append(record["id"])
+                record["remaining"] = max(0, remaining - 1)
+                record["active_in_current_combat"] = True
+
+        combat_flags["active_modifier_ids"] = combat_active_ids
+        self.modifier_runtime_flags["combat"] = combat_flags
+        self._refresh_combat_passive_flags()
+
+    def _end_combat_modifier_runtime(self) -> None:
+        for record in self.run_modifiers:
+            record["active_in_current_combat"] = False
+        self.modifier_runtime_flags["combat"] = self._default_combat_runtime_flags()
+        self._cleanup_expired_run_modifiers()
+
+    def _refresh_combat_passive_flags(self) -> None:
+        combat_flags = self._combat_runtime_flags()
+        combat_flags["first_block_penalty_remaining"] = sum(
+            effect["value"]
+            for effect in self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), "passive")
+            if effect["type"] == "reduce_first_block_each_combat"
+        )
+
+    def _active_modifiers_for_combat(self) -> list[dict[str, Any]]:
+        combat_flags = self._combat_runtime_flags()
+        active_ids = set(combat_flags.get("active_modifier_ids", []))
+        active_records: list[dict[str, Any]] = []
+        for record in self.run_modifiers:
+            duration_type = record.get("duration_type", "permanent")
+            if duration_type == "combat":
+                if record["id"] in active_ids:
+                    active_records.append(record)
+                continue
+            active_records.append(record)
+        return active_records
+
+    def _lock_in_turn_history(self) -> None:
+        combat_flags = self._combat_runtime_flags()
+        combat_flags["last_turn_attack_played"] = bool(combat_flags.get("current_turn_attack_played", False))
+
+    def _start_player_turn_runtime(self) -> None:
+        combat_flags = self._combat_runtime_flags()
+        combat_flags["cards_played_this_turn"] = 0
+        combat_flags["current_turn_attack_played"] = False
+        self._apply_combat_modifier_effects("on_turn_start")
+
+    def _combat_card_context(self, card: Any) -> dict[str, int]:
+        card_data = card.to_dict()
+        combat_flags = self._combat_runtime_flags()
+        passive_effects = self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), "passive")
+
+        cost = card_data["cost"] + self.player.next_card_cost_delta
+        if combat_flags.get("cards_played_this_combat", 0) == 0 and any(
+            effect["type"] == "first_card_free" for effect in passive_effects
+        ):
+            cost = 0
+        elif combat_flags.get("cards_played_this_combat", 0) >= 1:
+            cost += sum(
+                effect["value"]
+                for effect in passive_effects
+                if effect["type"] == "cost_surcharge_after_first_card"
+            )
+
+        damage_bonus = self.player.next_attack_bonus
+        if card_data["type"] == "attack" and combat_flags.get("last_turn_attack_played", False):
+            damage_bonus = sum(
+                effect["value"]
+                for effect in passive_effects
+                if effect["type"] == "bonus_attack_damage_if_attacked_last_turn"
+            ) + damage_bonus
+
+        repeat_count = sum(1 for effect in passive_effects if effect["type"] == "repeat_first_card")
+        if combat_flags.get("cards_played_this_combat", 0) > 0:
+            repeat_count = 0
+
+        return {
+            "cost": max(0, cost),
+            "damage_bonus": damage_bonus,
+            "repeat_count": repeat_count,
+            "block_penalty": combat_flags.get("first_block_penalty_remaining", 0),
+        }
+
+    def _combat_card_snapshot(self, card: Any) -> dict[str, Any]:
+        card_data = card.to_dict()
+        play_context = self._combat_card_context(card)
+        card_data["base_cost"] = card_data["cost"]
+        card_data["cost"] = play_context["cost"]
+
+        adjusted_effects: list[dict[str, Any]] = []
+        remaining_block_penalty = play_context["block_penalty"]
+        for effect in card_data.get("effects", []):
+            adjusted_effect = dict(effect)
+            if effect["type"] in {"damage", "lifesteal_damage"} and play_context["damage_bonus"] > 0:
+                adjusted_effect["value"] = effect["value"] + play_context["damage_bonus"]
+            elif effect["type"] == "multi_damage" and play_context["damage_bonus"] > 0:
+                adjusted_effect["value"] = effect["value"] + play_context["damage_bonus"]
+            elif effect["type"] == "block" and remaining_block_penalty > 0:
+                reduction = min(remaining_block_penalty, effect["value"])
+                adjusted_effect["value"] = max(0, effect["value"] - reduction)
+                remaining_block_penalty -= reduction
+            adjusted_effects.append(adjusted_effect)
+        card_data["effects"] = adjusted_effects
+        return card_data
+
+    def _record_combat_card_play(self, card: Any, resolution: dict[str, Any]) -> None:
+        combat_flags = self._combat_runtime_flags()
+        combat_flags["cards_played_this_combat"] += 1
+        combat_flags["cards_played_this_turn"] += 1
+        if getattr(card, "type", "") == "attack":
+            combat_flags["current_turn_attack_played"] = True
+        applied_block_penalty = resolution.get("block_penalty_applied", 0)
+        combat_flags["first_block_penalty_remaining"] = max(
+            0,
+            combat_flags.get("first_block_penalty_remaining", 0) - applied_block_penalty,
+        )
+
+    def _advance_floor_modifier_effects(self, node_floor: int) -> None:
+        last_floor = self.modifier_runtime_flags.get("last_floor_status_tick", 0)
+        if not isinstance(last_floor, int):
+            last_floor = 0
+        if node_floor <= last_floor:
+            return
+
+        floor_steps = node_floor - last_floor
+        for _ in range(floor_steps):
+            for effect in self.run_modifier_engine.get_effects(self.run_modifiers, "passive"):
+                if effect["type"] == "lose_credits_each_floor":
+                    self._apply_modifier_effect(effect)
+            for record in self.run_modifiers:
+                if record.get("duration_type") == "floor" and isinstance(record.get("remaining"), int):
+                    record["remaining"] = max(0, record["remaining"] - 1)
+
+        self.modifier_runtime_flags["last_floor_status_tick"] = node_floor
+        self._cleanup_expired_run_modifiers()
+
+    def _cleanup_expired_run_modifiers(self) -> None:
+        combat_active_ids = set(self._combat_runtime_flags().get("active_modifier_ids", []))
+        self.run_modifiers = [
+            record
+            for record in self.run_modifiers
+            if record.get("duration_type", "permanent") == "permanent"
+            or record.get("id") in combat_active_ids
+            or not isinstance(record.get("remaining"), int)
+            or record.get("remaining", 0) > 0
+        ]
+
+    def _resolve_random_modifier_option(self, effect: dict[str, Any]) -> dict[str, Any]:
+        combat_flags = self._combat_runtime_flags()
+        turn_number = 0 if self.combat_manager is None else self.combat_manager.turn_manager.turn_number
+        rng = self._state_rng(
+            f"modifier_random:{effect.get('modifier_id', 'status')}:{self.current_state}:{turn_number}:{combat_flags.get('cards_played_this_combat', 0)}"
+        )
+        total_weight = sum(option["weight"] for option in effect["options"])
+        roll = rng.randint(1, total_weight)
+        running_total = 0
+        for option in effect["options"]:
+            running_total += option["weight"]
+            if roll <= running_total:
+                return option
+        return effect["options"][-1]
 
     def _shop_price(
         self,
@@ -1063,7 +1587,7 @@ class StateManager:
         shop_node_id = target_shop.get("shop_node_id")
         for offer in target_shop["inventory"]:
             if offer["type"] == "card":
-                offer["price"] = self._shop_price("card", CARD_SHOP_PRICES[offer["card_id"]], shop_node_id)
+                offer["price"] = self._shop_price("card", self._card_shop_base_price(offer["card_id"]), shop_node_id)
             elif offer["type"] == "heal":
                 offer["price"] = self._shop_price("heal", SHOP_HEAL_PRICE, shop_node_id)
             elif offer["type"] == "purge":
@@ -1085,21 +1609,60 @@ class StateManager:
             )
         )
 
-    def _generate_event_state(self) -> dict[str, Any]:
-        event_ids = sorted(self.event_library.list_event_ids())
-        seen_event_ids = set(self.seen_event_ids)
-        candidate_ids = [event_id for event_id in event_ids if event_id not in seen_event_ids]
-        if not candidate_ids:
-            candidate_ids = event_ids
-
-        rng = self._state_rng("event_pick")
-        chosen_event_id = candidate_ids[rng.randrange(len(candidate_ids))]
-        if chosen_event_id not in self.seen_event_ids:
-            self.seen_event_ids.append(chosen_event_id)
-        event_definition = self.event_library.get_event(chosen_event_id)
+    def _event_selection_context(self) -> dict[str, Any]:
         return {
-            "event_id": chosen_event_id,
-            "title": event_definition["title"],
+            "current_floor": self._current_node_floor(),
+            "current_act": 1,
+            "current_hp": self.player.current_hp,
+            "max_hp": self.player.max_hp,
+            "credits": self.player.credits,
+            "deck_size": len(self.player.deck_manager.starting_deck),
+            "status_count": len(self.run_modifiers),
+            "active_modifier_ids": [record["id"] for record in self.run_modifiers],
+            "event_history": copy.deepcopy(self.event_history),
+            "character_id": self._active_character_id(),
+        }
+
+    def _event_has_available_choice(self, event_definition: dict[str, Any]) -> bool:
+        character_ids = event_definition.get("character_ids", [])
+        active_character_id = self._active_character_id()
+        if character_ids and active_character_id not in character_ids:
+            return False
+        return any(self._event_choice_availability(choice)[0] for choice in event_definition["choices"])
+
+    def _record_event_history(self, event_definition: dict[str, Any]) -> None:
+        self.event_history.append(
+            {
+                "event_id": event_definition["id"],
+                "primary_tag": event_definition["primary_tag"],
+                "floor": self._current_node_floor(),
+            }
+        )
+
+    def _seen_event_ids(self) -> list[str]:
+        seen_ids: list[str] = []
+        for entry in self.event_history:
+            event_id = entry.get("event_id")
+            if isinstance(event_id, str) and event_id not in seen_ids:
+                seen_ids.append(event_id)
+        return seen_ids
+
+    def _generate_event_state(self) -> dict[str, Any]:
+        candidate_events = [
+            event_definition
+            for event_definition in self.event_library.list_events()
+            if self._event_has_available_choice(event_definition)
+        ]
+        if not candidate_events:
+            raise ValueError("No event definitions are currently available.")
+
+        context = self._event_selection_context()
+        rng = self._state_rng("event_pick")
+        chosen_event = self.event_selector.choose_event(candidate_events, context, rng)
+        self._record_event_history(chosen_event)
+        return {
+            "event_id": chosen_event["id"],
+            "title": chosen_event["title"],
             "selected_choice_id": None,
             "selected_target_id": None,
             "resolved": False,
@@ -1170,12 +1733,15 @@ class StateManager:
         return "card_offer" if roll <= REGULAR_REWARD_CARD_WEIGHT else "purge_offer"
 
     def _build_card_reward_section(self) -> dict[str, Any]:
-        rng = self._state_rng("card_reward")
-        card_ids = list(REWARD_CARD_POOL_IDS)
-        rng.shuffle(card_ids)
         bonus_choices = self.run_modifier_engine.reward_card_choice_bonus(self.run_modifiers)
-        choice_count = min(REWARD_CARD_CHOICE_COUNT + bonus_choices, len(card_ids))
-        chosen_ids = card_ids[:choice_count]
+        choice_count = REWARD_CARD_CHOICE_COUNT + bonus_choices
+        chosen_ids = self._select_offer_card_ids(
+            slot_count=choice_count,
+            label="card_reward",
+            seen_card_ids=[],
+            sold_out_card_ids=[],
+            current_unsold_ids=[],
+        )
         return {
             "type": "card_offer",
             "title": "Card Reward",
@@ -1237,7 +1803,7 @@ class StateManager:
         purge_locked = len(self.player.deck_manager.starting_deck) <= MIN_STARTING_DECK_SIZE
         shop_node_id = self.selected_node_id
         chosen_ids = self._shop_card_selection(
-            slot_count=min(SHOP_CARD_OFFER_COUNT, len(REWARD_CARD_POOL_IDS)),
+            slot_count=SHOP_CARD_OFFER_COUNT,
             seen_card_ids=[],
             sold_out_card_ids=[],
             current_unsold_ids=[],
@@ -1257,13 +1823,14 @@ class StateManager:
         }
 
     def _shop_card_offer(self, card_id: str, shop_node_id: str | None = None) -> dict[str, Any]:
+        card = self.card_library.create_card(card_id)
         return {
             "offer_id": f"card:{card_id}",
             "type": "card",
             "card_id": card_id,
-            "card": self.card_library.create_card(card_id).to_dict(),
-            "label": self.card_library.get_card(card_id).name,
-            "price": self._shop_price("card", CARD_SHOP_PRICES[card_id], shop_node_id=shop_node_id),
+            "card": card.to_dict(),
+            "label": card.name,
+            "price": self._shop_price("card", self._card_shop_base_price(card_id), shop_node_id=shop_node_id),
             "sold_out": False,
         }
 
@@ -1371,11 +1938,13 @@ class StateManager:
     def _shop_replacement_card_ids(self) -> list[str]:
         sold_out_set = set(self._shop_sold_out_card_ids())
         current_unsold_set = set(self._shop_current_unsold_card_ids())
-        return [
-            card_id
-            for card_id in REWARD_CARD_POOL_IDS
-            if card_id not in sold_out_set and card_id not in current_unsold_set
-        ]
+        return self._select_offer_card_ids(
+            slot_count=SHOP_CARD_OFFER_COUNT,
+            label=f"shop_replacement_probe:{self.active_shop.get('reroll_count', 0) if self.active_shop is not None else 0}",
+            seen_card_ids=self.active_shop.get("seen_card_ids", []) if self.active_shop is not None else [],
+            sold_out_card_ids=list(sold_out_set),
+            current_unsold_ids=list(current_unsold_set),
+        )
 
     def _apply_shop_reroll(self) -> None:
         if self.active_shop is None:
@@ -1412,44 +1981,103 @@ class StateManager:
         current_unsold_ids: list[str],
         label: str,
     ) -> list[str]:
+        return self._select_offer_card_ids(
+            slot_count=slot_count,
+            label=label,
+            seen_card_ids=seen_card_ids,
+            sold_out_card_ids=sold_out_card_ids,
+            current_unsold_ids=current_unsold_ids,
+        )
+
+    def _character_offer_cards(self) -> list[Any]:
+        character_id = self._active_character_id()
+        if character_id is None:
+            return []
+        return self.card_library.find_cards(owners=[character_id], exclude_types=["status"])
+
+    def _shared_offer_cards(self) -> list[Any]:
+        return self.card_library.find_cards(owners=["shared"], exclude_types=["status"])
+
+    def _select_offer_card_ids(
+        self,
+        *,
+        slot_count: int,
+        label: str,
+        seen_card_ids: list[str],
+        sold_out_card_ids: list[str],
+        current_unsold_ids: list[str],
+    ) -> list[str]:
         if slot_count <= 0:
             return []
 
         rng = self._state_rng(label)
-        pool_ids = list(REWARD_CARD_POOL_IDS)
         seen_set = set(seen_card_ids)
         sold_out_set = set(sold_out_card_ids)
         current_unsold_set = set(current_unsold_ids)
-
+        blocked_ids = sold_out_set | current_unsold_set
         chosen_ids: list[str] = []
+        power_taken = False
 
-        def extend_from(candidate_ids: list[str]) -> None:
-            remaining_ids = [candidate_id for candidate_id in candidate_ids if candidate_id not in chosen_ids]
-            rng.shuffle(remaining_ids)
-            for candidate_id in remaining_ids:
-                if len(chosen_ids) >= slot_count:
+        character_cards = self._character_offer_cards()
+        shared_cards = self._shared_offer_cards()
+
+        def candidate_ids(cards: list[Any], *, card_type: str | None = None, fresh_only: bool = False) -> list[str]:
+            ids = [
+                card.id
+                for card in cards
+                if card.id not in blocked_ids
+                and card.id not in chosen_ids
+                and (card_type is None or card.type == card_type)
+                and (card_type is not None or True)
+                and (not fresh_only or card.id not in seen_set)
+            ]
+            rng.shuffle(ids)
+            return ids
+
+        def pull(card_ids: list[str], count: int, *, allow_power: bool = True) -> None:
+            nonlocal power_taken
+            for card_id in card_ids:
+                if len(chosen_ids) >= slot_count or count <= 0:
                     break
-                chosen_ids.append(candidate_id)
+                card = self.card_library.get_card(card_id)
+                if card.type == "power":
+                    if power_taken or not allow_power:
+                        continue
+                    power_taken = True
+                chosen_ids.append(card_id)
+                count -= 1
 
-        fresh_ids = [
-            card_id
-            for card_id in pool_ids
-            if card_id not in seen_set
-            and card_id not in sold_out_set
-            and card_id not in current_unsold_set
-        ]
-        extend_from(fresh_ids)
+        required_character_count = min(2, slot_count)
+        pull(candidate_ids([card for card in character_cards if card.type != "power"], fresh_only=True), required_character_count, allow_power=False)
+        if len(chosen_ids) < required_character_count:
+            pull(candidate_ids([card for card in character_cards if card.type != "power"]), required_character_count - len(chosen_ids), allow_power=False)
+        if len(chosen_ids) < required_character_count:
+            pull(candidate_ids([card for card in character_cards if card.type == "power"], fresh_only=True), required_character_count - len(chosen_ids))
+        if len(chosen_ids) < required_character_count:
+            pull(candidate_ids([card for card in character_cards if card.type == "power"]), required_character_count - len(chosen_ids))
 
-        prior_seen_ids = [
-            card_id
-            for card_id in pool_ids
-            if card_id not in sold_out_set
-            and card_id not in current_unsold_set
-        ]
-        extend_from(prior_seen_ids)
+        if len(chosen_ids) < slot_count:
+            allow_power_pick = not power_taken and bool(candidate_ids([card for card in character_cards if card.type == "power"]))
+            if allow_power_pick and rng.random() < 0.35:
+                pull(candidate_ids([card for card in character_cards if card.type == "power"], fresh_only=True), 1)
+                if len(chosen_ids) < slot_count and not power_taken:
+                    pull(candidate_ids([card for card in character_cards if card.type == "power"]), 1)
 
-        fallback_ids = [card_id for card_id in pool_ids if card_id not in sold_out_set]
-        extend_from(fallback_ids)
+        mixed_non_power = [card for card in shared_cards if card.type != "power"] + [card for card in character_cards if card.type != "power"]
+        pull(candidate_ids(mixed_non_power, fresh_only=True), slot_count - len(chosen_ids), allow_power=False)
+        if len(chosen_ids) < slot_count:
+            pull(candidate_ids(mixed_non_power), slot_count - len(chosen_ids), allow_power=False)
+
+        if len(chosen_ids) < slot_count and not power_taken:
+            pull(candidate_ids([card for card in character_cards if card.type == "power"], fresh_only=True), slot_count - len(chosen_ids))
+        if len(chosen_ids) < slot_count and not power_taken:
+            pull(candidate_ids([card for card in character_cards if card.type == "power"]), slot_count - len(chosen_ids))
+
+        fallback_cards = shared_cards + character_cards
+        pull(candidate_ids([card for card in fallback_cards if card.type != "power"]), slot_count - len(chosen_ids), allow_power=False)
+        if len(chosen_ids) < slot_count and not power_taken:
+            pull(candidate_ids([card for card in fallback_cards if card.type == "power"]), slot_count - len(chosen_ids))
+
         return chosen_ids[:slot_count]
 
     def _shop_purge_targets(self) -> list[dict[str, Any]]:
@@ -1465,6 +2093,12 @@ class StateManager:
             }
             for index, card in enumerate(self.player.deck_manager.starting_deck)
         ]
+
+    def _card_shop_base_price(self, card_id: str) -> int:
+        override = CARD_SHOP_PRICE_OVERRIDES.get(card_id)
+        if isinstance(override, int) and override >= 0:
+            return override
+        return self.card_library.get_card(card_id).shop_price
 
     def _state_rng(self, label: str) -> random.Random:
         if self.run_seed is None:
@@ -1483,6 +2117,16 @@ class StateManager:
             "credits": self.player.credits,
             "healing_multiplier": self.player.healing_multiplier,
             "resources": self.player.snapshot_resources(),
+            "character_id": self.player.character_id,
+            "strength": self.player.strength,
+            "weak": self.player.weak,
+            "vulnerable": self.player.vulnerable,
+            "next_card_cost_delta": self.player.next_card_cost_delta,
+            "next_attack_bonus": self.player.next_attack_bonus,
+            "active_powers": [card.id for card in self.player.active_powers],
+            "temporary_combat_cards": [card.id for card in self.player.temporary_combat_cards],
+            "first_card_played": self.player.first_card_played,
+            "first_attack_played": self.player.first_attack_played,
         }
 
     def _serialize_deck(self, deck_manager: DeckManager) -> dict[str, Any]:
@@ -1524,6 +2168,9 @@ class StateManager:
                     "block": enemy.block,
                     "current_intent": enemy.current_intent,
                     "intent_index": getattr(enemy, "_intent_index", 0),
+                    "strength": enemy.strength,
+                    "weak": enemy.weak,
+                    "vulnerable": enemy.vulnerable,
                 }
                 for enemy in self.combat_manager.enemies
             ],
@@ -1541,12 +2188,16 @@ class StateManager:
     def _serialize_modifier_draft(self) -> dict[str, Any] | None:
         return None if self.active_modifier_draft is None else copy.deepcopy(self.active_modifier_draft)
 
+    def _serialize_character_select(self) -> dict[str, Any] | None:
+        if self.active_character_select is None:
+            return None
+        return {"selected_character_id": self.active_character_select.get("selected_character_id")}
+
     def _restore_player(
         self,
         player_data: dict[str, Any],
         deck_data: dict[str, Any],
         run_seed: int,
-        save_version: int,
     ) -> Player:
         if not isinstance(player_data, dict):
             raise ValueError("Save data is missing player details.")
@@ -1587,8 +2238,11 @@ class StateManager:
         deck_manager.discard_pile = self._cards_from_ids(deck_data["discard_pile"])
         deck_manager.exhaust_pile = self._cards_from_ids(deck_data["exhaust_pile"])
 
-        credits = player_data.get("credits", PLAYER_STARTING_CREDITS if save_version >= 3 else 0)
-        resources = self._restore_player_resources(player_data.get("resources"), save_version)
+        character_id = self._restore_character_id(player_data.get("character_id"))
+        if character_id is None:
+            raise ValueError("Player save data is missing character_id.")
+        credits = player_data.get("credits", PLAYER_STARTING_CREDITS)
+        resources = self._restore_player_resources(player_data.get("resources"))
         player = Player(
             max_hp=player_data["max_hp"],
             current_hp=player_data["current_hp"],
@@ -1599,16 +2253,26 @@ class StateManager:
             credits=credits,
             healing_multiplier=float(player_data.get("healing_multiplier", 1.0)),
             resources=resources,
+            character_id=character_id,
+            strength=int(player_data.get("strength", 0)),
+            weak=int(player_data.get("weak", 0)),
+            vulnerable=int(player_data.get("vulnerable", 0)),
+            next_card_cost_delta=int(player_data.get("next_card_cost_delta", 0)),
+            next_attack_bonus=int(player_data.get("next_attack_bonus", 0)),
         )
         player.attach_deck(deck_manager)
+        player.active_powers = self._cards_from_ids(player_data.get("active_powers", []))
+        player.temporary_combat_cards = self._cards_from_ids(player_data.get("temporary_combat_cards", []))
+        player.first_card_played = bool(player_data.get("first_card_played", False))
+        player.first_attack_played = bool(player_data.get("first_attack_played", False))
+        self.character_id = character_id
         return player
 
     def _restore_player_resources(
         self,
         resources_data: Any,
-        save_version: int,
     ) -> dict[str, dict[str, int]]:
-        if save_version < 7 or resources_data in (None, {}):
+        if resources_data in (None, {}):
             return {}
         if not isinstance(resources_data, dict):
             raise ValueError("Player resources save data must be a dictionary.")
@@ -1631,6 +2295,25 @@ class StateManager:
                 "max": maximum,
             }
         return restored
+
+    def _restore_character_id(self, character_id: Any) -> str | None:
+        if character_id is None:
+            return None
+        if not isinstance(character_id, str):
+            raise ValueError("Saved character ids must be strings.")
+        return self.character_library.get_character(character_id)["id"]
+
+    def _restore_character_select(
+        self,
+        character_select_data: Any,
+        fallback_character_id: str | None,
+    ) -> dict[str, Any]:
+        if character_select_data in (None, {}):
+            return {"selected_character_id": fallback_character_id}
+        if not isinstance(character_select_data, dict):
+            raise ValueError("Character select save data must be a dictionary.")
+        selected_character_id = character_select_data.get("selected_character_id", fallback_character_id)
+        return {"selected_character_id": self._restore_character_id(selected_character_id)}
 
     def _restore_map(self, map_data: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(map_data, dict):
@@ -1699,10 +2382,14 @@ class StateManager:
             enemy.current_hp = enemy_data["current_hp"]
             enemy.block = enemy_data["block"]
             enemy.current_intent = enemy_data["current_intent"]
+            enemy.strength = int(enemy_data.get("strength", 0))
+            enemy.weak = int(enemy_data.get("weak", 0))
+            enemy.vulnerable = int(enemy_data.get("vulnerable", 0))
             setattr(enemy, "_intent_index", enemy_data.get("intent_index", 0))
             enemies.append(enemy)
 
         combat_manager = CombatManager(player=self.player, enemies=enemies)
+        combat_manager.set_card_factory(self.card_library.create_card)
         combat_manager.combat_active = bool(combat_data["combat_active"])
         combat_manager.turn_manager.turn_number = combat_data["turn_number"]
         combat_manager.turn_manager.turn_owner = combat_data["turn_owner"]
@@ -1813,19 +2500,45 @@ class StateManager:
             modifier_id = modifier_record.get("id")
             source = modifier_record.get("source")
             source_detail = modifier_record.get("source_detail")
+            duration_type = modifier_record.get("duration_type")
+            remaining = modifier_record.get("remaining")
+            active_in_current_combat = modifier_record.get("active_in_current_combat", False)
+            stack_count = modifier_record.get("stack_count", 1)
+            stack_intensity = modifier_record.get("stack_intensity", 1)
             if not isinstance(modifier_id, str) or not modifier_id:
                 raise ValueError("Saved run modifier ids must be non-empty strings.")
             if not isinstance(source, str) or not source:
                 raise ValueError("Saved run modifier sources must be non-empty strings.")
+            if not isinstance(active_in_current_combat, bool):
+                raise ValueError("Saved run modifier active_in_current_combat flags must be booleans.")
+            if not isinstance(stack_count, int) or stack_count <= 0:
+                raise ValueError("Saved run modifier stack_count must be a positive integer.")
+            if not isinstance(stack_intensity, int) or stack_intensity <= 0:
+                raise ValueError("Saved run modifier stack_intensity must be a positive integer.")
             if modifier_id in seen_ids:
                 raise ValueError(f"Saved run modifiers contain a duplicate id: {modifier_id}")
-            self.run_modifier_library.get_modifier(modifier_id)
+            modifier = self.run_modifier_library.get_modifier(modifier_id)
+            normalized_duration_type = modifier["duration"]["type"] if duration_type is None else duration_type
+            if normalized_duration_type not in {"permanent", "combat", "floor"}:
+                raise ValueError(f"Saved run modifier {modifier_id} has unsupported duration_type: {normalized_duration_type}")
+            if normalized_duration_type == "permanent":
+                normalized_remaining = None
+            else:
+                default_remaining = modifier["duration"]["value"]
+                normalized_remaining = default_remaining if remaining is None else remaining
+                if not isinstance(normalized_remaining, int) or normalized_remaining < 0:
+                    raise ValueError(f"Saved run modifier {modifier_id} remaining duration must be a non-negative integer.")
             seen_ids.add(modifier_id)
             restored.append(
                 {
                     "id": modifier_id,
                     "source": source,
                     "source_detail": source_detail if isinstance(source_detail, str) else None,
+                    "duration_type": normalized_duration_type,
+                    "remaining": normalized_remaining,
+                    "active_in_current_combat": active_in_current_combat,
+                    "stack_count": stack_count,
+                    "stack_intensity": stack_intensity,
                 }
             )
         return restored
@@ -1840,6 +2553,8 @@ class StateManager:
         clean_slate_used = modifier_runtime_flags.get("clean_slate_used", False)
         ghost_warranty_used_shops = modifier_runtime_flags.get("ghost_warranty_used_shops", [])
         debt_spike_used_shops = modifier_runtime_flags.get("debt_spike_used_shops", [])
+        last_floor_status_tick = modifier_runtime_flags.get("last_floor_status_tick", 0)
+        combat_flags = modifier_runtime_flags.get("combat", {})
 
         if not isinstance(clean_slate_used, bool):
             raise ValueError("clean_slate_used must be a boolean.")
@@ -1847,20 +2562,86 @@ class StateManager:
             raise ValueError("ghost_warranty_used_shops must be a list of node ids.")
         if not isinstance(debt_spike_used_shops, list) or not all(isinstance(value, str) for value in debt_spike_used_shops):
             raise ValueError("debt_spike_used_shops must be a list of node ids.")
+        if not isinstance(last_floor_status_tick, int) or last_floor_status_tick < 0:
+            raise ValueError("last_floor_status_tick must be a non-negative integer.")
+        if not isinstance(combat_flags, dict):
+            raise ValueError("combat runtime flags must be stored as a dictionary.")
 
         restored["clean_slate_used"] = clean_slate_used
         restored["ghost_warranty_used_shops"] = list(dict.fromkeys(ghost_warranty_used_shops))
         restored["debt_spike_used_shops"] = list(dict.fromkeys(debt_spike_used_shops))
+        restored["last_floor_status_tick"] = last_floor_status_tick
+        restored["combat"] = self._default_combat_runtime_flags()
+        restored["combat"]["active_modifier_ids"] = [
+            modifier_id
+            for modifier_id in combat_flags.get("active_modifier_ids", [])
+            if isinstance(modifier_id, str)
+        ]
+        for key in {
+            "cards_played_this_combat",
+            "cards_played_this_turn",
+            "first_block_penalty_remaining",
+        }:
+            value = combat_flags.get(key, restored["combat"][key])
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"{key} must be a non-negative integer.")
+            restored["combat"][key] = value
+        for key in {"current_turn_attack_played", "last_turn_attack_played"}:
+            value = combat_flags.get(key, restored["combat"][key])
+            if not isinstance(value, bool):
+                raise ValueError(f"{key} must be a boolean.")
+            restored["combat"][key] = value
         return restored
 
-    def _restore_seen_event_ids(self, seen_event_ids: Any) -> list[str]:
+    def _restore_event_history(
+        self,
+        event_history_data: Any,
+        seen_event_ids: Any,
+    ) -> list[dict[str, Any]]:
+        if event_history_data not in (None, []):
+            if not isinstance(event_history_data, list):
+                raise ValueError("Saved event_history must be a list.")
+            restored_history: list[dict[str, Any]] = []
+            for entry in event_history_data:
+                if not isinstance(entry, dict):
+                    raise ValueError("Saved event history entries must be dictionaries.")
+                event_id = entry.get("event_id")
+                primary_tag = entry.get("primary_tag")
+                floor = entry.get("floor", 0)
+                if not isinstance(event_id, str) or not event_id:
+                    raise ValueError("Saved event history event_id values must be non-empty strings.")
+                event_definition = self.event_library.get_event(event_id)
+                normalized_primary_tag = (
+                    primary_tag
+                    if isinstance(primary_tag, str) and primary_tag in event_definition["tags"]
+                    else event_definition["primary_tag"]
+                )
+                if not isinstance(floor, int) or floor < 0:
+                    raise ValueError("Saved event history floors must be non-negative integers.")
+                restored_history.append(
+                    {
+                        "event_id": event_id,
+                        "primary_tag": normalized_primary_tag,
+                        "floor": floor,
+                    }
+                )
+            return restored_history
+
         if seen_event_ids in (None, []):
             return []
         if not isinstance(seen_event_ids, list) or not all(isinstance(event_id, str) for event_id in seen_event_ids):
             raise ValueError("Saved seen_event_ids must be a list of event ids.")
-        for event_id in seen_event_ids:
-            self.event_library.get_event(event_id)
-        return list(seen_event_ids)
+        restored_from_seen: list[dict[str, Any]] = []
+        for index, event_id in enumerate(seen_event_ids):
+            event_definition = self.event_library.get_event(event_id)
+            restored_from_seen.append(
+                {
+                    "event_id": event_id,
+                    "primary_tag": event_definition["primary_tag"],
+                    "floor": index,
+                }
+            )
+        return restored_from_seen
 
     def _cards_from_ids(self, card_ids: list[str]) -> list[Any]:
         if not isinstance(card_ids, list) or not all(isinstance(card_id, str) for card_id in card_ids):
@@ -1870,7 +2651,9 @@ class StateManager:
 
 def simulate_state_manager() -> dict[str, Any]:
     manager = StateManager()
-    draft_snapshot = manager.start_new_run(seed=29)
+    select_snapshot = manager.start_new_run(seed=29)
+    manager.select_character("operator")
+    draft_snapshot = manager.confirm_character_selection()
     first_offer_id = draft_snapshot["modifier_draft"]["offers"][0]["id"]
     manager.select_run_modifier_offer(first_offer_id)
     start_snapshot = manager.confirm_run_modifier_selection()
@@ -1901,7 +2684,8 @@ def simulate_state_manager() -> dict[str, Any]:
     manager.current_state = "shop"
     shop_snapshot = manager.get_state_snapshot()
     return {
-        "start_state": draft_snapshot["current_state"],
+        "start_state": select_snapshot["current_state"],
+        "selected_character": draft_snapshot["character"]["id"],
         "post_draft_state": start_snapshot["current_state"],
         "event_title": event_snapshot["event"]["title"],
         "post_event_state": "map",

@@ -2,9 +2,13 @@
   {
     "id": "carbon_weave",
     "name": "Carbon Weave",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Start each combat with 5 Block.",
+    "rarity": "common",
+    "base_weight": 9,
+    "tags": ["defense", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "combat_start": [
         {
@@ -17,9 +21,13 @@
   {
     "id": "flash_cache",
     "name": "Flash Cache",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Draw 1 extra card on turn 1.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": ["draw", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "turn_one": [
         {
@@ -32,9 +40,13 @@
   {
     "id": "overclock_relay",
     "name": "Overclock Relay",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Gain 1 extra Energy on turn 1.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": ["energy", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "turn_one": [
         {
@@ -47,17 +59,19 @@
   {
     "id": "salvage_license",
     "name": "Salvage License",
-    "kind": "blessing",
+    "type": "blessing",
     "draft_eligible": true,
     "description": "Gain 6 extra credits after normal combats.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": ["economy", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "post_victory": [
         {
           "type": "gain_credits",
           "value": 6,
-          "encounter_types": [
-            "combat"
-          ]
+          "encounter_types": ["combat"]
         }
       ]
     }
@@ -65,17 +79,19 @@
   {
     "id": "champion_contract",
     "name": "Champion Contract",
-    "kind": "blessing",
+    "type": "blessing",
     "draft_eligible": true,
     "description": "Heal 5 after elite victories.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": ["recovery", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "post_victory": [
         {
           "type": "heal",
           "value": 5,
-          "encounter_types": [
-            "elite"
-          ]
+          "encounter_types": ["elite"]
         }
       ]
     }
@@ -83,11 +99,15 @@
   {
     "id": "market_key",
     "name": "Market Key",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Shop card prices cost 15% less.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": ["economy", "shop", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
-      "shop_pricing": [
+      "on_shop": [
         {
           "type": "percent_discount",
           "target": "card",
@@ -99,11 +119,15 @@
   {
     "id": "clean_slate",
     "name": "Clean Slate",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "The first purge each run is free.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["shop", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
-      "shop_pricing": [
+      "on_shop": [
         {
           "type": "free_first_purge_run"
         }
@@ -113,11 +137,15 @@
   {
     "id": "patch_priority",
     "name": "Patch Priority",
-    "kind": "blessing",
+    "type": "blessing",
     "draft_eligible": true,
     "description": "Shop heal service costs 6 less.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": ["recovery", "shop", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
-      "shop_pricing": [
+      "on_shop": [
         {
           "type": "flat_discount",
           "target": "heal",
@@ -129,9 +157,13 @@
   {
     "id": "deep_pockets",
     "name": "Deep Pockets",
-    "kind": "blessing",
+    "type": "blessing",
     "draft_eligible": true,
     "description": "Start the run with 25 credits.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": ["economy", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -144,11 +176,15 @@
   {
     "id": "signal_router",
     "name": "Signal Router",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Card rewards show 1 extra choice.",
+    "rarity": "rare",
+    "base_weight": 3,
+    "tags": ["draw", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
-      "reward_generation": [
+      "on_reward": [
         {
           "type": "extra_card_choice",
           "value": 1
@@ -159,9 +195,13 @@
   {
     "id": "shard_seed",
     "name": "Shard Seed",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Add Cache Draw to the starting deck.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": ["draw", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -174,9 +214,13 @@
   {
     "id": "plated_grip",
     "name": "Plated Grip",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Add Firewall to the starting deck.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": ["defense", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -189,9 +233,13 @@
   {
     "id": "surge_fuse",
     "name": "Surge Fuse",
-    "kind": "relic",
+    "type": "relic",
     "draft_eligible": true,
     "description": "Add Surge Strike to the starting deck.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": ["offense", "blessing"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -204,10 +252,14 @@
   {
     "id": "blood_money",
     "name": "Blood Money",
-    "kind": "curse",
+    "type": "curse",
     "draft_eligible": true,
     "description": "Gain 10 extra credits after every combat.",
     "downside": "All healing is 25% weaker.",
+    "rarity": "cursed",
+    "base_weight": 3,
+    "tags": ["economy", "risk", "curse"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -219,10 +271,7 @@
         {
           "type": "gain_credits",
           "value": 10,
-          "encounter_types": [
-            "combat",
-            "elite"
-          ]
+          "encounter_types": ["combat", "elite"]
         }
       ]
     }
@@ -230,10 +279,14 @@
   {
     "id": "glass_engine",
     "name": "Glass Engine",
-    "kind": "curse",
+    "type": "curse",
     "draft_eligible": true,
     "description": "Gain 1 extra Energy on turn 1.",
     "downside": "Lose 12 max HP.",
+    "rarity": "cursed",
+    "base_weight": 3,
+    "tags": ["energy", "risk", "curse"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -252,10 +305,14 @@
   {
     "id": "lean_market",
     "name": "Lean Market",
-    "kind": "curse",
+    "type": "curse",
     "draft_eligible": true,
     "description": "All shop prices cost 20% less.",
     "downside": "Lose 10 max HP.",
+    "rarity": "cursed",
+    "base_weight": 4,
+    "tags": ["shop", "economy", "curse"],
+    "source_types": ["run_start"],
     "hooks": {
       "on_acquire": [
         {
@@ -263,7 +320,7 @@
           "value": -10
         }
       ],
-      "shop_pricing": [
+      "on_shop": [
         {
           "type": "percent_discount",
           "target": "all",
@@ -275,11 +332,15 @@
   {
     "id": "ghost_warranty",
     "name": "Ghost Warranty",
-    "kind": "blessing",
+    "type": "blessing",
     "draft_eligible": false,
     "description": "The first reroll in each shop is free.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": ["shop", "blessing"],
+    "source_types": ["event"],
     "hooks": {
-      "shop_pricing": [
+      "on_shop": [
         {
           "type": "free_first_reroll_shop"
         }
@@ -289,11 +350,15 @@
   {
     "id": "street_choir",
     "name": "Street Choir",
-    "kind": "blessing",
+    "type": "blessing",
     "draft_eligible": false,
     "description": "Heal 3 after each event resolves.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["recovery", "event", "blessing"],
+    "source_types": ["event"],
     "hooks": {
-      "event_value": [
+      "on_event": [
         {
           "type": "heal_after_event",
           "value": 3
@@ -304,12 +369,15 @@
   {
     "id": "debt_spike",
     "name": "Debt Spike",
-    "kind": "curse",
+    "type": "curse",
     "draft_eligible": false,
-    "description": "Gain faster access to premium stock.",
-    "downside": "The first card purchase in each shop costs 8 more.",
+    "description": "The first card purchase in each shop costs 8 more.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["shop", "economy", "curse"],
+    "source_types": ["event"],
     "hooks": {
-      "shop_pricing": [
+      "on_shop": [
         {
           "type": "flat_surcharge_first_card_shop",
           "value": 8
@@ -320,10 +388,14 @@
   {
     "id": "black_ice_scar",
     "name": "Black Ice Scar",
-    "kind": "curse",
+    "type": "curse",
     "draft_eligible": false,
     "description": "Card rewards show 1 extra choice.",
     "downside": "Lose 8 max HP.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": ["draw", "risk", "curse"],
+    "source_types": ["event"],
     "hooks": {
       "on_acquire": [
         {
@@ -331,10 +403,302 @@
           "value": -8
         }
       ],
-      "reward_generation": [
+      "on_reward": [
         {
           "type": "extra_card_choice",
           "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "high_roller",
+    "name": "High Roller",
+    "type": "blessing",
+    "draft_eligible": false,
+    "description": "Gain 8 extra credits after combat.",
+    "downside": "All shop prices cost 15% more.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["economy", "shop", "risk", "blessing"],
+    "source_types": ["event"],
+    "hooks": {
+      "post_victory": [
+        {
+          "type": "gain_credits",
+          "value": 8,
+          "encounter_types": ["combat", "elite"]
+        }
+      ],
+      "on_shop": [
+        {
+          "type": "percent_surcharge",
+          "target": "all",
+          "value": 15
+        }
+      ]
+    }
+  },
+  {
+    "id": "debt_mark",
+    "name": "Debt Mark",
+    "type": "curse",
+    "draft_eligible": false,
+    "description": "Lose 10 credits at each new floor.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["economy", "risk", "curse"],
+    "source_types": ["event"],
+    "hooks": {
+      "passive": [
+        {
+          "type": "lose_credits_each_floor",
+          "value": 10
+        }
+      ]
+    }
+  },
+  {
+    "id": "adrenal_surge",
+    "name": "Adrenal Surge",
+    "type": "blessing",
+    "draft_eligible": false,
+    "description": "Start each combat with 1 extra Energy.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["energy", "offense", "blessing"],
+    "source_types": ["event"],
+    "hooks": {
+      "combat_start": [
+        {
+          "type": "gain_energy",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "fractured_armor",
+    "name": "Fractured Armor",
+    "type": "curse",
+    "draft_eligible": false,
+    "description": "The first Block gain each combat is reduced by 4.",
+    "rarity": "common",
+    "base_weight": 5,
+    "tags": ["defense", "risk", "curse"],
+    "source_types": ["event"],
+    "hooks": {
+      "passive": [
+        {
+          "type": "reduce_first_block_each_combat",
+          "value": 4
+        }
+      ]
+    }
+  },
+  {
+    "id": "momentum",
+    "name": "Momentum",
+    "type": "status",
+    "draft_eligible": false,
+    "description": "Attack cards deal 3 extra damage if you attacked last turn.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["offense", "scaling", "blessing"],
+    "source_types": ["event"],
+    "hooks": {
+      "passive": [
+        {
+          "type": "bonus_attack_damage_if_attacked_last_turn",
+          "value": 3
+        }
+      ]
+    }
+  },
+  {
+    "id": "efficient",
+    "name": "Efficient",
+    "type": "status",
+    "draft_eligible": false,
+    "description": "The first card each combat costs 0.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["energy", "blessing"],
+    "source_types": ["event"],
+    "hooks": {
+      "passive": [
+        {
+          "type": "first_card_free"
+        }
+      ]
+    }
+  },
+  {
+    "id": "overheat",
+    "name": "Overheat",
+    "type": "curse",
+    "draft_eligible": false,
+    "description": "Cards cost 1 more after the first one each combat.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": ["energy", "risk", "curse"],
+    "source_types": ["event"],
+    "hooks": {
+      "passive": [
+        {
+          "type": "cost_surcharge_after_first_card",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "blood_pact",
+    "name": "Blood Pact",
+    "type": "curse",
+    "draft_eligible": false,
+    "description": "Lose 8 HP. Reward cards show 1 extra choice.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": ["offense", "risk", "curse"],
+    "source_types": ["event"],
+    "hooks": {
+      "on_acquire": [
+        {
+          "type": "damage",
+          "value": 8
+        }
+      ],
+      "on_reward": [
+        {
+          "type": "extra_card_choice",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "glitch_state",
+    "name": "Glitch State",
+    "type": "status",
+    "draft_eligible": false,
+    "description": "Each combat begins with a random glitch.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": ["volatility", "risk", "event"],
+    "source_types": ["event"],
+    "hooks": {
+      "combat_start": [
+        {
+          "type": "random_one_of",
+          "options": [
+            {
+              "weight": 3,
+              "summary": "Glitch surge: +1 Energy.",
+              "effects": [
+                {
+                  "type": "gain_energy",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "weight": 3,
+              "summary": "Glitch buffer: Gain 6 Block.",
+              "effects": [
+                {
+                  "type": "gain_block",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "weight": 2,
+              "summary": "Glitch cache: Draw 1.",
+              "effects": [
+                {
+                  "type": "draw_cards",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "weight": 2,
+              "summary": "Glitch backlash: Lose 4 HP.",
+              "effects": [
+                {
+                  "type": "damage",
+                  "value": 4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "echo",
+    "name": "Echo",
+    "type": "status",
+    "draft_eligible": false,
+    "description": "The first card you play each combat repeats.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": ["offense", "scaling", "blessing"],
+    "source_types": ["event"],
+    "hooks": {
+      "passive": [
+        {
+          "type": "repeat_first_card"
+        }
+      ]
+    }
+  },
+  {
+    "id": "stim_boost",
+    "name": "Stim Boost",
+    "type": "status",
+    "draft_eligible": false,
+    "description": "Next 3 combats: start with 1 extra Energy.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": ["energy", "blessing", "event"],
+    "source_types": ["event"],
+    "duration": {
+      "type": "combat",
+      "value": 3
+    },
+    "stack_behavior": "refresh_duration",
+    "hooks": {
+      "combat_start": [
+        {
+          "type": "gain_energy",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "system_corruption",
+    "name": "System Corruption",
+    "type": "status",
+    "draft_eligible": false,
+    "description": "Next combat: lose 4 HP at the start.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": ["volatility", "risk", "curse", "event"],
+    "source_types": ["event"],
+    "duration": {
+      "type": "combat",
+      "value": 1
+    },
+    "stack_behavior": "refresh_duration",
+    "hooks": {
+      "combat_start": [
+        {
+          "type": "damage",
+          "value": 4
         }
       ]
     }

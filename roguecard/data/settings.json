@@ -1,6 +1,6 @@
 {
   "settings_format_version": 1,
-  "fullscreen": true,
+  "fullscreen": false,
   "fast_mode": false,
   "master_volume": 0.8,
   "music_volume": 0.65,

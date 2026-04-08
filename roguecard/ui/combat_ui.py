@@ -9,6 +9,7 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from config import CARD_HOVER_LIFT, MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
+from ui.card_style import CARD_PORTRAIT_HEIGHT_RATIO, fit_portrait_card
 from ui.card_renderer import draw_card
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 
@@ -252,9 +253,10 @@ class CombatUI:
         if preview_card is None:
             self._draw_text(surface, "Hover a card to inspect it.", (952, 154), self._small_font, width=280)
         else:
+            preview_card_rect = fit_portrait_card((952, 144, 286, 294))
             draw_card(
                 surface,
-                (952, 144, 286, 292),
+                preview_card_rect,
                 preview_card["card"],
                 {"title": self._small_font, "body": self._tiny_font, "tiny": self._tiny_font},
                 variant="full",
@@ -386,19 +388,19 @@ class CombatUI:
         for effect in card.get("effects", []):
             if effect["type"] == "damage":
                 target_name = enemy_lookup.get(target_id, "no target") if target_id is not None else "no target"
-                lines.append(f"Projected: {effect['value']} damage to {target_name}")
+                lines.append(f"Deal {effect['value']} damage to {target_name}.")
             elif effect["type"] == "block":
-                lines.append(f"Projected: +{effect['value']} block")
+                lines.append(f"Gain {effect['value']} Block.")
             elif effect["type"] == "heal":
-                lines.append(f"Projected: heal {effect['value']}")
+                lines.append(f"Heal {effect['value']}.")
             elif effect["type"] == "draw":
-                lines.append(f"Projected: draw {effect['value']} cards")
+                lines.append(f"Draw {effect['value']}.")
             elif effect["type"] == "energy":
-                lines.append(f"Projected: +{effect['value']} energy")
+                lines.append(f"Gain {effect['value']} Energy.")
             else:
-                lines.append(f"Projected: {effect['type']} {effect['value']}")
+                lines.append(f"{effect['type'].title()} {effect['value']}.")
 
-        lines.append(f"After play: {max(0, player['energy'] - card['cost'])} energy")
+        lines.append(f"After play: {max(0, player['energy'] - card['cost'])} Energy.")
         if not playable:
             lines.append(disabled_reason)
         return lines[:4]
@@ -425,7 +427,7 @@ class CombatUI:
         gap = 10 if hand_count <= 6 else 8
         available_width = 990
         card_width = min(174, max(116, (available_width - (gap * (hand_count - 1))) // hand_count))
-        card_height = int(card_width * 1.36)
+        card_height = int(card_width * CARD_PORTRAIT_HEIGHT_RATIO)
         row_width = (card_width * hand_count) + (gap * (hand_count - 1))
         start_x = 26 + max(0, (available_width - row_width) // 2)
         y = 682 - card_height

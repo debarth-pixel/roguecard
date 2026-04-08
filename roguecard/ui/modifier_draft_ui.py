@@ -97,6 +97,7 @@ class ModifierDraftUI:
         self._ensure_fonts(draft_state.get("presentation", {}).get("ui_scale", 1.0))
         high_contrast = draft_state.get("presentation", {}).get("high_contrast", False)
         layout = self.build_layout(draft_state)
+        character = draft_state.get("character") or {}
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         top_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 96))
         offer_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (356, 340))
@@ -107,7 +108,8 @@ class ModifierDraftUI:
 
         self._draw_text(surface, "Choose Your Run Modifier", (44, 118), self._title_font)
         self._draw_text(surface, layout["status_message"], (44, 156), self._small_font, width=880)
-        self._draw_text(surface, "Pick 1 of 3. Tradeoffs are shown explicitly.", (844, 122), self._tiny_font, width=340)
+        runner_label = character.get("name", "Runner")
+        self._draw_text(surface, runner_label, (844, 122), self._tiny_font, width=340)
         self._draw_text(surface, "Controls: click or 1-3 to select, Enter / Space to confirm.", (844, 150), self._tiny_font, width=340)
 
         for offer in layout["offers"]:
@@ -129,7 +131,7 @@ class ModifierDraftUI:
                 border = (255, 236, 140)
             pygame.draw.rect(surface, border, rect, 3, border_radius=16)
 
-            self._draw_kind_chip(surface, offer["kind"], (rect.x + 18, rect.y + 16), high_contrast)
+            self._draw_kind_chip(surface, offer.get("type", offer["kind"]), (rect.x + 18, rect.y + 16), high_contrast)
             badge_rect = pygame.Rect(rect.x + rect.width - 40, rect.y + 16, 24, 24)
             pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=12)
             pygame.draw.rect(surface, (255, 214, 110), badge_rect, 2, border_radius=12)

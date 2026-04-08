@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from typing import Any, Iterator
 
 import core.state_manager as state_manager_module
+from cards.card_library import CardLibrary
 from config import (
-    CARD_SHOP_PRICES,
     ELITE_COMBAT_CREDIT_REWARD,
     REGULAR_COMBAT_CREDIT_REWARD,
     REGULAR_REWARD_CARD_WEIGHT,
@@ -21,6 +21,12 @@ from config import (
 )
 from core.event_library import EventLibrary
 from core.state_manager import StateManager
+
+CURRENT_CARD_SHOP_PRICES = {
+    card.id: card.shop_price
+    for card in CardLibrary().list_cards()
+    if card.shop_price > 0 and card.type != "status"
+}
 
 BASELINE_CARD_SHOP_PRICES = {
     "surge_strike_01": 55,
@@ -46,6 +52,7 @@ PREFERRED_CARD_ORDER = (
     "patch_kit_01",
 )
 MAX_COMBAT_ACTIONS = 140
+DEFAULT_ECONOMY_CHARACTER_ID = "operator"
 
 
 @dataclass(frozen=True)
@@ -79,7 +86,7 @@ def simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str
     )
     tuned_scenario = EconomyScenario(
         name="current_tuned",
-        card_prices=copy.deepcopy(CARD_SHOP_PRICES),
+        card_prices=copy.deepcopy(CURRENT_CARD_SHOP_PRICES),
         purge_price=SHOP_PURGE_PRICE,
         regular_reward_card_weight=REGULAR_REWARD_CARD_WEIGHT,
         regular_reward_purge_weight=REGULAR_REWARD_PURGE_WEIGHT,
@@ -90,7 +97,7 @@ def simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str
     )
     reroll_scenario = EconomyScenario(
         name="reroll_enabled",
-        card_prices=copy.deepcopy(CARD_SHOP_PRICES),
+        card_prices=copy.deepcopy(CURRENT_CARD_SHOP_PRICES),
         purge_price=SHOP_PURGE_PRICE,
         regular_reward_card_weight=REGULAR_REWARD_CARD_WEIGHT,
         regular_reward_purge_weight=REGULAR_REWARD_PURGE_WEIGHT,
@@ -102,7 +109,7 @@ def simulate_run_economy(seed_count: int = 200, start_seed: int = 1) -> dict[str
     )
     heal_service_scenario = EconomyScenario(
         name="heal_service_enabled",
-        card_prices=copy.deepcopy(CARD_SHOP_PRICES),
+        card_prices=copy.deepcopy(CURRENT_CARD_SHOP_PRICES),
         purge_price=SHOP_PURGE_PRICE,
         regular_reward_card_weight=REGULAR_REWARD_CARD_WEIGHT,
         regular_reward_purge_weight=REGULAR_REWARD_PURGE_WEIGHT,
@@ -178,6 +185,9 @@ def _simulate_run(seed: int, scenario: EconomyScenario) -> dict[str, Any]:
     with _patched_state_manager(scenario):
         manager = StateManager(event_library=_event_library_for_scenario(scenario))
         manager.start_new_run(seed=seed)
+        if manager.current_state == "character_select":
+            manager.select_character(DEFAULT_ECONOMY_CHARACTER_ID)
+            manager.confirm_character_selection()
         if manager.current_state == "modifier_draft":
             _resolve_modifier_draft(manager)
 
@@ -500,7 +510,7 @@ def _should_reroll_shop(shop_state: dict[str, Any], player_credits: int, best_ca
     if not shop_state.get("can_reroll", False):
         return False
     reroll_price = shop_state["reroll_price"]
-    affordable_follow_up = min(CARD_SHOP_PRICES.values())
+    affordable_follow_up = min(CURRENT_CARD_SHOP_PRICES.values())
     if player_credits < reroll_price + affordable_follow_up:
         return False
     return best_card_score < 18
@@ -822,7 +832,7 @@ def _event_library_for_scenario(scenario: EconomyScenario) -> EventLibrary:
 @contextmanager
 def _patched_state_manager(scenario: EconomyScenario) -> Iterator[None]:
     original_values = {
-        "CARD_SHOP_PRICES": state_manager_module.CARD_SHOP_PRICES,
+        "CARD_SHOP_PRICE_OVERRIDES": copy.deepcopy(state_manager_module.CARD_SHOP_PRICE_OVERRIDES),
         "SHOP_PURGE_PRICE": state_manager_module.SHOP_PURGE_PRICE,
         "SHOP_HEAL_ENABLED": state_manager_module.SHOP_HEAL_ENABLED,
         "SHOP_HEAL_PRICE": state_manager_module.SHOP_HEAL_PRICE,
@@ -830,7 +840,7 @@ def _patched_state_manager(scenario: EconomyScenario) -> Iterator[None]:
         "REGULAR_REWARD_CARD_WEIGHT": state_manager_module.REGULAR_REWARD_CARD_WEIGHT,
         "REGULAR_REWARD_PURGE_WEIGHT": state_manager_module.REGULAR_REWARD_PURGE_WEIGHT,
     }
-    state_manager_module.CARD_SHOP_PRICES = copy.deepcopy(scenario.card_prices)
+    state_manager_module.CARD_SHOP_PRICE_OVERRIDES = copy.deepcopy(scenario.card_prices)
     state_manager_module.SHOP_PURGE_PRICE = scenario.purge_price
     state_manager_module.SHOP_HEAL_ENABLED = scenario.heal_enabled
     state_manager_module.SHOP_HEAL_PRICE = scenario.heal_price

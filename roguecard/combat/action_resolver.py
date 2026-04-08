@@ -23,9 +23,12 @@ class ActionResolver:
             raise ValueError("Resolved actions require an integer value.")
 
         if action_type == "damage":
-            if not hasattr(target, "take_damage"):
-                raise ValueError("Damage actions require a target with take_damage().")
-            amount = target.take_damage(value)
+            if combat_manager is not None:
+                amount = combat_manager.apply_damage(source=source, target=target, amount=value)
+            else:
+                if not hasattr(target, "take_damage"):
+                    raise ValueError("Damage actions require a target with take_damage().")
+                amount = target.take_damage(value)
             return {"type": action_type, "value": value, "applied": amount}
 
         if action_type == "block":
@@ -45,15 +48,21 @@ class ActionResolver:
             return {"type": action_type, "value": value, "applied": applied}
 
         if action_type == "draw":
-            if not hasattr(target, "deck_manager") or target.deck_manager is None:
-                raise ValueError("Draw actions require a target with an attached deck manager.")
-            drawn = target.deck_manager.draw_cards(value)
+            if combat_manager is not None:
+                drawn = combat_manager.draw_cards(target, value)
+            else:
+                if not hasattr(target, "deck_manager") or target.deck_manager is None:
+                    raise ValueError("Draw actions require a target with an attached deck manager.")
+                drawn = target.deck_manager.draw_cards(value)
             return {"type": action_type, "value": value, "applied": len(drawn)}
 
         if action_type == "energy":
-            if not hasattr(target, "energy"):
+            if hasattr(target, "gain_energy"):
+                target.gain_energy(value)
+            elif hasattr(target, "energy"):
+                target.energy = max(0, target.energy + value)
+            else:
                 raise ValueError("Energy actions require a target with energy.")
-            target.energy += value
             return {"type": action_type, "value": value, "applied": value}
 
         raise ValueError(f"Unsupported action type: {action_type}")

@@ -189,7 +189,7 @@ class TitleUI:
         if layout["continue_summary"] is None:
             self._draw_text(
                 surface,
-                "No resumable run found. Start a new run to draft a modifier and enter the city.",
+                "No resumable run found. Start a new run to choose a character and enter the city.",
                 (484, 284),
                 self._small_font,
                 width=700,
@@ -201,6 +201,9 @@ class TitleUI:
                 f"Seed: {summary['run_seed']}",
                 f"Status: {summary['status_message']}",
             ]
+            character_name = summary.get("character_name")
+            if character_name:
+                summary_lines.insert(1, f"Character: {character_name}")
             modifier_label = summary.get("modifier_label")
             if modifier_label:
                 summary_lines.append(f"Active modifier: {modifier_label}")
@@ -225,7 +228,7 @@ class TitleUI:
             self._draw_text(surface, "Overwrite saved run?", (456, 286), self._font)
             self._draw_text(
                 surface,
-                "Starting a new run will replace the current resumable save after you pick a modifier.",
+                "Starting a new run will replace the current resumable save after you choose a character.",
                 (456, 328),
                 self._small_font,
                 width=366,

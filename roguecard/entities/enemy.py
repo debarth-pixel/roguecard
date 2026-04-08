@@ -17,6 +17,9 @@ class Enemy:
     current_hp: int = field(init=False)
     block: int = 0
     current_intent: str | None = None
+    strength: int = 0
+    weak: int = 0
+    vulnerable: int = 0
     _intent_index: int = 0
 
     def __post_init__(self) -> None:
@@ -34,6 +37,9 @@ class Enemy:
         self.current_hp = self.max_hp
         self.block = 0
         self.current_intent = None
+        self.strength = 0
+        self.weak = 0
+        self.vulnerable = 0
         self._intent_index = 0
 
     def choose_intent(self) -> str:
@@ -46,14 +52,21 @@ class Enemy:
 
     def start_turn(self) -> None:
         self.block = 0
+        self.weak = max(0, self.weak - 1)
+        self.vulnerable = max(0, self.vulnerable - 1)
 
-    def execute_intent(self, action_resolver: Any, target: Any) -> dict[str, Any]:
+    def execute_intent(self, action_resolver: Any, target: Any, combat_manager: Any = None) -> dict[str, Any]:
         if self.current_intent is None:
             self.choose_intent()
 
         action = self._intent_to_action(self.current_intent)
         resolution_target = self if self.current_intent == "defend" else target
-        resolution = action_resolver.resolve(action=action, source=self, target=resolution_target)
+        resolution = action_resolver.resolve(
+            action=action,
+            source=self,
+            target=resolution_target,
+            combat_manager=combat_manager,
+        )
         self.current_intent = None
         return resolution
 
@@ -63,15 +76,20 @@ class Enemy:
         self.block += amount
         return amount
 
-    def take_damage(self, amount: int) -> int:
+    def take_damage(self, amount: int, *, ignore_block: bool = False) -> int:
         if amount < 0:
             raise ValueError("Damage cannot be negative.")
 
-        absorbed = min(self.block, amount)
-        self.block -= absorbed
+        absorbed = 0
+        if not ignore_block:
+            absorbed = min(self.block, amount)
+            self.block -= absorbed
         damage_taken = amount - absorbed
         self.current_hp = max(0, self.current_hp - damage_taken)
         return damage_taken
+
+    def lose_hp(self, amount: int) -> int:
+        return self.take_damage(amount, ignore_block=True)
 
     def heal(self, amount: int) -> int:
         if amount < 0:
@@ -79,6 +97,24 @@ class Enemy:
         healed = min(self.max_hp - self.current_hp, amount)
         self.current_hp += healed
         return healed
+
+    def adjust_strength(self, amount: int) -> int:
+        if not isinstance(amount, int):
+            raise ValueError("Strength changes must be integers.")
+        self.strength = max(0, self.strength + amount)
+        return self.strength
+
+    def apply_weak(self, amount: int) -> int:
+        if amount < 0:
+            raise ValueError("Weak amount cannot be negative.")
+        self.weak += amount
+        return self.weak
+
+    def apply_vulnerable(self, amount: int) -> int:
+        if amount < 0:
+            raise ValueError("Vulnerable amount cannot be negative.")
+        self.vulnerable += amount
+        return self.vulnerable
 
     def is_alive(self) -> bool:
         return self.current_hp > 0
@@ -94,6 +130,9 @@ class Enemy:
             "current_intent": self.current_intent,
             "intent_value": intent_value,
             "intent_summary": self._intent_summary(self.current_intent, intent_value),
+            "strength": self.strength,
+            "weak": self.weak,
+            "vulnerable": self.vulnerable,
         }
 
     def _intent_to_action(self, intent: str) -> dict[str, Any]:
@@ -105,7 +144,7 @@ class Enemy:
 
     def _intent_value(self, intent: str | None) -> int | None:
         if intent == "attack":
-            return DEFAULT_ENEMY_ATTACK_DAMAGE
+            return self._outgoing_attack_damage(DEFAULT_ENEMY_ATTACK_DAMAGE)
         if intent == "defend":
             return DEFAULT_ENEMY_DEFEND_BLOCK
         return None
@@ -118,8 +157,14 @@ class Enemy:
         if intent == "attack":
             return f"Attack for {value}"
         if intent == "defend":
-            return f"Gain {value} block"
+            return f"Gain {value} Block"
         return intent.title()
+
+    def _outgoing_attack_damage(self, base_value: int) -> int:
+        amount = max(0, base_value + self.strength)
+        if self.weak > 0:
+            amount = max(0, int(amount * 0.75))
+        return amount
 
 
 def simulate_enemy() -> dict[str, Any]:
@@ -133,6 +178,7 @@ def simulate_enemy() -> dict[str, Any]:
         intent_pattern=["attack", "defend"],
     )
     player = Player()
+    enemy.apply_weak(1)
     enemy.choose_intent()
     attack_resolution = enemy.execute_intent(ActionResolver(), player)
     enemy.choose_intent()

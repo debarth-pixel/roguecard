@@ -13,9 +13,6 @@ from config import (
     MAX_UI_SCALE,
     MIN_PRESENTATION_SCALE,
     MIN_UI_SCALE,
-    MODIFIER_ICON_GAP,
-    MODIFIER_ICON_SIZE,
-    MODIFIER_TOOLTIP_WIDTH,
     PAUSE_BUTTON_HEIGHT,
     PAUSE_BUTTON_WIDTH,
     PRESENTATION_SCALE_STEP,
@@ -23,10 +20,14 @@ from config import (
     SETTINGS_PANEL_WIDTH,
     SETTINGS_TAB_HEIGHT,
     SETTINGS_TAB_WIDTH,
+    STATUS_ICON_GAP,
+    STATUS_ICON_SIZE,
+    STATUS_TOOLTIP_WIDTH,
     UI_SCALE_STEP,
     VOLUME_STEP,
     resolve_asset_path,
 )
+from ui.character_select_ui import CharacterSelectUI
 from ui.combat_ui import CombatUI
 from ui.event_ui import EventUI
 from ui.map_ui import MapUI
@@ -39,6 +40,7 @@ from ui.title_ui import TitleUI
 
 class UIManager:
     def __init__(self) -> None:
+        self.character_select_ui = CharacterSelectUI()
         self.combat_ui = CombatUI()
         self.event_ui = EventUI()
         self.map_ui = MapUI()
@@ -61,6 +63,7 @@ class UIManager:
         self._modifier_hovered_id: str | None = None
 
     def preload_assets(self) -> None:
+        self.character_select_ui.preload_assets()
         self.map_ui.preload_assets()
         self.combat_ui.preload_assets()
         self.event_ui.preload_assets()
@@ -93,13 +96,18 @@ class UIManager:
             if top_action is not None:
                 return top_action
 
-        if current_state == "map":
+        if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
             self._update_modifier_hover(event, state_snapshot)
         else:
             self._modifier_hovered_id = None
 
         if current_state == "title" and state_snapshot.get("title") is not None:
             action = self.title_ui.handle_event(event, self._title_view_state(state_snapshot))
+            if action is not None:
+                return action
+
+        if current_state == "character_select" and state_snapshot.get("character_select") is not None:
+            action = self.character_select_ui.handle_event(event, self._character_select_view_state(state_snapshot))
             if action is not None:
                 return action
 
@@ -150,6 +158,8 @@ class UIManager:
 
         if current_state == "title" and state_snapshot.get("title") is not None:
             self.title_ui.render(surface, self._title_view_state(state_snapshot))
+        elif current_state == "character_select" and state_snapshot.get("character_select") is not None:
+            self.character_select_ui.render(surface, self._character_select_view_state(state_snapshot))
         elif current_state == "modifier_draft" and state_snapshot.get("modifier_draft") is not None:
             self.modifier_draft_ui.render(surface, self._modifier_draft_view_state(state_snapshot))
         elif current_state == "combat" and state_snapshot["combat"] is not None:
@@ -167,10 +177,8 @@ class UIManager:
         else:
             surface.fill((18, 21, 28))
 
-        if current_state not in {"title", "victory", "game_over"}:
+        if current_state not in {"title", "character_select", "victory", "game_over"}:
             self._render_top_bar(surface, state_snapshot)
-        if current_state == "map" and not state_snapshot.get("presentation", {}).get("pause_open") and not state_snapshot.get("presentation", {}).get("settings_open"):
-            self._render_map_modifier_icons(surface, state_snapshot)
         self._render_notice(
             surface,
             state_snapshot.get("ui_notice"),
@@ -187,6 +195,8 @@ class UIManager:
     def simulate_ui(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         if state_snapshot["current_state"] == "title" and state_snapshot.get("title") is not None:
             return self.title_ui.build_layout(self._title_view_state(state_snapshot))
+        if state_snapshot["current_state"] == "character_select" and state_snapshot.get("character_select") is not None:
+            return self.character_select_ui.build_layout(self._character_select_view_state(state_snapshot))
         if state_snapshot["current_state"] == "modifier_draft" and state_snapshot.get("modifier_draft") is not None:
             return self.modifier_draft_ui.build_layout(self._modifier_draft_view_state(state_snapshot))
         if state_snapshot["current_state"] == "combat" and state_snapshot["combat"] is not None:
@@ -236,6 +246,14 @@ class UIManager:
         return {
             "status_message": state_snapshot["status_message"],
             "modifier_draft": state_snapshot["modifier_draft"],
+            "character": state_snapshot.get("character"),
+            "presentation": state_snapshot.get("presentation", {}),
+        }
+
+    def _character_select_view_state(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "status_message": state_snapshot["status_message"],
+            "character_select": state_snapshot["character_select"],
             "presentation": state_snapshot.get("presentation", {}),
         }
 
@@ -302,6 +320,8 @@ class UIManager:
         for stat in layout["stats"]:
             self._draw_top_stat_chip(surface, stat, high_contrast)
 
+        self._render_modifier_icons(surface, layout["modifier_icons"], high_contrast)
+
         pause_rect = pygame.Rect(*layout["pause_rect"])
         hovered = self._pause_hovered_action == "top_pause"
         pressed = self._pause_pressed_action == "top_pause"
@@ -331,9 +351,29 @@ class UIManager:
         pause_rect = (1280 - PAUSE_BUTTON_WIDTH - 24, 12, PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)
         state_width = max(152, self._tiny_font.size(label)[0] + 32)
         state_rect = (24, 14, state_width, 34)
+        active_modifiers = list(state_snapshot.get("run_modifiers", {}).get("active", []))
+        if len(active_modifiers) > 6:
+            active_modifiers = active_modifiers[-6:]
+        strip_width = 0
+        if active_modifiers:
+            strip_width = (len(active_modifiers) * STATUS_ICON_SIZE) + ((len(active_modifiers) - 1) * STATUS_ICON_GAP)
+        modifier_icons = []
+        modifier_start_x = pause_rect[0] - 16 - strip_width
+        for index, modifier in enumerate(active_modifiers):
+            modifier_icons.append(
+                {
+                    **modifier,
+                    "rect": (
+                        modifier_start_x + (index * (STATUS_ICON_SIZE + STATUS_ICON_GAP)),
+                        17,
+                        STATUS_ICON_SIZE,
+                        STATUS_ICON_SIZE,
+                    ),
+                }
+            )
         stats = []
         cursor_x = state_rect[0] + state_rect[2] + 12
-        max_x = pause_rect[0] - 12
+        max_x = modifier_start_x - 12 if modifier_icons else pause_rect[0] - 12
         for item in self._top_bar_stat_items(state_snapshot):
             chip_width = max(82, self._tiny_font.size(item["label"])[0] + 34)
             if cursor_x + chip_width > max_x:
@@ -345,12 +385,19 @@ class UIManager:
             "state_label": label,
             "pause_rect": pause_rect,
             "stats": stats,
+            "modifier_icons": modifier_icons,
         }
 
     def _top_bar_stat_items(self, state_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         player = state_snapshot.get("player")
+        character = state_snapshot.get("character")
         current_state = state_snapshot.get("current_state")
         items: list[dict[str, Any]] = []
+        if isinstance(character, dict):
+            accent = tuple(character.get("accent_color", [120, 150, 190]))
+            items.append({"label": character.get("name", "Runner"), "accent": accent})
+        if current_state == "event":
+            return items
         if isinstance(player, dict):
             items.append(
                 {
@@ -398,6 +445,26 @@ class UIManager:
         pygame.draw.rect(surface, accent, pygame.Rect(rect.x + 6, rect.y + 7, 6, rect.height - 14), border_radius=3)
         self._draw_text(surface, stat["label"], (rect.x + 18, rect.y + 10), self._tiny_font, width=rect.width - 28)
 
+    def _modifier_accent(self, modifier_type: str, high_contrast: bool) -> tuple[int, int, int]:
+        colors = {
+            "relic": (100, 184, 242),
+            "blessing": (110, 220, 164),
+            "curse": (230, 116, 116),
+            "status": (168, 148, 244),
+        }
+        accent = colors.get(modifier_type, (144, 156, 182))
+        if high_contrast:
+            accent = tuple(min(255, channel + 16) for channel in accent)
+        return accent
+
+    def _modifier_abbrev(self, name: str) -> str:
+        words = [part for part in name.split() if part]
+        if not words:
+            return "?"
+        if len(words) == 1:
+            return words[0][:2].upper()
+        return (words[0][0] + words[1][0]).upper()
+
     def _handle_top_bar_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
         if pygame is None:
             return None
@@ -417,24 +484,7 @@ class UIManager:
         return None
 
     def _modifier_icon_layout(self, state_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
-        modifiers = state_snapshot.get("run_modifiers", {}).get("active", [])
-        if not modifiers:
-            return []
-        pause_rect = self._top_bar_layout(state_snapshot)["pause_rect"]
-        x = pause_rect[0] + ((pause_rect[2] - MODIFIER_ICON_SIZE) // 2)
-        start_y = pause_rect[1] + pause_rect[3] + 10
-        return [
-            {
-                **modifier,
-                "rect": (
-                    x,
-                    start_y + (index * (MODIFIER_ICON_SIZE + MODIFIER_ICON_GAP)),
-                    MODIFIER_ICON_SIZE,
-                    MODIFIER_ICON_SIZE,
-                ),
-            }
-            for index, modifier in enumerate(modifiers)
-        ]
+        return self._top_bar_layout(state_snapshot)["modifier_icons"]
 
     def _update_modifier_hover(self, event: Any, state_snapshot: dict[str, Any]) -> None:
         if pygame is None or event.type not in {pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP}:
@@ -445,20 +495,28 @@ class UIManager:
                 self._modifier_hovered_id = modifier["id"]
                 return
 
-    def _render_map_modifier_icons(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
-        modifiers = self._modifier_icon_layout(state_snapshot)
+    def _render_modifier_icons(
+        self,
+        surface: Any,
+        modifiers: list[dict[str, Any]],
+        high_contrast: bool,
+    ) -> None:
         if not modifiers:
             return
 
         for modifier in modifiers:
             rect = pygame.Rect(*modifier["rect"])
-            icon = self._scaled_image(
-                resolve_asset_path("ui", "modifiers", f"{modifier['id']}.png"),
-                (MODIFIER_ICON_SIZE, MODIFIER_ICON_SIZE),
-            )
-            surface.blit(icon, rect.topleft)
-            outline = (255, 214, 110) if modifier["id"] == self._modifier_hovered_id else (200, 214, 236)
-            pygame.draw.rect(surface, outline, rect, 2, border_radius=10)
+            accent = self._modifier_accent(modifier.get("type", modifier.get("kind", "status")), high_contrast)
+            fill = (18, 28, 42) if modifier["id"] != self._modifier_hovered_id else (30, 42, 62)
+            pygame.draw.rect(surface, fill, rect, border_radius=10)
+            pygame.draw.rect(surface, accent if modifier["id"] != self._modifier_hovered_id else (255, 214, 110), rect, 2, border_radius=10)
+            label = self._tiny_font.render(self._modifier_abbrev(modifier["name"]), True, accent)
+            surface.blit(label, label.get_rect(center=rect.center))
+            if modifier.get("temporary") and isinstance(modifier.get("remaining"), int):
+                badge_rect = pygame.Rect(rect.right - 14, rect.y - 4, 18, 18)
+                pygame.draw.rect(surface, (255, 214, 110), badge_rect, border_radius=9)
+                badge = self._tiny_font.render(str(modifier["remaining"]), True, (18, 24, 36))
+                surface.blit(badge, badge.get_rect(center=badge_rect.center))
 
         hovered_modifier = next(
             (modifier for modifier in modifiers if modifier["id"] == self._modifier_hovered_id),
@@ -467,23 +525,24 @@ class UIManager:
         if hovered_modifier is None:
             return
 
-        tooltip_height = 112 if hovered_modifier.get("downside") else 92
-        tooltip_x = hovered_modifier["rect"][0] - MODIFIER_TOOLTIP_WIDTH - 14
-        tooltip_y = max(78, hovered_modifier["rect"][1] - 12)
-        tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, MODIFIER_TOOLTIP_WIDTH, tooltip_height)
+        tooltip_height = 118 if hovered_modifier.get("downside") else 96
+        if hovered_modifier.get("duration_label"):
+            tooltip_height += 22
+        tooltip_x = max(24, min(1280 - STATUS_TOOLTIP_WIDTH - 24, hovered_modifier["rect"][0] - STATUS_TOOLTIP_WIDTH + hovered_modifier["rect"][2]))
+        tooltip_y = 58
+        tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, STATUS_TOOLTIP_WIDTH, tooltip_height)
         pygame.draw.rect(surface, (8, 14, 24), tooltip_rect, border_radius=14)
         pygame.draw.rect(surface, (255, 214, 110), tooltip_rect, 2, border_radius=14)
+        accent = self._modifier_accent(hovered_modifier.get("type", hovered_modifier.get("kind", "status")), high_contrast)
         self._draw_text(surface, hovered_modifier["name"], (tooltip_rect.x + 14, tooltip_rect.y + 12), self._small_font, width=tooltip_rect.width - 28)
-        self._draw_chip(surface, hovered_modifier["kind"].title(), (tooltip_rect.x + 14, tooltip_rect.y + 38), 92, accent=(118, 146, 194))
+        self._draw_chip(surface, hovered_modifier.get("type", hovered_modifier.get("kind", "status")).title(), (tooltip_rect.x + 14, tooltip_rect.y + 38), 96, accent=accent)
         self._draw_text(surface, hovered_modifier["description"], (tooltip_rect.x + 14, tooltip_rect.y + 68), self._tiny_font, width=tooltip_rect.width - 28)
+        text_y = tooltip_rect.y + 88
+        if hovered_modifier.get("duration_label"):
+            self._draw_text(surface, hovered_modifier["duration_label"], (tooltip_rect.x + 14, text_y), self._tiny_font, width=tooltip_rect.width - 28)
+            text_y += 22
         if hovered_modifier.get("downside"):
-            self._draw_text(
-                surface,
-                f"Tradeoff: {hovered_modifier['downside']}",
-                (tooltip_rect.x + 14, tooltip_rect.y + 88),
-                self._tiny_font,
-                width=tooltip_rect.width - 28,
-            )
+            self._draw_text(surface, f"Tradeoff: {hovered_modifier['downside']}", (tooltip_rect.x + 14, text_y), self._tiny_font, width=tooltip_rect.width - 28)
 
     def _pause_layout(self) -> dict[str, Any]:
         buttons = [

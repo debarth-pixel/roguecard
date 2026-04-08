@@ -1,0 +1,23 @@
+Run Pacing Audit
+Seeds: 1..200
+Win rate: 0.96
+Average events per run: 1.19
+Average status grants per run: 1.345
+Repeat event rate: 0.0
+Dominant tag repeat rate: 0.0476
+Starter curse-slot rate: 0.07
+
+Event rarity distribution:
+- common: 142 (0.5966)
+- rare: 7 (0.0294)
+- special: 6 (0.0252)
+- uncommon: 83 (0.3487)
+
+Status rarity distribution:
+- common: 158 (0.5874)
+- rare: 7 (0.026)
+- uncommon: 104 (0.3866)
+
+Status source distribution:
+- event: 69 (0.2565)
+- run_start: 200 (0.7435)
