@@ -52,42 +52,24 @@ class RunModifierEngine:
             source_type="run_start",
             rarity_profile="positive",
             draft_only=True,
-            allow_types=["relic", "blessing", "status"],
+            allow_types=["relic"],
         )
-        safe_offer_ids = self._pick_weighted_ids(weighted_draft_pool, rng, count=2)
-
-        risky_pool = self.weighted_modifier_candidates(
-            active_modifiers=[],
-            source_type="run_start",
-            rarity_profile="risky",
-            draft_only=True,
-            pool_ids=[
-                candidate["modifier"]["id"]
-                for candidate in self.weighted_modifier_candidates(
-                    active_modifiers=[],
-                    source_type="run_start",
-                    rarity_profile="risky",
-                    draft_only=True,
-                )
-                if candidate["modifier"]["id"] not in safe_offer_ids
-            ],
-        )
-        final_offer_ids = list(safe_offer_ids)
-        final_offer_ids.extend(self._pick_weighted_ids(risky_pool, rng, count=1))
+        final_offer_ids = self._pick_weighted_ids(weighted_draft_pool, rng, count=3)
 
         if len(final_offer_ids) < 3:
             fallback_pool = self.weighted_modifier_candidates(
                 active_modifiers=[],
                 source_type="run_start",
-                rarity_profile="risky",
+                rarity_profile="positive",
                 draft_only=True,
+                allow_types=["relic"],
                 pool_ids=[
                     modifier["id"]
                     for modifier in self.modifier_library.list_modifiers(
                         draft_only=True,
                         source_type="run_start",
                     )
-                    if modifier["id"] not in final_offer_ids
+                    if modifier["type"] == "relic" and modifier["id"] not in final_offer_ids
                 ],
             )
             final_offer_ids.extend(self._pick_weighted_ids(fallback_pool, rng, count=3 - len(final_offer_ids)))

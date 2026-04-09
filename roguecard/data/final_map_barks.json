@@ -1,0 +1,90 @@
+{
+  "factions": {
+    "helix_ward": {
+      "start": ["Hold still.", "You will be useful.", "Subject acquired.", "Do not resist the process."],
+      "attack": ["Let us see what breaks.", "A clean incision.", "Reaction confirmed.", "Your pain is informative."],
+      "infect": ["There it is.", "The serum is taking.", "Beautiful response.", "It spreads exactly as predicted."],
+      "summon": ["Culture, wake.", "Release the brood.", "Feed.", "Grow for me."],
+      "low_hp": ["Stabilize the vessel.", "No, not yet.", "I require more time.", "The flesh can still hold."],
+      "ally_death": ["Waste nothing.", "Harvest the remains.", "Useful, even now.", "Another sample lost."]
+    },
+    "blackwire_directorate": {
+      "start": ["Unauthorized presence confirmed.", "Compliance check begins now.", "Stand down and be processed.", "Area control protocol active."],
+      "attack": ["Applying force.", "Target pressured.", "Keep them contained.", "End this cleanly."],
+      "mark": ["Target tagged.", "Tracking acquired.", "Lock maintained.", "You are now predictable."],
+      "buff_strip": ["Enhancement denied.", "Unauthorized advantage removed.", "You do not keep that.", "State reset."],
+      "deploy": ["Support asset deployed.", "Reinforcement node online.", "Automated support engaged.", "Escalating response tier."],
+      "low_hp": ["Armor compromised.", "Requesting escalation.", "Structural loss acceptable.", "Continue the contract."],
+      "ally_death": ["Asset loss recorded.", "Compensation flag updated.", "Replace the unit.", "Continue suppression."]
+    },
+    "cinder_jackals": {
+      "start": ["Look what wandered in.", "Fresh meat in the dust.", "Strip them when they drop.", "This one thinks they are somebody."],
+      "attack": ["Cut them again.", "Keep swinging.", "That had to hurt.", "Push them, push them."],
+      "summon": ["More where that came from.", "Get in there, scavs.", "Pack up.", "Run them down."],
+      "burn": ["Light it up.", "Let them cook.", "Throw fire at it.", "Burn first, loot later."],
+      "low_hp": ["Not done.", "Still got teeth.", "I can crawl and kill.", "Make it ugly."],
+      "ally_death": ["Take their cut.", "Keep moving.", "They were slowing us down anyway.", "Good. More room for me."]
+    }
+  },
+  "bosses": {
+    "miremother_vexa": {
+      "start": ["Try not to die too quickly. I need to see the full reaction.", "You crossed half the city to become data."],
+      "summon": ["Children, open them.", "Let the culture bloom."],
+      "phase_change": ["Ah. Now you are finally stressing the design."],
+      "low_hp": ["Good. Good. This is where truth begins."],
+      "defeat": ["Record... everything..."]
+    },
+    "graft_saint": {
+      "start": ["I was remade for this.", "Do you hear it? The city begging for stronger blood."],
+      "heal": ["It closes. It always closes.", "I am still chosen."],
+      "phase_change": ["Then take the rest of me."],
+      "low_hp": ["I will not return to the table."],
+      "defeat": ["No more grafts..."]
+    },
+    "director_vale": {
+      "start": ["You are not a crisis. You are an expense.", "I have ended better people with smaller teams."],
+      "mark": ["Tracked.", "There. Now everyone can see you."],
+      "buff_strip": ["No. You fight on our terms.", "That advantage is revoked."],
+      "phase_change": ["Enough containment. Kill authority granted."],
+      "low_hp": ["You are costing this city more than you are worth."],
+      "defeat": ["This was... not in budget..."]
+    },
+    "compliance_engine_ax9": {
+      "start": ["CIVIC ORDER FAILURE. PACIFICATION REQUIRED.", "NONCOMPLIANT ENTITY DETECTED."],
+      "shield": ["DEFENSIVE BARRIER ACTIVE.", "IMPACT ABSORPTION NOMINAL."],
+      "suppress": ["ENHANCEMENT NULLIFICATION WAVE.", "RESISTANCE WILL BE FLATTENED."],
+      "low_hp": ["CORE STABILITY BELOW SAFE TOLERANCE."],
+      "defeat": ["PACIFICATION... INCOMPLETE..."]
+    },
+    "ashfang_rook": {
+      "start": ["You got all the way here just to die tired.", "Let us see if you scream better than the last one."],
+      "rally": ["That is it. Keep the blood hot.", "Now we have a fight."],
+      "summon": ["Pack in. Tear them apart.", "Nobody hangs back."],
+      "low_hp": ["Good. Now I can stop pretending to enjoy this."],
+      "defeat": ["Should've burned the road behind you..."]
+    },
+    "furnace_hound": {
+      "start": ["Bring it alive if you can. Scrap it if you can't.", "Wake the hound."],
+      "charge": ["Heads down. It is about to spit.", "Hear that? That means run."],
+      "summon": ["Loose the mites.", "Feed the firebox."],
+      "low_hp": ["It is overheating. Good."],
+      "defeat": ["Damn it... that rig was beautiful..."]
+    },
+    "toll_reeve": {
+      "start": ["Nobody crosses without paying.", "You want through? Then bleed for it."],
+      "disrupt": ["That costs extra.", "Nothing moves free in this city."],
+      "defeat": ["Should've charged you sooner..."]
+    },
+    "junction_9_sentinel": {
+      "start": ["THREAT STATUS UNRESOLVED. DEFENSIVE ENGAGEMENT AUTHORIZED.", "TRANSIT NODE INTEGRITY PRIORITIZED."],
+      "charge": ["LETHAL OUTPUT CHARGING.", "STAND CLEAR OF SANCTIONED ROUTE."],
+      "defeat": ["INFRASTRUCTURE... UNPROTECTED..."]
+    },
+    "spine_warden_null": {
+      "start": ["Claimant detected. Authority denied.", "No one reaches the Core unjudged."],
+      "phase_change": ["Pattern absorbed. Adjusting.", "Your method is now accounted for."],
+      "low_hp": ["Final veto engaged."],
+      "defeat": ["Adjudication... ended..."]
+    }
+  }
+}

@@ -139,6 +139,7 @@ class CombatUI:
         enemy_lookup = {enemy["id"]: enemy["name"] for enemy in enemies}
         living_enemy_ids = combat_state.get("living_enemy_ids", [])
         recent_summary = self._build_recent_summary(combat_state.get("event_log", []))
+        player_status_line = self._player_status_line(player.get("combat_statuses", {}))
         card_rects = self._card_rects(hand_size)
         hand_cards = []
         preview_card = None
@@ -195,6 +196,7 @@ class CombatUI:
                     "block": f"Block {enemy['block']}",
                     "intent": enemy.get("intent_summary") or f"Intent {enemy['current_intent'] or 'waiting'}",
                     "intent_value": enemy.get("intent_value"),
+                    "status_line": self._enemy_status_line(enemy.get("statuses", {})),
                     "rect": enemy_rect,
                     "targeted": targeted,
                 }
@@ -209,9 +211,11 @@ class CombatUI:
                 f"Energy {player['energy']}/{player['max_energy']}",
                 f"Draw {player.get('draw_pile', 0)} | Discard {player.get('discard_pile', 0)} | Exhaust {player.get('exhaust_pile', 0)}",
             ],
+            "player_status_line": player_status_line,
             "enemy_summaries": enemy_summaries,
             "hand_cards": hand_cards,
             "recent_summary": recent_summary,
+            "active_bark": combat_state.get("active_bark"),
             "preview_card": preview_card,
             "preview_target_id": preview_target_id,
             "preview_lines": [] if preview_card is None else list(preview_card["preview_lines"]),
@@ -248,6 +252,8 @@ class CombatUI:
         self._draw_text(surface, layout["turn_owner_label"], (176, 112), self._small_font, width=120)
         for index, line in enumerate(layout["player_lines"]):
             self._draw_text(surface, line, (44, 150 + (index * 28)), self._small_font, width=264)
+        if layout["player_status_line"]:
+            self._draw_text(surface, layout["player_status_line"], (44, 236), self._tiny_font, width=264)
 
         self._draw_text(surface, layout["preview_title"], (952, 110), self._font)
         if preview_card is None:
@@ -298,10 +304,12 @@ class CombatUI:
             self._draw_text(surface, enemy["hp"], (x + 12, y + 54), self._small_font)
             self._draw_text(surface, enemy["block"], (x + 12, y + 80), self._small_font)
             self._draw_text(surface, enemy["intent"], (x + 12, y + 108), self._small_font, width=154)
+            if enemy["status_line"]:
+                self._draw_text(surface, enemy["status_line"], (x + 12, y + 136), self._tiny_font, width=154)
             if enemy["targeted"] and preview_card is not None:
                 preview_value = self._preview_damage_value(preview_card)
                 if preview_value is not None:
-                    self._draw_text(surface, f"Preview -{preview_value}", (x + 12, y + 144), self._tiny_font)
+                    self._draw_text(surface, f"Preview -{preview_value}", (x + 12, y + 156), self._tiny_font)
 
         for card in layout["hand_cards"]:
             x, y, width, height = card["rect"]
@@ -331,6 +339,9 @@ class CombatUI:
         label_rect = button_label.get_rect(center=button_rect.center)
         surface.blit(button_label, label_rect)
         self._draw_text(surface, layout["end_turn_hint"], (930, 676), self._tiny_font, width=300)
+
+        if layout["active_bark"] is not None:
+            self._render_bark(surface, layout["active_bark"], layout["enemy_summaries"])
 
     def _build_recent_summary(self, event_log: list[dict[str, Any]]) -> str:
         if not event_log:
@@ -438,6 +449,65 @@ class CombatUI:
 
     def _enemy_rect(self, index: int) -> tuple[int, int, int, int]:
         return (300 + (index * 236), 176, 178, 178)
+
+    def _player_status_line(self, statuses: dict[str, Any]) -> str:
+        if not isinstance(statuses, dict):
+            return ""
+        parts: list[str] = []
+        for key, label in (
+            ("infect", "Infect"),
+            ("burn", "Burn"),
+            ("bleed", "Bleed"),
+            ("marked", "Marked"),
+            ("suppressed", "Supp"),
+        ):
+            value = int(statuses.get(key, 0) or 0)
+            if value > 0:
+                parts.append(f"{label} {value}")
+        if statuses.get("nullified"):
+            parts.append("Nullified")
+        return " | ".join(parts[:4])
+
+    def _enemy_status_line(self, statuses: dict[str, Any]) -> str:
+        if not isinstance(statuses, dict):
+            return ""
+        parts: list[str] = []
+        for key, label in (
+            ("infect", "Inf"),
+            ("burn", "Burn"),
+            ("fortified", "Fort"),
+            ("regenerate", "Regen"),
+            ("momentum", "Mom"),
+            ("overheat", "Heat"),
+            ("biomass", "Bio"),
+        ):
+            value = int(statuses.get(key, 0) or 0)
+            if value > 0:
+                parts.append(f"{label} {value}")
+        if int(statuses.get("mutated", 0) or 0) > 0:
+            parts.append("Mutated")
+        return " ".join(parts[:3])
+
+    def _render_bark(
+        self,
+        surface: Any,
+        bark: dict[str, Any],
+        enemy_summaries: list[dict[str, Any]],
+    ) -> None:
+        speaker_rect = next(
+            (enemy["rect"] for enemy in enemy_summaries if enemy["id"] == bark.get("speaker_id")),
+            (456, 126, 360, 68),
+        )
+        width = min(340, max(180, self._small_font.size(bark.get("text", ""))[0] + 38))
+        bubble_rect = pygame.Rect(0, 0, width, 56 if bark.get("is_boss") else 48)
+        bubble_rect.midbottom = (speaker_rect[0] + (speaker_rect[2] // 2), speaker_rect[1] - 10)
+        bubble_rect.x = max(24, min(surface.get_width() - bubble_rect.width - 24, bubble_rect.x))
+        bubble_rect.y = max(72, bubble_rect.y)
+        fill = (20, 28, 40) if not bark.get("is_boss") else (32, 20, 42)
+        outline = (182, 202, 230) if not bark.get("is_boss") else (206, 132, 255)
+        pygame.draw.rect(surface, fill, bubble_rect, border_radius=14)
+        pygame.draw.rect(surface, outline, bubble_rect, 2, border_radius=14)
+        self._draw_text(surface, bark.get("text", ""), (bubble_rect.x + 14, bubble_rect.y + 14), self._small_font, width=bubble_rect.width - 28)
 
     def _card_index_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> int | None:
         for card in layout["hand_cards"]:

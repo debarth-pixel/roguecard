@@ -14,6 +14,7 @@ from ui.card_style import (
     resolve_card_theme,
 )
 from ui.render_utils import draw_wrapped_text
+from ui.sprite_sheet_assets import sprite_sheet_assets
 
 _CARD_FONT_CACHE: dict[tuple[int, bool], Any] = {}
 
@@ -220,7 +221,29 @@ def render_card_art_panel(
     art_rect = layout["art_panel"]
     type_theme = card_theme["type_theme"]
     art_palette = card_theme["art_palette"]
+    atlas_surface = _build_atlas_art_surface(art_rect, card_theme, card)
+    if atlas_surface is not None:
+        masked = _mask_surface_to_shape(atlas_surface, card_theme, "art_shape")
+        surface.blit(masked, art_rect.topleft)
+    else:
+        _draw_procedural_art_panel(surface, art_rect, card_theme, art_palette, card)
+    _draw_theme_outline(
+        surface,
+        art_rect,
+        card_theme,
+        type_theme["art_border"],
+        max(1, int(layout["card_rect"].width * 0.009)),
+        shape_key="art_shape",
+    )
 
+
+def _draw_procedural_art_panel(
+    surface: Any,
+    art_rect: Any,
+    card_theme: dict[str, Any],
+    art_palette: dict[str, Any],
+    card: dict[str, Any],
+) -> None:
     _blit_gradient_shape(
         surface,
         art_rect,
@@ -230,14 +253,49 @@ def render_card_art_panel(
         shape_key="art_shape",
     )
     _draw_art_style_overlay(surface, art_rect, card_theme, card)
-    _draw_theme_outline(
-        surface,
-        art_rect,
-        card_theme,
-        type_theme["art_border"],
-        max(1, int(layout["card_rect"].width * 0.009)),
-        shape_key="art_shape",
+
+
+def _build_atlas_art_surface(
+    art_rect: Any,
+    card_theme: dict[str, Any],
+    card: dict[str, Any],
+) -> Any | None:
+    if pygame is None:
+        return None
+
+    art_surface = pygame.Surface(art_rect.size, pygame.SRCALPHA)
+    art_palette = card_theme["art_palette"]
+    top_color = _blend_color(art_palette["art_top"], (18, 24, 32), 0.28)
+    bottom_color = _blend_color(art_palette["art_bottom"], (8, 12, 18), 0.4)
+    _fill_vertical_gradient(art_surface, art_surface.get_rect(), top_color, bottom_color)
+
+    inner_padding = max(8, int(min(art_rect.width, art_rect.height) * 0.07))
+    art_size = (
+        max(8, art_rect.width - (inner_padding * 2)),
+        max(8, art_rect.height - (inner_padding * 2)),
     )
+    atlas_art = sprite_sheet_assets.get_card_art(str(card.get("name", "")), art_size)
+    if atlas_art is None:
+        return None
+
+    art_dest = atlas_art.get_rect(center=(art_rect.width // 2, art_rect.height // 2))
+    art_surface.blit(atlas_art, art_dest)
+
+    vignette = pygame.Surface(art_rect.size, pygame.SRCALPHA)
+    pygame.draw.rect(
+        vignette,
+        (255, 255, 255, 20),
+        pygame.Rect(inner_padding // 2, inner_padding // 2, art_rect.width - inner_padding, max(18, art_rect.height // 3)),
+        border_radius=max(8, int(art_rect.width * 0.08)),
+    )
+    pygame.draw.rect(
+        vignette,
+        (6, 10, 18, 54),
+        pygame.Rect(0, art_rect.height - max(18, art_rect.height // 4), art_rect.width, max(18, art_rect.height // 4)),
+        border_radius=max(10, int(art_rect.width * 0.08)),
+    )
+    art_surface.blit(vignette, (0, 0))
+    return art_surface
 
 
 def render_card_text_regions(

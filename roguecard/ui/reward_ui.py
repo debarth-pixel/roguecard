@@ -603,12 +603,19 @@ class RewardUI:
         active_section: dict[str, Any] | None,
         can_continue: bool,
     ) -> tuple[str, str]:
-        title = "Elite Rewards" if encounter_type == "elite" else "Combat Reward"
+        if encounter_type == "boss":
+            title = "Checkpoint Reward"
+        else:
+            title = "Elite Rewards" if encounter_type == "elite" else "Combat Reward"
         if can_continue:
+            if encounter_type == "boss":
+                return title, "Checkpoint secured. Continue when you are ready to enter the next map."
             return title, "Victory secured. Your rewards are ready and your route is open again."
         if active_section is None:
             return title, "Resolve the remaining reward steps to continue the run."
         if active_section["type"] == "card_offer":
+            if encounter_type == "boss":
+                return title, "Choose the reward that best prepares the next map."
             return title, "Choose the card that best sharpens this run."
         return title, "Take a clean deck if you want it, or skip and keep your momentum."
 

@@ -5,12 +5,26 @@ from typing import Any
 
 from combat.action_resolver import ActionResolver
 from combat.turn_manager import TurnManager
+from config import (
+    BARK_BOSS_DURATION_SECONDS,
+    BARK_COOLDOWN_ACTIONS,
+    BARK_GENERIC_DURATION_SECONDS,
+    BARK_MAX_BOSS_PER_SPEAKER,
+    BARK_MAX_GENERIC_PER_SPEAKER,
+)
+from core.grayspine_content_library import GrayspineContentLibrary
 
 DIRECT_DAMAGE_TYPES = {"damage", "multi_damage", "lifesteal_damage"}
 
 
 class CombatManager:
-    def __init__(self, player: Any, enemies: list[Any], rng: random.Random | None = None) -> None:
+    def __init__(
+        self,
+        player: Any,
+        enemies: list[Any],
+        rng: random.Random | None = None,
+        bark_source: Any | None = None,
+    ) -> None:
         self.player = player
         self.enemies = enemies
         self.rng = rng or random.Random()
@@ -18,6 +32,19 @@ class CombatManager:
         self.turn_manager = TurnManager()
         self.combat_active = False
         self.event_log: list[dict[str, Any]] = []
+        self.active_bark: dict[str, Any] | None = None
+        self._bark_source = bark_source or GrayspineContentLibrary()
+        self._bark_nonce = 0
+        self._bark_cooldown_remaining = 0
+        self._speaker_bark_counts: dict[str, int] = {}
+        self._enemy_factory: Any | None = None
+        self._defeated_enemy_ids: set[str] = set()
+        self._player_cards_played_this_turn = 0
+        self._player_cards_played_last_turn = 0
+        self._player_block_cards_this_turn = 0
+        self._last_player_card_type: str | None = None
+        self._enemy_attacks_this_round: dict[str, int] = {}
+        self._blackwire_command_net_used = False
 
     def start_combat(self) -> dict[str, Any]:
         if self.player.deck_manager is None:
@@ -27,12 +54,25 @@ class CombatManager:
 
         self.turn_manager = TurnManager()
         self.player.start_combat()
+        self.active_bark = None
+        self._bark_nonce = 0
+        self._bark_cooldown_remaining = 0
+        self._speaker_bark_counts = {}
+        self._defeated_enemy_ids = set()
+        self._player_cards_played_this_turn = 0
+        self._player_cards_played_last_turn = 0
+        self._player_block_cards_this_turn = 0
+        self._last_player_card_type = None
+        self._enemy_attacks_this_round = {}
+        self._blackwire_command_net_used = False
         for enemy in self.enemies:
             enemy.reset_for_combat()
-            enemy.choose_intent()
+            self._apply_enemy_spawn_rules(enemy)
+            enemy.choose_intent(self)
 
         self.combat_active = True
         self.event_log.clear()
+        self._emit_encounter_start_bark()
         opening_turn = self._start_player_turn()
         return {"combat_active": self.combat_active, "opening_turn": opening_turn}
 
@@ -41,6 +81,15 @@ class CombatManager:
             raise ValueError("Cannot end a turn outside of active combat.")
 
         self.turn_manager.end_player_turn(self.player)
+        self._player_cards_played_last_turn = self._player_cards_played_this_turn
+        self._player_cards_played_this_turn = 0
+        if self._player_block_cards_this_turn >= 2:
+            for enemy in self._living_enemies():
+                if enemy.id == "toll_reeve":
+                    enemy.adjust_strength(1)
+                    break
+        self._player_block_cards_this_turn = 0
+        self._enemy_attacks_this_round = {}
         turn_end_logs = self._resolve_hook_sources(
             self.player.active_powers,
             "turn_end",
@@ -48,14 +97,23 @@ class CombatManager:
         )
         if turn_end_logs:
             self.event_log.extend(turn_end_logs)
+        self._resolve_player_end_of_turn_statuses()
+        if not self.player.is_alive():
+            self.combat_active = False
+            return {"combat_active": self.combat_active, "enemy_results": []}
 
         enemy_results: list[dict[str, Any]] = []
-        for enemy in self._living_enemies():
+        for enemy in list(self._living_enemies()):
             self.turn_manager.start_enemy_turn(enemy)
-            intent = enemy.current_intent or enemy.choose_intent()
+            self._resolve_enemy_turn_start_effects(enemy)
+            if not enemy.is_alive():
+                self._handle_enemy_defeat(enemy)
+                continue
+            intent = enemy.current_intent or enemy.choose_intent(self)
             resolution = enemy.execute_intent(self.action_resolver, self.player, combat_manager=self)
             enemy_results.append({"enemy_id": enemy.id, "resolution": resolution})
             self.event_log.append(self._enemy_event_entry(enemy=enemy, intent=intent, resolution=resolution))
+            self._resolve_enemy_end_of_turn_effects(enemy)
             if not self.player.is_alive():
                 self.combat_active = False
                 return {"combat_active": self.combat_active, "enemy_results": enemy_results}
@@ -65,7 +123,7 @@ class CombatManager:
             return {"combat_active": self.combat_active, "enemy_results": enemy_results}
 
         for enemy in self._living_enemies():
-            enemy.choose_intent()
+            enemy.choose_intent(self)
 
         next_turn = self._start_player_turn()
         return {
@@ -142,6 +200,12 @@ class CombatManager:
         self.player.first_card_played = True
         if card.type == "attack":
             self.player.first_attack_played = True
+        if self._last_player_card_type == card.type:
+            for enemy in self._living_enemies():
+                if enemy.id == "spine_warden_null":
+                    enemy.adjust_strength(1)
+                    break
+        self._last_player_card_type = card.type
 
         event_entry = {
             "type": "card",
@@ -154,6 +218,8 @@ class CombatManager:
         }
         self.event_log.append(event_entry)
         self.event_log.extend(hook_logs)
+        self._player_cards_played_this_turn += 1
+        self._advance_bark_cooldown()
 
         if not self._living_enemies():
             self.combat_active = False
@@ -175,7 +241,27 @@ class CombatManager:
 
     def apply_damage(self, source: Any, target: Any, amount: int) -> int:
         adjusted = self._adjust_attack_amount(source, target, amount)
-        return target.take_damage(adjusted)
+        if getattr(source, "faction_id", None) == "blackwire_directorate" and hasattr(target, "marked"):
+            adjusted += getattr(target, "marked", 0) * 2
+            if hasattr(target, "consume_marked_for_hit"):
+                target.consume_marked_for_hit(1)
+        if hasattr(source, "get_status"):
+            adjusted += source.get_status("momentum")
+        applied = target.take_damage(adjusted)
+        bleed_bonus = self._apply_bleed_bonus(target)
+        total_applied = applied + bleed_bonus
+        if hasattr(source, "get_status") and source.get_status("momentum") > 0:
+            source.clear_status("momentum")
+        if hasattr(target, "check_phase_transition"):
+            phase_rule = target.check_phase_transition()
+            if phase_rule is not None:
+                self._handle_enemy_phase_change(target, phase_rule)
+            if target.is_alive() and not target.low_hp_bark_fired() and target.current_hp <= max(1, target.max_hp // 3):
+                target.mark_low_hp_bark_fired()
+                self._maybe_emit_bark(target, "low_hp")
+        if hasattr(target, "is_alive") and not target.is_alive():
+            self._handle_enemy_defeat(target)
+        return total_applied
 
     def get_state(self) -> dict[str, Any]:
         return {
@@ -186,6 +272,7 @@ class CombatManager:
             "enemies": [enemy.get_state() for enemy in self.enemies],
             "living_enemy_ids": [enemy.id for enemy in self._living_enemies()],
             "event_log": list(self.event_log),
+            "active_bark": None if self.active_bark is None else dict(self.active_bark),
         }
 
     def get_enemy(self, enemy_id: str) -> Any | None:
@@ -194,11 +281,539 @@ class CombatManager:
                 return enemy
         return None
 
+    def set_enemy_factory(self, factory: Any) -> None:
+        self._enemy_factory = factory
+
+    def living_enemy_count(self) -> int:
+        return len(self._living_enemies())
+
+    def any_ally_missing_hp(self, source_enemy: Any) -> bool:
+        return any(
+            enemy.is_alive() and enemy.current_hp < enemy.max_hp
+            for enemy in self._allies_for(source_enemy)
+        )
+
+    def any_ally_debuffed(self, source_enemy: Any) -> bool:
+        return any(
+            enemy.is_alive() and (enemy.weak > 0 or enemy.vulnerable > 0)
+            for enemy in self._allies_for(source_enemy)
+        )
+
+    def any_other_ally_present(self, source_enemy: Any) -> bool:
+        return any(
+            enemy.is_alive() and enemy is not source_enemy
+            for enemy in self._allies_for(source_enemy)
+        )
+
+    def allies_attacked_this_turn(self, source_enemy: Any) -> int:
+        return int(self._enemy_attacks_this_round.get(getattr(source_enemy, "faction_id", ""), 0))
+
+    def ally_id_present(self, source_enemy: Any, ally_id: str) -> bool:
+        return any(
+            enemy.is_alive() and enemy.id == ally_id and enemy is not source_enemy
+            for enemy in self._allies_for(source_enemy)
+        )
+
+    def player_cards_played_last_turn(self) -> int:
+        return int(self._player_cards_played_last_turn)
+
+    def resolve_enemy_intent(
+        self,
+        enemy: Any,
+        move: dict[str, Any],
+        default_target: Any,
+        action_resolver: Any,
+    ) -> dict[str, Any]:
+        move = self._effective_enemy_move(enemy, move)
+        target = self._resolve_enemy_target(enemy, move, default_target)
+        logged_resolutions: list[dict[str, Any]] = []
+        for effect in move.get("effects", []):
+            target_override = self._resolve_enemy_effect_target(enemy, effect, target)
+            logged_resolutions.extend(
+                self._resolve_enemy_effect(enemy, effect, target_override, action_resolver)
+            )
+        self._apply_enemy_move_aftereffects(enemy, move)
+        bark_trigger = move.get("bark_trigger")
+        if isinstance(bark_trigger, str):
+            self._maybe_emit_bark(enemy, bark_trigger)
+        if enemy._intent_category(move) == "attack":
+            faction_id = getattr(enemy, "faction_id", "")
+            self._enemy_attacks_this_round[faction_id] = self._enemy_attacks_this_round.get(faction_id, 0) + 1
+            if faction_id == "cinder_jackals":
+                for ally in self._allies_for(enemy):
+                    if ally.is_alive() and ally.id == "ashfang_rook" and ally is not enemy:
+                        ally.apply_status("momentum", 1)
+        self._advance_bark_cooldown()
+        return {
+            "intent_id": move["id"],
+            "target": getattr(target, "id", "player"),
+            "resolutions": logged_resolutions,
+            "summary": move.get("intent_text", move["id"]),
+        }
+
+    def _effective_enemy_move(self, enemy: Any, move: dict[str, Any]) -> dict[str, Any]:
+        effective_move = {
+            **move,
+            "effects": [dict(effect) for effect in move.get("effects", [])],
+        }
+        move_id = effective_move.get("id")
+
+        if enemy.id == "culture_shepherd" and move_id == "feed_the_vat" and self.ally_id_present(enemy, "sludge_whelp"):
+            effective_move["effects"].append({"type": "enemy_heal_ally", "value": 6, "target": "self"})
+        elif enemy.id == "failed_saint" and move_id == "burst_graft" and getattr(self.player, "infect", 0) >= 4:
+            effective_move["effects"].append({"type": "enemy_trigger_infection_burst", "value": 4, "target": "player"})
+        elif enemy.id == "audit_hound" and move_id == "intercept" and self._player_cards_played_last_turn >= 4:
+            for effect in effective_move["effects"]:
+                if effect.get("type") == "enemy_damage":
+                    effect["value"] = int(effect.get("value", 0)) + 2
+        elif enemy.id == "chain_brute" and move_id == "follow_through" and self.allies_attacked_this_turn(enemy) >= 1:
+            for effect in effective_move["effects"]:
+                if effect.get("type") == "enemy_damage":
+                    effect["value"] = int(effect.get("value", 0)) + 6
+        elif enemy.id == "road_hyena" and move_id == "frenzy":
+            if getattr(self.player, "bleed", 0) > 0 or self.player.current_hp <= (self.player.max_hp // 2):
+                for effect in effective_move["effects"]:
+                    if effect.get("type") == "enemy_damage":
+                        effect["value"] = int(effect.get("value", 0)) + 1
+        elif enemy.id == "scavver" and move_id == "pack_jab" and self.allies_attacked_this_turn(enemy) >= 1:
+            effective_move["effects"].append({"type": "enemy_apply_momentum", "value": 2, "target": "self"})
+        elif enemy.id == "scrap_gunner" and move_id == "heavy_round" and len(self._living_enemies()) >= 3:
+            for effect in effective_move["effects"]:
+                if effect.get("type") == "enemy_damage":
+                    effect["value"] = 19
+        elif enemy.id == "ashfang_rook" and move_id == "bleed_the_weak":
+            if getattr(self.player, "bleed", 0) > 0 or self.player.current_hp <= (self.player.max_hp // 2):
+                for effect in effective_move["effects"]:
+                    if effect.get("type") == "enemy_damage":
+                        effect["value"] = 20
+        elif enemy.id == "director_vale" and move_id == "kill_authority" and getattr(self.player, "marked", 0) > 0:
+            effective_move["effects"].append({"type": "enemy_apply_suppressed", "value": 2, "target": "player"})
+        elif enemy.id == "furnace_hound" and move_id == "boiler_spit":
+            effective_move["effects"].append(
+                {
+                    "type": "enemy_apply_burn",
+                    "value": max(0, enemy.get_status("overheat")),
+                    "target": "player",
+                }
+            )
+        elif enemy.id == "furnace_hound" and move_id == "redline_charge":
+            bonus = max(0, enemy.get_status("overheat")) * 2
+            for effect in effective_move["effects"]:
+                if effect.get("type") == "enemy_damage":
+                    effect["value"] = int(effect.get("value", 0)) + bonus
+        elif enemy.id == "miremother_vexa" and move_id == "biomass_collapse" and enemy.get_status("biomass") >= 3:
+            effective_move["effects"].append({"type": "enemy_trigger_infection_burst", "value": 1, "target": "player"})
+
+        return effective_move
+
+    def _apply_enemy_move_aftereffects(self, enemy: Any, move: dict[str, Any]) -> None:
+        move_id = move.get("id")
+        if enemy.id == "furnace_hound" and move_id == "boiler_spit":
+            enemy.consume_status("overheat", 1)
+        elif enemy.id == "furnace_hound" and move_id == "redline_charge":
+            enemy.clear_status("overheat")
+        elif enemy.id == "miremother_vexa" and move_id == "biomass_collapse" and enemy.get_status("biomass") >= 3:
+            enemy.clear_status("biomass")
+
+    def _resolve_enemy_target(self, enemy: Any, move: dict[str, Any], default_target: Any) -> Any:
+        target_kind = move.get("target", "player")
+        if target_kind == "player":
+            return self.player
+        if target_kind == "self":
+            return enemy
+        allies = [ally for ally in self._allies_for(enemy) if ally.is_alive()]
+        if not allies:
+            return enemy
+        if target_kind in {"most_damaged_ally", "lowest_hp_ally"}:
+            return min(allies, key=lambda ally: ally.current_hp / max(1, ally.max_hp))
+        if target_kind == "most_debuffed_ally":
+            ranked = sorted(
+                allies,
+                key=lambda ally: (ally.weak + ally.vulnerable, ally.max_hp - ally.current_hp),
+                reverse=True,
+            )
+            return ranked[0]
+        return default_target
+
+    def _resolve_enemy_effect_target(self, enemy: Any, effect: dict[str, Any], current_target: Any) -> Any:
+        target_kind = effect.get("target")
+        if target_kind is None:
+            return current_target
+        if target_kind == "self":
+            return enemy
+        if target_kind == "player":
+            return self.player
+        return current_target
+
+    def _resolve_enemy_effect(
+        self,
+        enemy: Any,
+        effect: dict[str, Any],
+        target: Any,
+        action_resolver: Any,
+    ) -> list[dict[str, Any]]:
+        effect_type = effect["type"]
+        value = int(effect.get("value", 0))
+        results: list[dict[str, Any]] = []
+
+        if effect_type == "enemy_damage":
+            hit_count = int(effect.get("count", 1))
+            for _ in range(hit_count):
+                applied = self.apply_damage(enemy, target, value)
+                results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_block":
+            applied = target.gain_block(value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_heal_ally":
+            applied = target.heal(value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_infect":
+            if hasattr(target, "apply_infect"):
+                applied = target.apply_infect(value)
+            else:
+                applied = target.apply_status("infect", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_marked":
+            if hasattr(target, "apply_marked"):
+                applied = target.apply_marked(value)
+            else:
+                applied = target.apply_status("marked", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_suppressed":
+            if hasattr(target, "apply_suppressed"):
+                applied = target.apply_suppressed(value)
+            else:
+                applied = target.apply_status("suppressed", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_burn":
+            if hasattr(target, "apply_burn"):
+                applied = target.apply_burn(value)
+            else:
+                applied = target.apply_status("burn", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_bleed":
+            if hasattr(target, "apply_bleed"):
+                applied = target.apply_bleed(value)
+            else:
+                applied = target.apply_status("bleed", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_nullified":
+            if hasattr(target, "apply_nullified"):
+                target.apply_nullified()
+                applied = 1
+            else:
+                applied = target.set_status("nullified", 1)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_strip_buff":
+            if hasattr(target, "strip_enemy_buff"):
+                stripped = target.strip_enemy_buff()
+                applied = 0 if stripped == "none" else 1
+            else:
+                applied = 0
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_cleanse_ally":
+            applied = target.cleanse_debuffs(value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_summon":
+            enemy_id = effect.get("enemy_id")
+            summon_count = int(effect.get("count", 1))
+            summoned = self._summon_enemies(enemy, enemy_id, summon_count)
+            results.append(self._resolution_record(effect_type, summon_count, summoned, enemy, echoed=False))
+            return results
+
+        if effect_type == "enemy_gain_strength":
+            applied = target.adjust_strength(value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_regenerate":
+            applied = target.apply_status("regenerate", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_fortified":
+            applied = target.apply_status("fortified", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_momentum":
+            applied = target.apply_status("momentum", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_momentum_allies":
+            applied = 0
+            for ally in self._allies_for(enemy):
+                if ally.is_alive():
+                    ally.apply_status("momentum", value)
+                    applied += 1
+            results.append(self._resolution_record(effect_type, value, applied, enemy, echoed=False))
+            return results
+
+        if effect_type == "enemy_block_allies":
+            applied = 0
+            for ally in self._allies_for(enemy):
+                if ally.is_alive():
+                    ally.gain_block(value)
+                    applied += 1
+            results.append(self._resolution_record(effect_type, value, applied, enemy, echoed=False))
+            return results
+
+        if effect_type == "enemy_trigger_infection_burst":
+            applied = 0
+            if hasattr(target, "infect") and getattr(target, "infect", 0) >= max(1, value):
+                target.lose_hp(4)
+                target.infect = 3
+                applied = 4
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_steal_block":
+            stolen = min(max(0, int(value)), max(0, getattr(target, "block", 0)))
+            if stolen > 0:
+                target.block -= stolen
+                enemy.gain_block(stolen)
+            results.append(self._resolution_record(effect_type, value, stolen, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_overheat":
+            applied = target.apply_status("overheat", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_biomass":
+            applied = target.apply_status("biomass", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        results.append(self._resolution_record(effect_type, value, 0, target, echoed=False))
+        return results
+
+    def _summon_enemies(self, source_enemy: Any, enemy_id: Any, count: int) -> int:
+        if self._enemy_factory is None or not isinstance(enemy_id, str) or count <= 0:
+            return 0
+        living = self.living_enemy_count()
+        available_slots = max(0, 5 - living)
+        summon_total = min(count, available_slots)
+        for _ in range(summon_total):
+            summoned = self._enemy_factory(enemy_id)
+            summoned.reset_for_combat()
+            self._apply_enemy_spawn_rules(summoned)
+            if (
+                not self._blackwire_command_net_used
+                and summoned.id in {"patrol_drone", "sentry_node"}
+                and any(ally.is_alive() and ally.id == "director_vale" for ally in self._living_enemies())
+            ):
+                summoned.apply_status("fortified", 4)
+                self._blackwire_command_net_used = True
+            self.enemies.append(summoned)
+        if summon_total < count:
+            self._apply_summon_overflow_fallback(source_enemy)
+        return summon_total
+
+    def _apply_summon_overflow_fallback(self, source_enemy: Any) -> None:
+        if source_enemy.faction_id == "helix_ward":
+            source_enemy.heal(8)
+            return
+        if source_enemy.faction_id == "blackwire_directorate":
+            for ally in self._allies_for(source_enemy):
+                if ally.is_alive() and ally.id in {"patrol_drone", "sentry_node"}:
+                    ally.gain_block(4)
+            return
+        source_enemy.adjust_strength(2)
+
+    def _allies_for(self, source_enemy: Any) -> list[Any]:
+        return [
+            enemy
+            for enemy in self.enemies
+            if getattr(enemy, "faction_id", None) == getattr(source_enemy, "faction_id", None)
+        ]
+
+    def _resolve_player_end_of_turn_statuses(self) -> None:
+        if self.player.infect > 0:
+            self.player.lose_hp(self.player.infect)
+            if self.player.infect >= 6:
+                self.player.lose_hp(4)
+                self.player.infect = 3
+        if self.player.burn > 0:
+            self.player.lose_hp(self.player.burn)
+            self.player.burn = max(0, self.player.burn - 1)
+        self.player.tick_marked_turns()
+        self.player.clear_suppressed()
+
+    def _clear_expired_player_statuses_for_turn_start(self) -> None:
+        if self.player.marked == 0:
+            self.player.marked_turns = 0
+
+    def _resolve_enemy_turn_start_effects(self, enemy: Any) -> None:
+        fortified = enemy.get_status("fortified")
+        if fortified > 0:
+            enemy.gain_block(min(12, fortified))
+        regenerate = enemy.get_status("regenerate")
+        if regenerate > 0:
+            enemy.heal(regenerate)
+            enemy.consume_status("regenerate", 1)
+        if enemy.id == "graft_saint":
+            enemy.heal(10 if enemy.get_status("mutated") > 0 else 6)
+
+    def _resolve_enemy_end_of_turn_effects(self, enemy: Any) -> None:
+        if not enemy.is_alive():
+            return
+        infect = enemy.get_status("infect")
+        if infect > 0:
+            enemy.lose_hp(infect)
+            if infect >= 6:
+                enemy.lose_hp(4)
+                enemy.set_status("infect", 3)
+        burn = enemy.get_status("burn")
+        if burn > 0:
+            enemy.lose_hp(burn)
+            enemy.consume_status("burn", 1)
+        enemy.clear_status("momentum")
+        if enemy.id == "furnace_hound":
+            enemy.apply_status("overheat", 1)
+        if not enemy.is_alive():
+            self._handle_enemy_defeat(enemy)
+
+    def _apply_enemy_spawn_rules(self, enemy: Any) -> None:
+        if enemy.id == "audit_hound":
+            enemy.apply_status("fortified", 4)
+        elif enemy.id == "sentry_node":
+            enemy.apply_status("fortified", 3)
+        elif enemy.id == "compliance_engine_ax9":
+            enemy.gain_block(20)
+            enemy.apply_status("fortified", 8)
+        elif enemy.id == "junction_9_sentinel":
+            enemy.apply_status("fortified", 6)
+
+    def _apply_bleed_bonus(self, target: Any) -> int:
+        if hasattr(target, "bleed") and getattr(target, "bleed", 0) > 0:
+            bonus = int(target.bleed)
+            target.bleed = max(0, target.bleed - 1)
+            target.lose_hp(bonus)
+            return bonus
+        if hasattr(target, "get_status") and target.get_status("bleed") > 0:
+            bonus = target.get_status("bleed")
+            target.consume_status("bleed", 1)
+            target.lose_hp(bonus)
+            if not target.is_alive():
+                self._handle_enemy_defeat(target)
+            return bonus
+        return 0
+
+    def _handle_enemy_phase_change(self, enemy: Any, phase_rule: dict[str, Any]) -> None:
+        enemy.apply_status("mutated", 1)
+        if enemy.id == "gland_brute":
+            enemy.adjust_strength(3)
+        elif enemy.id == "failed_saint":
+            enemy.apply_status("regenerate", 3)
+        elif enemy.id == "graft_saint":
+            enemy.adjust_strength(3)
+        elif enemy.id == "director_vale":
+            enemy.adjust_strength(1)
+        elif enemy.id == "furnace_hound":
+            enemy.adjust_strength(2)
+        bark_trigger = phase_rule.get("bark_trigger")
+        if isinstance(bark_trigger, str):
+            self._maybe_emit_bark(enemy, bark_trigger)
+
+    def _handle_enemy_defeat(self, enemy: Any) -> None:
+        if enemy.id in self._defeated_enemy_ids:
+            return
+        self._defeated_enemy_ids.add(enemy.id)
+        for effect in enemy.death_effects:
+            target = self.player if effect.get("target") == "player" else enemy
+            self._resolve_enemy_effect(enemy, effect, target, self.action_resolver)
+        for ally in self._living_enemies():
+            if ally is enemy or ally.faction_id != enemy.faction_id:
+                continue
+            if enemy.id in {"sludge_whelp", "patrol_drone", "scavver"} and ally.id == "miremother_vexa":
+                ally.apply_status("biomass", 1)
+            for effect in ally.ally_death_effects:
+                target = ally if effect.get("target", "self") == "self" else self.player
+                self._resolve_enemy_effect(ally, effect, target, self.action_resolver)
+        speaker = next((ally for ally in self._living_enemies() if ally.faction_id == enemy.faction_id), None)
+        if speaker is not None:
+            self._maybe_emit_bark(speaker, "ally_death")
+
+    def _emit_encounter_start_bark(self) -> None:
+        speaker = next((enemy for enemy in self._living_enemies() if enemy.is_boss), None)
+        if speaker is None:
+            living = self._living_enemies()
+            speaker = living[0] if living else None
+        if speaker is not None:
+            self._maybe_emit_bark(speaker, "start", force=True)
+
+    def _maybe_emit_bark(self, speaker: Any, trigger: str, *, force: bool = False) -> None:
+        if speaker is None:
+            return
+        speaker_key = f"{speaker.id}:{trigger}"
+        limit = BARK_MAX_BOSS_PER_SPEAKER if speaker.is_boss else BARK_MAX_GENERIC_PER_SPEAKER
+        if not force:
+            if self._bark_cooldown_remaining > 0:
+                return
+            if self._speaker_bark_counts.get(speaker_key, 0) >= limit:
+                return
+        lines = self._bark_lines_for_speaker(speaker, trigger)
+        if not lines:
+            return
+        line = self.rng.choice(lines)
+        self._speaker_bark_counts[speaker_key] = self._speaker_bark_counts.get(speaker_key, 0) + 1
+        self._bark_nonce += 1
+        self.active_bark = {
+            "id": self._bark_nonce,
+            "speaker_id": speaker.id,
+            "speaker_name": speaker.name,
+            "text": line,
+            "is_boss": bool(speaker.is_boss),
+            "duration": BARK_BOSS_DURATION_SECONDS if speaker.is_boss else BARK_GENERIC_DURATION_SECONDS,
+        }
+        self._bark_cooldown_remaining = 0 if force else BARK_COOLDOWN_ACTIONS
+
+    def _bark_lines_for_speaker(self, speaker: Any, trigger: str) -> list[str]:
+        try:
+            return self._bark_source.bark_lines(
+                boss_id=speaker.id if speaker.is_boss else None,
+                faction_id=speaker.faction_id if speaker.faction_id != "legacy" else None,
+                trigger=trigger,
+            )
+        except Exception:
+            return []
+
+    def _advance_bark_cooldown(self) -> None:
+        if self._bark_cooldown_remaining > 0:
+            self._bark_cooldown_remaining -= 1
+            if self._bark_cooldown_remaining == 0:
+                self.active_bark = None
+
     def _start_player_turn(self) -> dict[str, Any]:
         turn_summary = self.turn_manager.start_player_turn(self.player)
         hook_logs = self._resolve_hook_sources(self.player.active_powers, "turn_start", {})
         if hook_logs:
             self.event_log.extend(hook_logs)
+        self._clear_expired_player_statuses_for_turn_start()
         drawn_cards = self.draw_cards(self.player, self.player.draw_per_turn)
         turn_summary["drawn_cards"] = [card.id for card in drawn_cards]
         return turn_summary
@@ -218,14 +833,14 @@ class CombatManager:
 
         if effect_type == "damage":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
-            base_value = effect["value"] + damage_bonus
+            base_value = self._player_effect_damage(card, effect["value"], damage_bonus)
             applied = self.apply_damage(self.player, target, base_value)
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             return results, block_penalty
 
         if effect_type == "multi_damage":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
-            base_value = effect["value"] + damage_bonus
+            base_value = self._player_effect_damage(card, effect["value"], damage_bonus)
             for _ in range(effect["count"]):
                 applied = self.apply_damage(self.player, target, base_value)
                 results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
@@ -233,7 +848,7 @@ class CombatManager:
 
         if effect_type == "lifesteal_damage":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
-            base_value = effect["value"] + damage_bonus
+            base_value = self._player_effect_damage(card, effect["value"], damage_bonus)
             applied = self.apply_damage(self.player, target, base_value)
             healed = self.player.heal(applied)
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
@@ -242,12 +857,17 @@ class CombatManager:
 
         if effect_type == "block":
             target = self._resolve_effect_target(effect, explicit_target, default_target="self")
+            if target is self.player and self._player_positive_status_blocked("block", effect["value"]):
+                results.append(self._resolution_record(effect_type, effect["value"], 0, target, echoed=echoed))
+                return results, block_penalty
             value = effect["value"]
             if block_penalty > 0:
                 reduction = min(block_penalty, value)
                 value = max(0, value - reduction)
                 block_penalty -= reduction
             applied = target.gain_block(value)
+            if target is self.player and applied > 0:
+                self._player_block_cards_this_turn += 1
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             return results, block_penalty
 
@@ -278,6 +898,9 @@ class CombatManager:
 
         if effect_type == "gain_strength":
             target = self._resolve_effect_target(effect, explicit_target, default_target="self")
+            if target is self.player and self._player_positive_status_blocked("gain_strength", effect["value"]):
+                results.append(self._resolution_record(effect_type, effect["value"], 0, target, echoed=echoed))
+                return results, block_penalty
             target.adjust_strength(effect["value"])
             results.append(self._resolution_record(effect_type, effect["value"], effect["value"], target, echoed=echoed))
             return results, block_penalty
@@ -295,11 +918,17 @@ class CombatManager:
             return results, block_penalty
 
         if effect_type == "modify_next_card_cost":
+            if self._player_positive_status_blocked("modify_next_card_cost", effect["value"]):
+                results.append(self._resolution_record(effect_type, effect["value"], 0, self.player, echoed=echoed))
+                return results, block_penalty
             total = self.player.adjust_next_card_cost(effect["value"])
             results.append(self._resolution_record(effect_type, effect["value"], total, self.player, echoed=echoed))
             return results, block_penalty
 
         if effect_type == "modify_next_attack_damage":
+            if self._player_positive_status_blocked("modify_next_attack_damage", effect["value"]):
+                results.append(self._resolution_record(effect_type, effect["value"], 0, self.player, echoed=echoed))
+                return results, block_penalty
             total = self.player.adjust_next_attack_damage(effect["value"])
             results.append(self._resolution_record(effect_type, effect["value"], total, self.player, echoed=echoed))
             return results, block_penalty
@@ -466,6 +1095,26 @@ class CombatManager:
             adjusted = int(adjusted * 1.5)
         return adjusted
 
+    def _player_effect_damage(self, card: Any, base_value: int, damage_bonus: int) -> int:
+        adjusted = base_value + damage_bonus
+        if getattr(card, "type", "") == "attack" and getattr(self.player, "suppressed", 0) > 0:
+            multiplier = max(0.1, 1.0 - (0.15 * self.player.suppressed))
+            adjusted = max(1, int(adjusted * multiplier))
+        return adjusted
+
+    def _player_positive_status_blocked(self, effect_type: str, value: int) -> bool:
+        if not getattr(self.player, "nullified", False):
+            return False
+        blocked = (
+            (effect_type == "block" and value > 0)
+            or (effect_type == "gain_strength" and value > 0)
+            or (effect_type == "modify_next_attack_damage" and value > 0)
+            or (effect_type == "modify_next_card_cost" and value < 0)
+        )
+        if blocked:
+            self.player.consume_nullified()
+        return blocked
+
     def _create_status_card(self, card_id: str) -> Any:
         if self.player.deck_manager is None:
             raise ValueError("Cannot create status cards without a deck manager.")
@@ -519,16 +1168,18 @@ class CombatManager:
         return living[0] if living else None
 
     def _enemy_event_entry(self, enemy: Any, intent: str, resolution: dict[str, Any]) -> dict[str, Any]:
-        target_id = "player" if intent == "attack" else enemy.id
-        logged_resolution = {**resolution, "target": target_id}
+        logged_resolution = {**resolution, "target": resolution.get("target", "player")}
         return {
             "type": "intent",
             "source": enemy.id,
             "label": enemy.name,
             "card_id": enemy.id,
             "intent": intent,
-            "resolutions": [logged_resolution],
-            "summary": self._summarize_event(label=f"{enemy.name} {intent}", resolutions=[logged_resolution]),
+            "resolutions": resolution.get("resolutions", [logged_resolution]),
+            "summary": resolution.get(
+                "summary",
+                self._summarize_event(label=f"{enemy.name} {intent}", resolutions=resolution.get("resolutions", [logged_resolution])),
+            ),
         }
 
     def _summarize_event(

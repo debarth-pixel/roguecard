@@ -70,6 +70,9 @@ def simulate_run_pacing(seed_count: int = 200, start_seed: int = 1) -> dict[str,
 def _simulate_single_run(seed: int, modifiers_by_name: dict[str, dict[str, Any]]) -> dict[str, Any]:
     manager = StateManager()
     snapshot = manager.start_new_run(seed=seed)
+    if snapshot["current_state"] == "character_select":
+        manager.select_character("operator")
+        snapshot = manager.confirm_character_selection()
 
     totals: Counter[str] = Counter()
     event_rarity_distribution: Counter[str] = Counter()

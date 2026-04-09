@@ -62,8 +62,11 @@ class GameLoop:
         self._fullscreen = DEFAULT_FULLSCREEN
         self._fast_mode = DEFAULT_FAST_MODE
         self._pause_open = False
+        self._intel_open = False
+        self._intel_selected_faction: str | None = None
         self._settings_open = False
         self._settings_page = "general"
+        self._intel_return_to_pause = False
         self._settings_return_to_pause = False
         self._presentation_scale = DEFAULT_PRESENTATION_SCALE
         self._ui_scale = DEFAULT_UI_SCALE
@@ -150,11 +153,14 @@ class GameLoop:
         if action_type in {
             "pause_open",
             "pause_continue",
+            "pause_open_intel",
             "pause_open_settings",
             "pause_home",
             "pause_quit",
         }:
             return self._handle_pause_action(action, screen)
+        if action_type in {"intel_open", "intel_close", "intel_select_faction"}:
+            return self._handle_intel_action(action, screen)
 
         if self._action_uses_cooldown(action_type) and self._interaction_cooldown > 0:
             return screen
@@ -293,6 +299,9 @@ class GameLoop:
             self._set_notice("Resumed.", duration=1.2)
             return screen
 
+        if action_type == "pause_open_intel":
+            return self._open_intel(screen, from_pause=True)
+
         if action_type == "pause_open_settings":
             self._toggle_settings(True, page="general", from_pause=True)
             return screen
@@ -311,6 +320,46 @@ class GameLoop:
             return screen
 
         self._trigger_denial_feedback(f"Unsupported pause action: {action_type}")
+        return screen
+
+    def _handle_intel_action(self, action: dict[str, Any], screen: Any) -> Any:
+        action_type = action["type"]
+
+        if action_type == "intel_open":
+            return self._open_intel(screen, from_pause=self._pause_open)
+
+        if action_type == "intel_close":
+            self._intel_open = False
+            return_to_pause = self._intel_return_to_pause
+            self._intel_return_to_pause = False
+            self._pause_open = return_to_pause
+            return screen
+
+        if action_type == "intel_select_faction":
+            faction_id = action.get("faction_id")
+            if not isinstance(faction_id, str) or not faction_id:
+                self._trigger_denial_feedback("Intel selection is missing a faction id.")
+                return screen
+            self._intel_selected_faction = faction_id
+            return screen
+
+        self._trigger_denial_feedback(f"Unsupported intel action: {action_type}")
+        return screen
+
+    def _open_intel(self, screen: Any, *, from_pause: bool) -> Any:
+        intel_state = self._snapshot_with_hand().get("grayspine_intel")
+        if not isinstance(intel_state, dict):
+            self._set_notice("Grayspine intel unlocks in the final map.", duration=1.8)
+            return screen
+        self._intel_open = True
+        self._intel_return_to_pause = bool(from_pause)
+        self._pause_open = False
+        if self._intel_selected_faction is None:
+            selected_faction_id = intel_state.get("selected_faction_id")
+            if isinstance(selected_faction_id, str) and selected_faction_id:
+                self._intel_selected_faction = selected_faction_id
+        self.animator.trigger("select")
+        self.audio_manager.trigger("menu_open")
         return screen
 
     def _apply_feedback(
@@ -546,6 +595,9 @@ class GameLoop:
             if self._settings_open:
                 self._toggle_settings(False)
                 return screen, True
+            if self._intel_open:
+                self._dispatch_action({"type": "intel_close"}, screen)
+                return screen, True
             if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
                 self._pause_open = not self._pause_open
                 self.animator.trigger("select")
@@ -563,7 +615,10 @@ class GameLoop:
 
         if event.key == pygame.K_i:
             if current_state in {"map", "combat", "reward", "shop", "event", "modifier_draft"}:
-                self._set_notice("Hover the status icons in the top bar to inspect them.", duration=1.8)
+                if self._intel_open:
+                    self._dispatch_action({"type": "intel_close"}, screen)
+                else:
+                    self._dispatch_action({"type": "intel_open"}, screen)
             return screen, True
 
         if event.key == pygame.K_s:
@@ -699,6 +754,8 @@ class GameLoop:
             "fullscreen": self._fullscreen,
             "fast_mode": self._fast_mode,
             "pause_open": self._pause_open,
+            "intel_open": self._intel_open,
+            "intel_selected_faction": self._intel_selected_faction,
             "settings_open": self._settings_open,
             "settings_page": self._settings_page,
             "presentation_scale": round(self._presentation_scale, 2),
@@ -1028,8 +1085,11 @@ class GameLoop:
         self._title_active = True
         self._title_confirm_new_run = False
         self._pause_open = False
+        self._intel_open = False
+        self._intel_selected_faction = None
         self._settings_open = False
         self._settings_page = "general"
+        self._intel_return_to_pause = False
         self._settings_return_to_pause = False
         available, restore_message, restore_level = self._inspect_saved_run_if_available()
         self.animator.trigger("idle")
@@ -1086,6 +1146,8 @@ class GameLoop:
             "status_message": snapshot["status_message"],
             "modifier_label": snapshot.get("run_modifiers", {}).get("primary_label"),
             "character_name": None if snapshot.get("character") is None else snapshot["character"].get("name"),
+            "map_name": None if snapshot.get("campaign") is None else snapshot["campaign"].get("map_name"),
+            "map_index": None if snapshot.get("campaign") is None else snapshot["campaign"].get("map_index"),
         }
         return True, "Continue is available.", "success"
 
@@ -1093,8 +1155,11 @@ class GameLoop:
         self._title_active = False
         self._title_confirm_new_run = False
         self._pause_open = False
+        self._intel_open = False
+        self._intel_selected_faction = None
         self._settings_open = False
         self._settings_page = "general"
+        self._intel_return_to_pause = False
         self._settings_return_to_pause = False
         self.state_manager = StateManager()
         self.state_manager.start_new_run()
@@ -1108,8 +1173,11 @@ class GameLoop:
         self._title_active = False
         self._title_confirm_new_run = False
         self._pause_open = False
+        self._intel_open = False
+        self._intel_selected_faction = None
         self._settings_open = False
         self._settings_page = "general"
+        self._intel_return_to_pause = False
         self._settings_return_to_pause = False
 
     def _persist_run_state(self, snapshot: dict[str, Any]) -> None:

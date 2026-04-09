@@ -1,0 +1,60 @@
+{
+  "city": {
+    "name": "Grayspine",
+    "tagline": "A sealed city held together by power theft, private armies, and failing systems.",
+    "summary": "Grayspine is a vertical megacity in decline. Its towers remain lit, but its authority is fractured among hostile powers fighting over the city's buried control systems.",
+    "key_objective": "Reach the Spine Core before one faction secures permanent control.",
+    "flavor_lines": [
+      "The city still breathes. Barely.",
+      "Every light in the skyline is powered by a lie."
+    ]
+  },
+  "factions": [
+    {
+      "id": "helix_ward",
+      "name": "Helix Ward",
+      "route_name": "Helix Ward Depths",
+      "theme": "Biotech mutation and chemical control",
+      "territory": "Underground labs, sewer vaults, hidden clinics",
+      "goal": "Remake the population into something the city can sustain",
+      "tone": "Clinical, predatory, unstable",
+      "combat_style": "Infection, mutation thresholds, healing loops, and ugly support chains.",
+      "accent_color": [98, 214, 138],
+      "slogan": "They do not heal the city. They rewrite it.",
+      "boss_ids": ["miremother_vexa", "graft_saint"]
+    },
+    {
+      "id": "blackwire_directorate",
+      "name": "Blackwire Directorate",
+      "route_name": "Blackwire Lockdown Sector",
+      "theme": "Corporate suppression and machine order",
+      "territory": "Checkpoints, security corridors, data hubs",
+      "goal": "Restore control through force, automation, and compliance",
+      "tone": "Disciplined, cold, professional",
+      "combat_style": "Target marking, buff denial, disciplined formations, and automated support.",
+      "accent_color": [104, 206, 238],
+      "slogan": "Order, purchased at gunpoint and maintained by code.",
+      "boss_ids": ["director_vale", "compliance_engine_ax9"]
+    },
+    {
+      "id": "cinder_jackals",
+      "name": "Cinder Jackals",
+      "route_name": "Cinder Jackals Edgeworks",
+      "theme": "Raiders, scrap warfare, and desert brutality",
+      "territory": "Refinery ruins, edge camps, canyon roads",
+      "goal": "Strip the city and survive its death on their terms",
+      "tone": "Violent, mocking, opportunistic",
+      "combat_style": "Swarm pressure, momentum, dirty ranged threats, and reckless bruisers.",
+      "accent_color": [244, 126, 76],
+      "slogan": "If the city must die, they want front row seats.",
+      "boss_ids": ["ashfang_rook", "furnace_hound"]
+    }
+  ],
+  "spine_core": {
+    "name": "Spine Core",
+    "summary": "A buried civic-control lattice that once coordinated the city's critical systems.",
+    "importance": "Whoever controls it can shape what Grayspine becomes next.",
+    "locked_summary": "The buried machine that remembers how the city used to obey.",
+    "unlocked_summary": "The Spine Core still routes power, transit permissions, lockdown authority, and survival systems under the city."
+  }
+}

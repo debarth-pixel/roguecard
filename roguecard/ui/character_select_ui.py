@@ -127,7 +127,7 @@ class CharacterSelectUI:
 
         self._draw_text(surface, "Choose Your Character", (44, 96), self._title_font)
         self._draw_text(surface, layout["status_message"], (44, 134), self._small_font, width=860)
-        self._draw_text(surface, "Pick a style, then draft a run modifier.", (886, 104), self._tiny_font, width=300)
+        self._draw_text(surface, "Pick a style, then choose a relic.", (886, 104), self._tiny_font, width=300)
 
         for index, panel_data in enumerate(layout["panels"]):
             rect = pygame.Rect(*panel_data["rect"])

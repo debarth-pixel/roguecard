@@ -1,0 +1,58 @@
+sheet,sprite_index,row_name,row_index,column_index,name,kind,cost,slot_x,slot_y,slot_width,slot_height,art_x,art_y,art_width,art_height
+card_art_reference,0,Shared / All Characters,0,0,Strike,attack,1.0,245,110,180,252,259,146,152,112
+card_art_reference,1,Shared / All Characters,0,1,Volley,attack,1.0,439,110,180,252,453,146,152,112
+card_art_reference,2,Shared / All Characters,0,2,Surge Strike,attack,2.0,633,110,180,252,647,146,152,112
+card_art_reference,3,Shared / All Characters,0,3,Overclock,skill,0.0,827,110,180,252,841,146,152,112
+card_art_reference,4,Shared / All Characters,0,4,Cache Draw,skill,1.0,1021,110,180,252,1035,146,152,112
+card_art_reference,5,Shared / All Characters,0,5,Defend,skill,1.0,1215,110,180,252,1229,146,152,112
+card_art_reference,6,Shared / All Characters,0,6,Firewall,skill,1.0,1409,110,180,252,1423,146,152,112
+card_art_reference,7,Shared / All Characters,0,7,Patch Kit,skill,1.0,1603,110,180,252,1617,146,152,112
+card_art_reference,8,Shared / All Characters,0,8,Burn,status,0.0,1797,110,180,252,1811,146,152,112
+card_art_reference,9,Shared / All Characters,0,9,Glitch,status,0.0,1991,110,180,252,2005,146,152,112
+card_art_reference,10,Shared / All Characters,0,10,Junk,status,0.0,2185,110,180,252,2199,146,152,112
+card_art_reference,11,Shared / All Characters,0,11,Lag,status,0.0,2379,110,180,252,2393,146,152,112
+card_art_reference,12,The Enforcer,1,0,Bash Protocol,attack,1.0,245,376,180,252,259,412,152,112
+card_art_reference,13,The Enforcer,1,1,Blood Rush,attack,1.0,439,376,180,252,453,412,152,112
+card_art_reference,14,The Enforcer,1,2,Crackdown,attack,1.0,633,376,180,252,647,412,152,112
+card_art_reference,15,The Enforcer,1,3,Double Tap,attack,1.0,827,376,180,252,841,412,152,112
+card_art_reference,16,The Enforcer,1,4,Breaker Line,attack,2.0,1021,376,180,252,1035,412,152,112
+card_art_reference,17,The Enforcer,1,5,Riot Barrage,attack,2.0,1215,376,180,252,1229,412,152,112
+card_art_reference,18,The Enforcer,1,6,Hard Commit,skill,0.0,1409,376,180,252,1423,412,152,112
+card_art_reference,19,The Enforcer,1,7,Open Wound,skill,0.0,1603,376,180,252,1617,412,152,112
+card_art_reference,20,The Enforcer,1,8,Battle Roar,skill,1.0,1797,376,180,252,1811,412,152,112
+card_art_reference,21,The Enforcer,1,9,Feed Aggression,skill,1.0,1991,376,180,252,2005,412,152,112
+card_art_reference,22,The Enforcer,1,10,Guard Stance,skill,1.0,2185,376,180,252,2199,412,152,112
+card_art_reference,23,The Enforcer,1,11,Ram Guard,skill,1.0,2379,376,180,252,2393,412,152,112
+card_art_reference,24,The Enforcer,1,12,Chain Assault,power,1.0,2573,376,180,252,2587,412,152,112
+card_art_reference,25,The Enforcer,1,13,War Engine,power,1.0,2767,376,180,252,2781,412,152,112
+card_art_reference,26,The Enforcer,1,14,Redline Core,power,2.0,2961,376,180,252,2975,412,152,112
+card_art_reference,27,The Operator,2,0,Quiet Cut,attack,0.0,245,642,180,252,259,678,152,112
+card_art_reference,28,The Operator,2,1,Backdoor,attack,1.0,439,642,180,252,453,678,152,112
+card_art_reference,29,The Operator,2,2,Needle Ping,attack,1.0,633,642,180,252,647,678,152,112
+card_art_reference,30,The Operator,2,3,Packet Storm,attack,1.0,827,642,180,252,841,678,152,112
+card_art_reference,31,The Operator,2,4,Relay Shot,attack,1.0,1021,642,180,252,1035,678,152,112
+card_art_reference,32,The Operator,2,5,Recompile Shot,attack,2.0,1215,642,180,252,1229,678,152,112
+card_art_reference,33,The Operator,2,6,Priority Queue,skill,0.0,1409,642,180,252,1423,678,152,112
+card_art_reference,34,The Operator,2,7,Cache Cycle,skill,1.0,1603,642,180,252,1617,678,152,112
+card_art_reference,35,The Operator,2,8,Cold Read,skill,1.0,1797,642,180,252,1811,678,152,112
+card_art_reference,36,The Operator,2,9,Deflect Mesh,skill,1.0,1991,642,180,252,2005,678,152,112
+card_art_reference,37,The Operator,2,10,Lock In,skill,1.0,2185,642,180,252,2199,678,152,112
+card_art_reference,38,The Operator,2,11,Reroute,skill,1.0,2379,642,180,252,2393,678,152,112
+card_art_reference,39,The Operator,2,12,Auto-Tuner,power,1.0,2573,642,180,252,2587,678,152,112
+card_art_reference,40,The Operator,2,13,Control Tower,power,1.0,2767,642,180,252,2781,678,152,112
+card_art_reference,41,The Operator,2,14,Deep Cache,power,1.0,2961,642,180,252,2975,678,152,112
+card_art_reference,42,The Bio-Hacker,3,0,Pain Probe,attack,0.0,245,908,180,252,259,944,152,112
+card_art_reference,43,The Bio-Hacker,3,1,Hemorrhage,attack,1.0,439,908,180,252,453,944,152,112
+card_art_reference,44,The Bio-Hacker,3,2,Leech Jab,attack,1.0,633,908,180,252,647,944,152,112
+card_art_reference,45,The Bio-Hacker,3,3,Rot Slash,attack,1.0,827,908,180,252,841,944,152,112
+card_art_reference,46,The Bio-Hacker,3,4,Harvest Bite,attack,2.0,1021,908,180,252,1035,944,152,112
+card_art_reference,47,The Bio-Hacker,3,5,Parasite Fang,attack,2.0,1215,908,180,252,1229,944,152,112
+card_art_reference,48,The Bio-Hacker,3,6,Reclaimer,skill,0.0,1409,908,180,252,1423,944,152,112
+card_art_reference,49,The Bio-Hacker,3,7,Spare Organs,skill,0.0,1603,908,180,252,1617,944,152,112
+card_art_reference,50,The Bio-Hacker,3,8,Blood Buffer,skill,1.0,1797,908,180,252,1811,944,152,112
+card_art_reference,51,The Bio-Hacker,3,9,Coagulate,skill,1.0,1991,908,180,252,2005,944,152,112
+card_art_reference,52,The Bio-Hacker,3,10,Scar Tissue,skill,1.0,2185,908,180,252,2199,944,152,112
+card_art_reference,53,The Bio-Hacker,3,11,Triage Loop,skill,1.0,2379,908,180,252,2393,944,152,112
+card_art_reference,54,The Bio-Hacker,3,12,Pain Circuit,power,1.0,2573,908,180,252,2587,944,152,112
+card_art_reference,55,The Bio-Hacker,3,13,Rot Harvest,power,1.0,2767,908,180,252,2781,944,152,112
+card_art_reference,56,The Bio-Hacker,3,14,Symbiote Mesh,power,1.0,2961,908,180,252,2975,944,152,112

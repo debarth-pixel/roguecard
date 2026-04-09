@@ -1,0 +1,10 @@
+sheet,sprite_index,row_index,column_index,name,rarity,x,y,width,height
+relics,0,0,0,Carbon Weave,common,28,112,220,220
+relics,1,0,1,Flash Cache,common,266,112,220,220
+relics,2,0,2,Plated Grip,common,504,112,220,220
+relics,3,0,3,Shard Seed,common,742,112,220,220
+relics,4,0,4,Surge Fuse,common,980,112,220,220
+relics,5,1,0,Signal Router,rare,28,350,220,220
+relics,6,1,1,Clean Slate,uncommon,266,350,220,220
+relics,7,1,2,Market Key,uncommon,504,350,220,220
+relics,8,1,3,Overclock Relay,uncommon,742,350,220,220

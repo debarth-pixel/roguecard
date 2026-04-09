@@ -1,0 +1,85 @@
+{
+  "bosses": [
+    {
+      "id": "toll_reeve",
+      "name": "The Toll Reeve",
+      "faction": null,
+      "category": "general",
+      "combat_role": "resource disruptor",
+      "summary": "A route-holder who weaponizes passage and attrition.",
+      "intro_text": "Nobody crosses without paying."
+    },
+    {
+      "id": "junction_9_sentinel",
+      "name": "Junction-9 Sentinel",
+      "faction": null,
+      "category": "general",
+      "combat_role": "defense automaton",
+      "summary": "An ancient civic-defense machine guarding infrastructure access.",
+      "intro_text": "THREAT STATUS UNRESOLVED. DEFENSIVE ENGAGEMENT AUTHORIZED."
+    },
+    {
+      "id": "spine_warden_null",
+      "name": "Spine Warden Null",
+      "faction": null,
+      "category": "general",
+      "combat_role": "adaptive guardian",
+      "summary": "The last neutral authority before the faction endpaths.",
+      "intro_text": "Claimant detected. Authority denied."
+    },
+    {
+      "id": "miremother_vexa",
+      "name": "Miremother Vexa",
+      "faction": "helix_ward",
+      "category": "faction",
+      "combat_role": "summoner",
+      "summary": "A Helix overseer who floods the field with engineered biomass.",
+      "intro_text": "Try not to die too quickly. I need to see the full reaction."
+    },
+    {
+      "id": "graft_saint",
+      "name": "The Graft Saint",
+      "faction": "helix_ward",
+      "category": "faction",
+      "combat_role": "regenerating horror",
+      "summary": "A devotional biotech prototype that refuses to die cleanly.",
+      "intro_text": "I was remade for this."
+    },
+    {
+      "id": "director_vale",
+      "name": "Director Vale",
+      "faction": "blackwire_directorate",
+      "category": "faction",
+      "combat_role": "suppression commander",
+      "summary": "A tactical director who dismantles the player's best turns.",
+      "intro_text": "You are not a crisis. You are an expense."
+    },
+    {
+      "id": "compliance_engine_ax9",
+      "name": "Compliance Engine AX-9",
+      "faction": "blackwire_directorate",
+      "category": "faction",
+      "combat_role": "shield machine",
+      "summary": "A riot-break engine built to pacify whole corridors.",
+      "intro_text": "CIVIC ORDER FAILURE. PACIFICATION REQUIRED."
+    },
+    {
+      "id": "ashfang_rook",
+      "name": "Ashfang Rook",
+      "faction": "cinder_jackals",
+      "category": "faction",
+      "combat_role": "momentum war-chief",
+      "summary": "A raider leader who turns chaos into lethal tempo.",
+      "intro_text": "You got all the way here just to die tired."
+    },
+    {
+      "id": "furnace_hound",
+      "name": "Furnace Hound",
+      "faction": "cinder_jackals",
+      "category": "faction",
+      "combat_role": "siege engine",
+      "summary": "A tracked scrap-war machine that fights like an animal.",
+      "intro_text": "Wake the hound."
+    }
+  ]
+}
