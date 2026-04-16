@@ -119,6 +119,10 @@ class GameLoop:
                 if action is not None:
                     screen = self._dispatch_action(action, screen)
 
+            polled_action = self.ui_manager.poll_action(self._snapshot_with_hand())
+            if polled_action is not None:
+                screen = self._dispatch_action(polled_action, screen)
+
             animation_speed = FAST_MODE_MULTIPLIER if self._fast_mode else 1.0
             self.animator.update(delta_time * animation_speed)
             self._render_frame(screen)

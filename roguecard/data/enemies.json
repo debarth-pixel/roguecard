@@ -687,12 +687,12 @@
     "moves": [
       {
         "id": "deploy_drone",
-        "intent_text": "Deploy a Patrol Drone",
+        "intent_text": "Deploy a Sentry Node",
         "target": "self",
         "cooldown": 1,
         "conditions": {"living_enemies_below": 5},
         "bark_trigger": "deploy",
-        "effects": [{"type": "enemy_summon", "enemy_id": "patrol_drone", "count": 1}]
+        "effects": [{"type": "enemy_summon", "enemy_id": "sentry_node", "count": 1}]
       },
       {
         "id": "service_pistol",
@@ -749,6 +749,32 @@
           {"type": "enemy_damage", "value": 10},
           {"type": "enemy_apply_suppressed", "value": 1}
         ]
+      }
+    ]
+  },
+  {
+    "id": "sentry_node",
+    "name": "Sentry Node",
+    "faction_id": "blackwire_directorate",
+    "role": "summoned_support",
+    "tier": "normal",
+    "tags": ["summon", "fortified", "machine"],
+    "max_hp": 12,
+    "bark_profile_id": "blackwire_directorate",
+    "intent_pattern": ["laser_ping", "field_screen"],
+    "moves": [
+      {
+        "id": "laser_ping",
+        "intent_text": "Ping for 4",
+        "target": "player",
+        "bark_trigger": "attack",
+        "effects": [{"type": "enemy_damage", "value": 4}]
+      },
+      {
+        "id": "field_screen",
+        "intent_text": "Grant 5 Block",
+        "target": "lowest_hp_ally",
+        "effects": [{"type": "enemy_block", "value": 5}]
       }
     ]
   },
@@ -849,12 +875,12 @@
       },
       {
         "id": "deploy_node",
-        "intent_text": "Deploy a Patrol Drone",
+        "intent_text": "Deploy a Sentry Node",
         "target": "self",
         "cooldown": 1,
         "conditions": {"living_enemies_below": 5},
         "bark_trigger": "deploy",
-        "effects": [{"type": "enemy_summon", "enemy_id": "patrol_drone", "count": 1}]
+        "effects": [{"type": "enemy_summon", "enemy_id": "sentry_node", "count": 1}]
       },
       {
         "id": "null_wave",
@@ -1107,6 +1133,39 @@
     ]
   },
   {
+    "id": "burner_mite",
+    "name": "Burner Mite",
+    "faction_id": "cinder_jackals",
+    "role": "summoned_fodder",
+    "tier": "normal",
+    "tags": ["summon", "burn", "volatile"],
+    "max_hp": 10,
+    "bark_profile_id": "cinder_jackals",
+    "intent_pattern": ["spark_bite", "flash_pop"],
+    "moves": [
+      {
+        "id": "spark_bite",
+        "intent_text": "Bite for 4 and Burn 1",
+        "target": "player",
+        "bark_trigger": "burn",
+        "effects": [
+          {"type": "enemy_damage", "value": 4},
+          {"type": "enemy_apply_burn", "value": 1}
+        ]
+      },
+      {
+        "id": "flash_pop",
+        "intent_text": "Flash for 5",
+        "target": "player",
+        "bark_trigger": "burn",
+        "effects": [
+          {"type": "enemy_damage", "value": 5},
+          {"type": "enemy_self_destruct", "target": "self", "value": 1}
+        ]
+      }
+    ]
+  },
+  {
     "id": "ashfang_rook",
     "name": "Ashfang Rook",
     "faction_id": "cinder_jackals",
@@ -1181,12 +1240,12 @@
     "moves": [
       {
         "id": "loose_mites",
-        "intent_text": "Loose two Scavvers",
+        "intent_text": "Loose two Burner Mites",
         "target": "self",
         "cooldown": 1,
         "conditions": {"living_enemies_below": 5},
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "scavver", "count": 2}]
+        "effects": [{"type": "enemy_summon", "enemy_id": "burner_mite", "count": 2}]
       },
       {
         "id": "artillery_prep",

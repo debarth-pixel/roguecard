@@ -71,6 +71,7 @@
       "route_map_id": "blackwire_lockdown_sector",
       "units": [
         {"id": "patrol_drone", "role": "utility", "tier": "normal", "tags": ["mark", "summon"]},
+        {"id": "sentry_node", "role": "summoned_support", "tier": "normal", "tags": ["summon", "fortified"]},
         {"id": "riot_guard", "role": "frontline", "tier": "normal", "tags": ["shield", "guard"]},
         {"id": "null_baton_officer", "role": "specialist", "tier": "normal", "tags": ["buff_strip", "suppress"]},
         {"id": "signal_analyst", "role": "controller", "tier": "normal", "tags": ["mark", "amplify"]},
@@ -95,6 +96,7 @@
       "route_map_id": "cinder_jackals_edgeworks",
       "units": [
         {"id": "scavver", "role": "fodder", "tier": "normal", "tags": ["swarm", "momentum"]},
+        {"id": "burner_mite", "role": "summoned_fodder", "tier": "normal", "tags": ["summon", "burn", "volatile"]},
         {"id": "dust_knife", "role": "skirmisher", "tier": "normal", "tags": ["fast", "bleed"]},
         {"id": "burner", "role": "bomber", "tier": "normal", "tags": ["burn", "volatile"]},
         {"id": "scrap_caller", "role": "summoner", "tier": "normal", "tags": ["pack", "spawn"]},

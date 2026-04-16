@@ -322,6 +322,7 @@ class Enemy:
             "intent_value": intent_value,
             "intent_category": self._intent_category(move),
             "intent_summary": self._intent_summary(move),
+            "intent_display": self._intent_display(move),
             "strength": self.strength,
             "weak": self.weak,
             "vulnerable": self.vulnerable,
@@ -438,6 +439,98 @@ class Enemy:
             return "Waiting"
         return str(move.get("intent_text", move["id"]))
 
+    def _intent_display(self, move: dict[str, Any] | None) -> dict[str, Any]:
+        summary = self._intent_summary(move)
+        if move is None:
+            return {
+                "kind": "wait",
+                "damage_per_hit": 0,
+                "hit_count": 0,
+                "total_damage": 0,
+                "block": 0,
+                "buffs": [],
+                "debuffs": [],
+                "summon_count": 0,
+                "tooltip": summary,
+            }
+
+        damage_per_hit = 0
+        hit_count = 0
+        total_damage = 0
+        block = 0
+        summon_count = 0
+        buffs: list[str] = []
+        debuffs: list[str] = []
+
+        for effect in move.get("effects", []):
+            effect_type = effect.get("type")
+            value = int(effect.get("value", 0))
+            count = max(1, int(effect.get("count", 1)))
+            if effect_type == "enemy_damage":
+                outgoing = self._outgoing_attack_damage(value)
+                damage_per_hit = outgoing if damage_per_hit == 0 else max(damage_per_hit, outgoing)
+                hit_count += count
+                total_damage += outgoing * count
+                continue
+            if effect_type == "enemy_block":
+                block += value
+                continue
+            if effect_type == "enemy_summon":
+                summon_count += count
+                continue
+
+            label = self._intent_effect_label(effect_type)
+            if label is None:
+                continue
+            if effect_type in {
+                "enemy_apply_infect",
+                "enemy_apply_marked",
+                "enemy_apply_suppressed",
+                "enemy_apply_burn",
+                "enemy_apply_bleed",
+                "enemy_apply_nullified",
+                "enemy_strip_buff",
+                "enemy_trigger_infection_burst",
+                "enemy_steal_block",
+            }:
+                if label not in debuffs:
+                    debuffs.append(label)
+            else:
+                if label not in buffs:
+                    buffs.append(label)
+
+        kind = "wait"
+        has_attack = total_damage > 0
+        has_defend = block > 0
+        has_summon = summon_count > 0
+        has_buff = bool(buffs)
+        has_debuff = bool(debuffs)
+        active_flags = sum(1 for flag in (has_attack, has_defend, has_summon, has_buff, has_debuff) if flag)
+        if active_flags > 1:
+            kind = "mixed"
+        elif has_attack:
+            kind = "attack"
+        elif has_defend:
+            kind = "defend"
+        elif has_summon:
+            kind = "summon"
+        elif has_buff:
+            kind = "buff"
+        elif has_debuff:
+            kind = "debuff"
+
+        return {
+            "kind": kind,
+            "damage_per_hit": damage_per_hit,
+            "hit_count": hit_count,
+            "total_damage": total_damage,
+            "block": block,
+            "buffs": buffs,
+            "debuffs": debuffs,
+            "summon_count": summon_count,
+            "tooltip": summary,
+        }
+
     def _intent_category(self, move: dict[str, Any] | None) -> str:
         if move is None:
             return "waiting"
@@ -447,6 +540,31 @@ class Enemy:
         if "enemy_block" in effect_types:
             return "defend"
         return "support"
+
+    def _intent_effect_label(self, effect_type: Any) -> str | None:
+        labels = {
+            "enemy_heal_ally": "Heal",
+            "enemy_apply_infect": "Infect",
+            "enemy_apply_marked": "Marked",
+            "enemy_apply_suppressed": "Suppress",
+            "enemy_apply_burn": "Burn",
+            "enemy_apply_bleed": "Bleed",
+            "enemy_apply_nullified": "Nullify",
+            "enemy_strip_buff": "Strip Buff",
+            "enemy_cleanse_ally": "Cleanse",
+            "enemy_gain_strength": "Strength",
+            "enemy_apply_regenerate": "Regenerate",
+            "enemy_apply_fortified": "Fortify",
+            "enemy_apply_momentum": "Momentum",
+            "enemy_apply_momentum_allies": "Rally",
+            "enemy_block_allies": "Team Block",
+            "enemy_trigger_infection_burst": "Burst",
+            "enemy_steal_block": "Steal Block",
+            "enemy_apply_overheat": "Heat",
+            "enemy_apply_biomass": "Biomass",
+            "enemy_self_destruct": "Detonate",
+        }
+        return labels.get(str(effect_type))
 
     def _outgoing_attack_damage(self, base_value: int) -> int:
         amount = max(0, base_value + self.strength)

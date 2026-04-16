@@ -608,6 +608,15 @@ class CombatManager:
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
+        if effect_type == "enemy_self_destruct":
+            applied = 0
+            if hasattr(target, "is_alive") and target.is_alive():
+                applied = target.lose_hp(max(1, getattr(target, "current_hp", 0)))
+                if hasattr(target, "is_alive") and not target.is_alive():
+                    self._handle_enemy_defeat(target)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
         results.append(self._resolution_record(effect_type, value, 0, target, echoed=False))
         return results
 

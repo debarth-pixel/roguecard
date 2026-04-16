@@ -158,6 +158,11 @@ class UIManager:
 
         return None
 
+    def poll_action(self, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+        if state_snapshot["current_state"] == "combat" and state_snapshot["combat"] is not None:
+            return self.combat_ui.poll_action(self._combat_view_state(state_snapshot))
+        return None
+
     def render(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
         if pygame is None or surface is None:
             return
@@ -229,6 +234,7 @@ class UIManager:
         hand = state_snapshot.get("player_hand") or []
         return {
             "status_message": state_snapshot["status_message"],
+            "character": state_snapshot.get("character"),
             "player": combat_state["player"],
             "enemies": combat_state["enemies"],
             "turn_number": combat_state.get("turn_number", 0),

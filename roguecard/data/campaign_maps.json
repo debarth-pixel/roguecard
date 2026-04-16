@@ -60,22 +60,22 @@
     },
     "boss_pool": [
       {
-        "id": "city_corp_convoy_core",
-        "name": "Corp Convoy Core",
-        "branch_faction": "blackwire_directorate",
-        "enemy_ids": ["enemy_boss_01"]
-      },
-      {
-        "id": "city_gang_warlord",
-        "name": "Gang Warlord",
+        "id": "toll_reeve",
+        "name": "The Toll Reeve",
         "branch_faction": "cinder_jackals",
-        "enemy_ids": ["enemy_boss_01"]
+        "enemy_ids": ["toll_reeve"]
       },
       {
-        "id": "city_mutant_alpha",
-        "name": "Mutant Alpha",
+        "id": "junction_9_sentinel",
+        "name": "Junction-9 Sentinel",
+        "branch_faction": "blackwire_directorate",
+        "enemy_ids": ["junction_9_sentinel"]
+      },
+      {
+        "id": "spine_warden_null",
+        "name": "Spine Warden Null",
         "branch_faction": "helix_ward",
-        "enemy_ids": ["enemy_boss_01"]
+        "enemy_ids": ["spine_warden_null"]
       }
     ],
     "next_map": {
