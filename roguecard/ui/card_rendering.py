@@ -129,6 +129,8 @@ def draw_card(
 
 
 def resolve_card_layout(rect: Any, variant: str) -> dict[str, Any]:
+    if variant == "mini":
+        return _resolve_mini_layout(rect)
     if variant == "compact":
         return _resolve_compact_layout(rect)
     return _resolve_full_layout(rect)
@@ -147,7 +149,8 @@ def render_card_base(
     note_label: str | None,
 ) -> None:
     render_card_frame(surface, layout, card_theme, interaction)
-    render_card_art_panel(surface, layout, card, card_theme)
+    if layout["variant"] != "mini":
+        render_card_art_panel(surface, layout, card, card_theme)
     render_card_text_regions(
         surface,
         layout,
@@ -202,10 +205,23 @@ def render_card_frame(
         layout["mid_band"],
         type_theme["mid_band_fill"],
         type_theme["mid_band_border"],
-        compact=layout["variant"] == "compact",
+        compact=layout["variant"] in {"compact", "mini"},
     )
-    _draw_panel_box(surface, layout["description_box"], type_theme["description_fill"], type_theme["description_border"])
-    _draw_panel_box(surface, layout["metadata_band"], type_theme["metadata_fill"], type_theme["description_border"], subtle=True)
+    _draw_panel_box(
+        surface,
+        layout["description_box"],
+        type_theme["description_fill"],
+        type_theme["description_border"],
+        compact=layout["variant"] == "mini",
+    )
+    _draw_panel_box(
+        surface,
+        layout["metadata_band"],
+        type_theme["metadata_fill"],
+        type_theme["description_border"],
+        subtle=True,
+        compact=layout["variant"] == "mini",
+    )
     _draw_cost_orb(surface, layout["cost_orb"], type_theme, interaction)
 
 
@@ -461,6 +477,55 @@ def _resolve_compact_layout(rect: Any) -> dict[str, Any]:
     }
 
 
+def _resolve_mini_layout(rect: Any) -> dict[str, Any]:
+    title_strip = pygame.Rect(
+        rect.x + max(8, int(rect.width * 0.18)),
+        rect.y + max(8, int(rect.height * 0.10)),
+        max(42, int(rect.width * 0.64)),
+        max(22, int(rect.height * 0.20)),
+    )
+    cost_size = max(18, min(int(rect.height * 0.36), int(rect.width * 0.18)))
+    return {
+        "variant": "mini",
+        "card_rect": rect,
+        "cost_orb": pygame.Rect(
+            rect.x + max(6, int(rect.width * 0.05)),
+            rect.y + max(6, int(rect.height * 0.11)),
+            cost_size,
+            cost_size,
+        ),
+        "title_strip": title_strip,
+        "title_pip_rect": pygame.Rect(title_strip.right - 10, title_strip.y + 2, 8, max(10, title_strip.height - 4)),
+        "title_pip_width": 0,
+        "art_panel": pygame.Rect(rect.right - max(18, int(rect.width * 0.14)), rect.y + 10, max(12, int(rect.width * 0.1)), rect.height - 20),
+        "mid_band": pygame.Rect(
+            title_strip.x,
+            title_strip.bottom + max(4, int(rect.height * 0.04)),
+            max(32, int(rect.width * 0.26)),
+            max(14, int(rect.height * 0.14)),
+        ),
+        "primary_effect": pygame.Rect(
+            title_strip.x,
+            title_strip.bottom + max(4, int(rect.height * 0.04)),
+            max(36, int(rect.width * 0.62)),
+            max(16, int(rect.height * 0.16)),
+        ),
+        "type_label": pygame.Rect(title_strip.x, title_strip.bottom + 4, max(22, int(rect.width * 0.2)), max(12, int(rect.height * 0.1))),
+        "description_box": pygame.Rect(
+            title_strip.x,
+            title_strip.bottom + max(20, int(rect.height * 0.18)),
+            max(40, int(rect.width * 0.64)),
+            max(22, int(rect.height * 0.34)),
+        ),
+        "metadata_band": pygame.Rect(
+            title_strip.x,
+            rect.bottom - max(20, int(rect.height * 0.20)),
+            max(40, int(rect.width * 0.64)),
+            max(12, int(rect.height * 0.12)),
+        ),
+    }
+
+
 def _card_fonts(card_height: int, fallback_fonts: dict[str, Any]) -> dict[str, Any]:
     if pygame is None:
         return fallback_fonts
@@ -613,6 +678,9 @@ def _draw_compact_rules(
         color=type_theme["text"],
         width=summary_rect.width - 16,
     )
+    if layout["variant"] == "mini":
+        stripe_rect = pygame.Rect(layout["art_panel"])
+        pygame.draw.rect(surface, type_theme["accent"], stripe_rect, border_radius=max(6, stripe_rect.width // 2))
 
 
 def _draw_title_motif(surface: Any, rect: Any, card_theme: dict[str, Any]) -> None:
@@ -972,6 +1040,17 @@ def _effect_line(effect: dict[str, Any]) -> str:
         return f"Apply {value} Weak."
     if effect_type == "apply_vulnerable" and isinstance(value, int):
         return f"Apply {value} Vulnerable."
+    if effect_type == "apply_bleed" and isinstance(value, int):
+        return f"Apply {value} Bleed."
+    if effect_type == "apply_infect" and isinstance(value, int):
+        return f"Apply {value} Infect."
+    if effect_type == "apply_nullified" and isinstance(value, int):
+        return "Apply Nullified."
+    if effect_type == "cleanse_status" and isinstance(value, int):
+        status_id = str(effect.get("status_id", "status")).replace("_", " ").title()
+        return f"Cleanse {value} {status_id}."
+    if effect_type == "remove_nullified":
+        return "Remove Nullified."
     if effect_type == "modify_next_card_cost" and isinstance(value, int):
         if value < 0:
             return f"Next card costs {abs(value)} less."

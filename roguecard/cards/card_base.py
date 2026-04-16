@@ -27,9 +27,14 @@ ALLOWED_CARD_EFFECT_TYPES = DIRECT_DAMAGE_EFFECT_TYPES | {
     "gain_strength",
     "apply_weak",
     "apply_vulnerable",
+    "apply_bleed",
+    "apply_infect",
+    "apply_nullified",
     "modify_next_card_cost",
     "modify_next_attack_damage",
     "add_status_card",
+    "cleanse_status",
+    "remove_nullified",
     "random_one_of",
     "exhaust_drawn_card",
 }
@@ -302,6 +307,8 @@ class CardBase:
             "gain_strength",
             "apply_weak",
             "apply_vulnerable",
+            "apply_bleed",
+            "apply_infect",
             "modify_next_card_cost",
             "modify_next_attack_damage",
             "lifesteal_damage",
@@ -333,6 +340,22 @@ class CardBase:
             validated["card_id"] = card_ref
             validated["count"] = count
             validated["pile"] = pile
+        elif effect_type == "apply_nullified":
+            value = effect_data.get("value", 1)
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(f"Card {card_id} apply_nullified effects must define a positive integer value.")
+            validated["value"] = value
+        elif effect_type == "cleanse_status":
+            status_id = effect_data.get("status_id")
+            value = effect_data.get("value")
+            if not isinstance(status_id, str) or not status_id:
+                raise ValueError(f"Card {card_id} cleanse_status effects must define status_id.")
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(f"Card {card_id} cleanse_status effects must define a positive integer value.")
+            validated["status_id"] = status_id
+            validated["value"] = value
+        elif effect_type == "remove_nullified":
+            pass
         elif effect_type == "random_one_of":
             if not allow_random:
                 raise ValueError(f"Card {card_id} random_one_of effects cannot be nested.")

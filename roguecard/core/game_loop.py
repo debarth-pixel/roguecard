@@ -1152,6 +1152,8 @@ class GameLoop:
             "character_name": None if snapshot.get("character") is None else snapshot["character"].get("name"),
             "map_name": None if snapshot.get("campaign") is None else snapshot["campaign"].get("map_name"),
             "map_index": None if snapshot.get("campaign") is None else snapshot["campaign"].get("map_index"),
+            "current_hp": None if snapshot.get("player") is None else snapshot["player"].get("current_hp"),
+            "max_hp": None if snapshot.get("player") is None else snapshot["player"].get("max_hp"),
         }
         return True, "Continue is available.", "success"
 

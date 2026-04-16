@@ -225,11 +225,64 @@ class Player:
         self.suppressed = min(3, self.suppressed + amount)
         return self.suppressed
 
+    def combat_status_value(self, status_id: str) -> int:
+        key = str(status_id).strip().lower()
+        if key == "infect":
+            return self.infect
+        if key == "burn":
+            return self.burn
+        if key == "bleed":
+            return self.bleed
+        if key == "marked":
+            return self.marked
+        if key == "suppressed":
+            return self.suppressed
+        if key == "nullified":
+            return 1 if self.nullified else 0
+        raise ValueError(f"Unsupported combat status: {status_id}")
+
+    def cleanse_combat_status(self, status_id: str, amount: int = 1) -> int:
+        if amount <= 0:
+            return 0
+
+        key = str(status_id).strip().lower()
+        if key == "infect":
+            removed = min(self.infect, amount)
+            self.infect -= removed
+            return removed
+        if key == "burn":
+            removed = min(self.burn, amount)
+            self.burn -= removed
+            return removed
+        if key == "bleed":
+            removed = min(self.bleed, amount)
+            self.bleed -= removed
+            return removed
+        if key == "marked":
+            removed = min(self.marked, amount)
+            self.marked -= removed
+            if self.marked == 0:
+                self.marked_turns = 0
+            return removed
+        if key == "suppressed":
+            removed = min(self.suppressed, amount)
+            self.suppressed -= removed
+            return removed
+        if key == "nullified":
+            if self.nullified:
+                self.nullified = False
+                return 1
+            return 0
+        raise ValueError(f"Unsupported combat status: {status_id}")
+
     def clear_suppressed(self) -> None:
         self.suppressed = 0
 
     def apply_nullified(self) -> None:
         self.nullified = True
+
+    def remove_nullified(self) -> bool:
+        return self.cleanse_combat_status("nullified", 1) > 0
 
     def consume_nullified(self) -> bool:
         if not self.nullified:

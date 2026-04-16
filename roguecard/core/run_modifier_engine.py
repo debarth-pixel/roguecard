@@ -28,6 +28,9 @@ INTENSITY_SCALABLE_EFFECT_TYPES = {
     "reduce_first_block_each_combat",
     "bonus_attack_damage_if_attacked_last_turn",
     "cost_surcharge_after_first_card",
+    "damage_event_target",
+    "damage_random_enemy",
+    "gain_next_turn_energy",
 }
 STACK_COUNT_REPEATABLE_EFFECT_TYPES = {
     "gain_credits",
@@ -376,6 +379,34 @@ class RunModifierEngine:
             if roll <= running_total:
                 return candidate["modifier"]
         return candidates[-1]["modifier"]
+
+    def pick_weighted_modifier_ids(
+        self,
+        rng: random.Random,
+        active_modifiers: list[dict[str, Any]],
+        *,
+        source_type: str,
+        rarity_profile: str,
+        count: int,
+        allow_types: list[str] | None = None,
+        allow_rarities: list[str] | None = None,
+        include_tags: list[str] | None = None,
+        exclude_tags: list[str] | None = None,
+        draft_only: bool = False,
+        pool_ids: list[str] | None = None,
+    ) -> list[str]:
+        weighted_candidates = self.weighted_modifier_candidates(
+            active_modifiers,
+            source_type=source_type,
+            rarity_profile=rarity_profile,
+            allow_types=allow_types,
+            allow_rarities=allow_rarities,
+            include_tags=include_tags,
+            exclude_tags=exclude_tags,
+            draft_only=draft_only,
+            pool_ids=pool_ids,
+        )
+        return self._pick_weighted_ids(weighted_candidates, rng, count=count)
 
     def _resolved_duration(
         self,

@@ -19,6 +19,7 @@ from config import (
 )
 from ui.card_renderer import card_summary_lines, draw_card
 from ui.card_style import CARD_PORTRAIT_HEIGHT_RATIO
+from ui.relic_assets import relic_assets
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 
 SELECT_ANIM_MS = 150
@@ -27,10 +28,14 @@ TOOLTIP_MAX_WIDTH = 260
 HAND_CENTER_X = 532
 HAND_CENTER_Y = 624
 CARD_CENTER = (606, 302)
-END_TURN_RECT = (1048, 638, 184, 56)
-HELPER_PANEL_RECT = (860, 548, 382, 78)
-TURN_CHIP_RECT = (44, 70, 116, 34)
-PHASE_CHIP_RECT = (168, 70, 142, 34)
+END_TURN_RECT = (1048, 636, 184, 52)
+HELPER_PANEL_RECT = (836, 552, 406, 62)
+TURN_HEADER_ORIGIN = (44, 70)
+TURN_HEADER_LINE_WIDTH = 3
+COMBAT_MODIFIER_ORIGIN = (44, 118)
+COMBAT_MODIFIER_SLOT = 30
+COMBAT_MODIFIER_GAP = 10
+COMBAT_MODIFIER_LIMIT = 7
 PLAYER_FOOT = (214, 466)
 PLAYER_SCALE = 1.14
 GROUND_RING_HEIGHT = 28
@@ -433,6 +438,15 @@ class CombatUI:
                     "text": self._intent_tooltip(enemy_actor["enemy"]),
                 }
             )
+        combat_modifiers = self._combat_modifier_items(combat_state.get("run_modifiers", []))
+        tooltip_regions.extend(
+            {
+                "rect": modifier["rect"],
+                "title": modifier["name"],
+                "text": self._modifier_tooltip_text(modifier),
+            }
+            for modifier in combat_modifiers
+        )
 
         return {
             "status_message": combat_state.get("status_message", ""),
@@ -455,8 +469,7 @@ class CombatUI:
             "high_contrast": presentation.get("high_contrast", False),
             "tooltip": self._tooltip_at_position(tooltip_regions, self._mouse_pos),
             "targeting_active": selected_card is not None,
-            "turn_chip_rect": TURN_CHIP_RECT,
-            "phase_chip_rect": PHASE_CHIP_RECT,
+            "combat_modifiers": combat_modifiers,
         }
 
     def _build_recent_summary(self, event_log: list[dict[str, Any]]) -> str:
@@ -681,6 +694,63 @@ class CombatUI:
             regions.append({"rect": rect, "title": item["label"], "text": f"{item['label']}{count_text}".strip(), "item": item})
         return regions
 
+    def _combat_modifier_items(self, run_modifiers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if not isinstance(run_modifiers, list):
+            return []
+
+        filtered = [
+            modifier
+            for modifier in run_modifiers
+            if modifier.get("type") == "relic" or modifier.get("temporary") or modifier.get("duration_label")
+        ]
+        filtered.sort(
+            key=lambda modifier: (
+                0 if modifier.get("type") == "relic" else 1,
+                str(modifier.get("name", "")),
+            )
+        )
+
+        items: list[dict[str, Any]] = []
+        start_x, start_y = COMBAT_MODIFIER_ORIGIN
+        for index, modifier in enumerate(filtered[:COMBAT_MODIFIER_LIMIT]):
+            slot_x = start_x + (index * (COMBAT_MODIFIER_SLOT + COMBAT_MODIFIER_GAP))
+            items.append(
+                {
+                    **modifier,
+                    "rect": (slot_x, start_y, COMBAT_MODIFIER_SLOT, COMBAT_MODIFIER_SLOT),
+                    "accent": self._modifier_accent(modifier.get("type", modifier.get("kind", "status"))),
+                    "abbrev": self._modifier_abbrev(str(modifier.get("name", "?"))),
+                }
+            )
+        return items
+
+    def _modifier_tooltip_text(self, modifier: dict[str, Any]) -> str:
+        parts = [str(modifier.get("description", ""))]
+        duration_label = modifier.get("duration_label")
+        if duration_label:
+            parts.append(str(duration_label))
+        downside = modifier.get("downside")
+        if downside:
+            parts.append(f"Tradeoff: {downside}")
+        return " ".join(part for part in parts if part).strip()
+
+    def _modifier_accent(self, modifier_type: str) -> tuple[int, int, int]:
+        palettes = {
+            "relic": (104, 216, 255),
+            "blessing": (110, 220, 164),
+            "curse": (232, 106, 112),
+            "status": (188, 162, 255),
+        }
+        return palettes.get(modifier_type, (164, 176, 204))
+
+    def _modifier_abbrev(self, name: str) -> str:
+        words = [part for part in name.split() if part]
+        if not words:
+            return "?"
+        if len(words) == 1:
+            return words[0][:2].upper()
+        return f"{words[0][0]}{words[1][0]}".upper()
+
     def _helper_summary(self, hand_cards: list[dict[str, Any]], selected_card: dict[str, Any] | None, event_log: list[dict[str, Any]]) -> str:
         if selected_card is not None:
             source = selected_card["source_card"]
@@ -711,9 +781,8 @@ class CombatUI:
         if layout["selected_card"] is not None:
             self._draw_target_focus_scrim(surface)
 
-        self._draw_turn_chip(surface, layout["turn_chip_rect"], layout["turn_label"], accent=(104, 216, 255), high_contrast=high_contrast)
-        phase_accent = (255, 214, 110) if combat_state.get("turn_owner") == "player" else (232, 106, 112)
-        self._draw_turn_chip(surface, layout["phase_chip_rect"], layout["turn_owner_label"], accent=phase_accent, high_contrast=high_contrast)
+        self._draw_turn_header(surface, layout, high_contrast=high_contrast)
+        self._draw_combat_modifier_strip(surface, layout, high_contrast=high_contrast)
 
         self._draw_player_actor(surface, layout["player_actor"], high_contrast=high_contrast, targeted=layout["selected_card"] is not None and layout["selected_card"]["target_mode"] == "immediate_self")
 
@@ -746,19 +815,59 @@ class CombatUI:
         overlay.fill((6, 8, 14, 64))
         surface.blit(overlay, (0, 0))
 
-    def _draw_turn_chip(
-        self,
-        surface: Any,
-        rect_tuple: tuple[int, int, int, int],
-        text: str,
-        *,
-        accent: tuple[int, int, int],
-        high_contrast: bool,
-    ) -> None:
-        rect = pygame.Rect(*rect_tuple)
-        border = tuple(min(255, channel + 22) for channel in accent) if high_contrast else accent
-        self._draw_panel(surface, rect, fill=(10, 16, 26, 232), border=border, radius=14)
-        self._draw_text(surface, text, (rect.x + 14, rect.y + 8), self._tiny_font, width=rect.width - 28)
+    def _draw_turn_header(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
+        del high_contrast
+        origin_x, origin_y = TURN_HEADER_ORIGIN
+        owner_color = (255, 214, 110) if layout["turn_owner_label"] == "Player" else (232, 106, 112)
+        line_color = (132, 206, 252)
+        shadow_color = (0, 0, 0)
+
+        pygame.draw.rect(
+            surface,
+            line_color,
+            pygame.Rect(origin_x, origin_y + 2, TURN_HEADER_LINE_WIDTH, 40),
+            border_radius=2,
+        )
+
+        turn_shadow = self._font.render(layout["turn_label"], True, shadow_color)
+        turn_shadow.set_alpha(150)
+        surface.blit(turn_shadow, (origin_x + 13, origin_y - 1))
+        turn_label = self._font.render(layout["turn_label"], True, (236, 244, 255))
+        surface.blit(turn_label, (origin_x + 11, origin_y - 3))
+
+        owner_shadow = self._small_font.render(f"{layout['turn_owner_label']} Turn", True, shadow_color)
+        owner_shadow.set_alpha(140)
+        surface.blit(owner_shadow, (origin_x + 13, origin_y + 24))
+        owner_label = self._small_font.render(f"{layout['turn_owner_label']} Turn", True, owner_color)
+        surface.blit(owner_label, (origin_x + 11, origin_y + 22))
+
+    def _draw_combat_modifier_strip(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
+        for modifier in layout["combat_modifiers"]:
+            rect = pygame.Rect(*modifier["rect"])
+            accent = modifier["accent"]
+            if high_contrast:
+                accent = tuple(min(255, channel + 16) for channel in accent)
+            if modifier.get("type") == "relic":
+                art = relic_assets.get_relic_art(modifier["id"], rect.size)
+                if art is not None:
+                    art_rect = art.get_rect(center=rect.center)
+                    surface.blit(art, art_rect.topleft)
+                else:
+                    label = self._tiny_font.render(modifier["abbrev"], True, accent)
+                    surface.blit(label, label.get_rect(center=rect.center))
+            else:
+                label = self._tiny_font.render(modifier["abbrev"], True, accent)
+                surface.blit(label, label.get_rect(center=rect.center))
+                pygame.draw.line(surface, accent, (rect.x + 4, rect.bottom - 3), (rect.right - 4, rect.bottom - 3), 2)
+
+            if modifier.get("temporary") and isinstance(modifier.get("remaining"), int):
+                badge_rect = pygame.Rect(rect.right - 9, rect.y - 3, 16, 16)
+                pygame.draw.rect(surface, (255, 214, 110), badge_rect, border_radius=8)
+                badge = self._tiny_font.render(str(modifier["remaining"]), True, (18, 24, 36))
+                surface.blit(badge, badge.get_rect(center=badge_rect.center))
+            if self._mouse_pos != (-1, -1) and point_in_rect(self._mouse_pos, modifier["rect"]):
+                underline_y = rect.bottom + 4
+                pygame.draw.line(surface, (255, 214, 110), (rect.x + 2, underline_y), (rect.right - 2, underline_y), 2)
 
     def _draw_player_actor(self, surface: Any, actor: dict[str, Any], *, high_contrast: bool, targeted: bool) -> None:
         accent = actor["accent"]
@@ -813,9 +922,9 @@ class CombatUI:
         hud_rect = pygame.Rect(*actor["hud_rect"])
         accent = actor["accent"]
         border = tuple(min(255, channel + 24) for channel in accent) if high_contrast else tuple(min(255, channel + 10) for channel in accent)
-        self._draw_panel(surface, hud_rect, fill=(10, 15, 24, 228), border=border, radius=18)
+        self._draw_panel(surface, hud_rect, fill=(9, 14, 22, 212), border=border, radius=16)
         if targeted:
-            pygame.draw.rect(surface, (*accent, 70), hud_rect.inflate(8, 8), 2, border_radius=20)
+            pygame.draw.rect(surface, (*accent, 56), hud_rect.inflate(6, 6), 1, border_radius=18)
 
         hp_bar_rect = pygame.Rect(hud_rect.x + 12, hud_rect.y + 10, 168, 14)
         self._draw_meter(surface, hp_bar_rect, current=int(player["current_hp"]), maximum=max(1, int(player["max_hp"])), fill=(232, 106, 112), background=(36, 18, 28), border=(252, 210, 214), label=f"HP {player['current_hp']}/{player['max_hp']}", label_font=self._tiny_font)
@@ -1150,22 +1259,20 @@ class CombatUI:
     def _draw_helper_panel(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
         rect = pygame.Rect(*layout["helper_panel_rect"])
         border = (220, 232, 255) if high_contrast else (92, 126, 170)
-        self._draw_panel(surface, rect, fill=(10, 16, 24, 224), border=border, radius=18)
+        self._draw_panel(surface, rect, fill=(8, 12, 20, 210), border=border, radius=16)
         player = layout["player"]
         self._draw_text(surface, layout["helper_summary"], (rect.x + 14, rect.y + 10), self._tiny_font, width=rect.width - 28)
-        stats_line = f"Draw {player.get('draw_pile', 0)}   Discard {player.get('discard_pile', 0)}   Exhaust {player.get('exhaust_pile', 0)}"
-        self._draw_text(surface, stats_line, (rect.x + 14, rect.y + 38), self._tiny_font, width=rect.width - 28)
-        recent = layout["helper_recent"]
-        self._draw_text(surface, recent if len(recent) <= 44 else f"{recent[:41]}...", (rect.x + 14, rect.y + 56), self._tiny_font, width=rect.width - 28)
+        stats_line = f"Draw {player.get('draw_pile', 0)}  |  Discard {player.get('discard_pile', 0)}  |  Exhaust {player.get('exhaust_pile', 0)}"
+        self._draw_text(surface, stats_line, (rect.x + 14, rect.y + 34), self._tiny_font, width=rect.width - 28)
 
     def _draw_end_turn_button(self, surface: Any, layout: dict[str, Any]) -> None:
         button_rect = pygame.Rect(*layout["end_turn_rect"])
-        fill = (32, 64, 102) if layout["any_playable"] else (46, 84, 132)
+        fill = (30, 58, 92) if layout["any_playable"] else (42, 78, 118)
         if layout["end_turn_hovered"]:
-            fill = (56, 110, 172)
+            fill = (48, 94, 148)
         if self._pressed_end_turn:
             fill = (255, 214, 110)
-        border = (230, 240, 255) if not self._pressed_end_turn else (255, 214, 110)
+        border = (180, 198, 224) if not self._pressed_end_turn else (255, 214, 110)
         self._draw_panel(surface, button_rect, fill=fill, border=border, radius=16)
         label_color = (240, 245, 255) if not self._pressed_end_turn else (20, 28, 40)
         surface.blit(self._small_font.render("End Turn", True, label_color), self._small_font.render("End Turn", True, label_color).get_rect(center=button_rect.center))

@@ -7,8 +7,13 @@
     "description": "Start each combat with 5 Block.",
     "rarity": "common",
     "base_weight": 9,
-    "tags": ["defense", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "defense",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "combat_start": [
         {
@@ -26,8 +31,13 @@
     "description": "Draw 1 extra card on turn 1.",
     "rarity": "common",
     "base_weight": 8,
-    "tags": ["draw", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "draw",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "turn_one": [
         {
@@ -45,8 +55,13 @@
     "description": "Gain 1 extra Energy on turn 1.",
     "rarity": "uncommon",
     "base_weight": 6,
-    "tags": ["energy", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "energy",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "turn_one": [
         {
@@ -64,14 +79,21 @@
     "description": "Gain 6 extra credits after normal combats.",
     "rarity": "common",
     "base_weight": 8,
-    "tags": ["economy", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "economy",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "post_victory": [
         {
           "type": "gain_credits",
           "value": 6,
-          "encounter_types": ["combat"]
+          "encounter_types": [
+            "combat"
+          ]
         }
       ]
     }
@@ -84,14 +106,21 @@
     "description": "Heal 5 after elite victories.",
     "rarity": "common",
     "base_weight": 7,
-    "tags": ["recovery", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "recovery",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "post_victory": [
         {
           "type": "heal",
           "value": 5,
-          "encounter_types": ["elite"]
+          "encounter_types": [
+            "elite"
+          ]
         }
       ]
     }
@@ -104,8 +133,14 @@
     "description": "Shop card prices cost 15% less.",
     "rarity": "uncommon",
     "base_weight": 6,
-    "tags": ["economy", "shop", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "economy",
+      "shop",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_shop": [
         {
@@ -124,8 +159,13 @@
     "description": "The first purge each run is free.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["shop", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "shop",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_shop": [
         {
@@ -142,8 +182,14 @@
     "description": "Shop heal service costs 6 less.",
     "rarity": "common",
     "base_weight": 7,
-    "tags": ["recovery", "shop", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "recovery",
+      "shop",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_shop": [
         {
@@ -162,8 +208,13 @@
     "description": "Start the run with 25 credits.",
     "rarity": "common",
     "base_weight": 6,
-    "tags": ["economy", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "economy",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -181,8 +232,13 @@
     "description": "Card rewards show 1 extra choice.",
     "rarity": "rare",
     "base_weight": 3,
-    "tags": ["draw", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "draw",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_reward": [
         {
@@ -200,8 +256,13 @@
     "description": "Add Cache Draw to the starting deck.",
     "rarity": "common",
     "base_weight": 6,
-    "tags": ["draw", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "draw",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -219,8 +280,13 @@
     "description": "Add Firewall to the starting deck.",
     "rarity": "common",
     "base_weight": 6,
-    "tags": ["defense", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "defense",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -238,8 +304,13 @@
     "description": "Add Surge Strike to the starting deck.",
     "rarity": "common",
     "base_weight": 6,
-    "tags": ["offense", "blessing"],
-    "source_types": ["run_start"],
+    "tags": [
+      "offense",
+      "blessing"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -258,8 +329,14 @@
     "downside": "All healing is 25% weaker.",
     "rarity": "cursed",
     "base_weight": 3,
-    "tags": ["economy", "risk", "curse"],
-    "source_types": ["run_start"],
+    "tags": [
+      "economy",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -271,7 +348,10 @@
         {
           "type": "gain_credits",
           "value": 10,
-          "encounter_types": ["combat", "elite"]
+          "encounter_types": [
+            "combat",
+            "elite"
+          ]
         }
       ]
     }
@@ -285,8 +365,14 @@
     "downside": "Lose 12 max HP.",
     "rarity": "cursed",
     "base_weight": 3,
-    "tags": ["energy", "risk", "curse"],
-    "source_types": ["run_start"],
+    "tags": [
+      "energy",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -311,8 +397,14 @@
     "downside": "Lose 10 max HP.",
     "rarity": "cursed",
     "base_weight": 4,
-    "tags": ["shop", "economy", "curse"],
-    "source_types": ["run_start"],
+    "tags": [
+      "shop",
+      "economy",
+      "curse"
+    ],
+    "source_types": [
+      "run_start"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -337,8 +429,13 @@
     "description": "The first reroll in each shop is free.",
     "rarity": "uncommon",
     "base_weight": 6,
-    "tags": ["shop", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "shop",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "on_shop": [
         {
@@ -355,8 +452,14 @@
     "description": "Heal 3 after each event resolves.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["recovery", "event", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "recovery",
+      "event",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "on_event": [
         {
@@ -374,8 +477,14 @@
     "description": "The first card purchase in each shop costs 8 more.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["shop", "economy", "curse"],
-    "source_types": ["event"],
+    "tags": [
+      "shop",
+      "economy",
+      "curse"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "on_shop": [
         {
@@ -394,8 +503,14 @@
     "downside": "Lose 8 max HP.",
     "rarity": "rare",
     "base_weight": 2,
-    "tags": ["draw", "risk", "curse"],
-    "source_types": ["event"],
+    "tags": [
+      "draw",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -420,14 +535,24 @@
     "downside": "All shop prices cost 15% more.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["economy", "shop", "risk", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "economy",
+      "shop",
+      "risk",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "post_victory": [
         {
           "type": "gain_credits",
           "value": 8,
-          "encounter_types": ["combat", "elite"]
+          "encounter_types": [
+            "combat",
+            "elite"
+          ]
         }
       ],
       "on_shop": [
@@ -447,8 +572,14 @@
     "description": "Lose 10 credits at each new floor.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["economy", "risk", "curse"],
-    "source_types": ["event"],
+    "tags": [
+      "economy",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "passive": [
         {
@@ -466,8 +597,14 @@
     "description": "Start each combat with 1 extra Energy.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["energy", "offense", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "energy",
+      "offense",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "combat_start": [
         {
@@ -485,8 +622,14 @@
     "description": "The first Block gain each combat is reduced by 4.",
     "rarity": "common",
     "base_weight": 5,
-    "tags": ["defense", "risk", "curse"],
-    "source_types": ["event"],
+    "tags": [
+      "defense",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "passive": [
         {
@@ -504,8 +647,14 @@
     "description": "Attack cards deal 3 extra damage if you attacked last turn.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["offense", "scaling", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "offense",
+      "scaling",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "passive": [
         {
@@ -523,8 +672,13 @@
     "description": "The first card each combat costs 0.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["energy", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "energy",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "passive": [
         {
@@ -541,8 +695,14 @@
     "description": "Cards cost 1 more after the first one each combat.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["energy", "risk", "curse"],
-    "source_types": ["event"],
+    "tags": [
+      "energy",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "passive": [
         {
@@ -560,8 +720,14 @@
     "description": "Lose 8 HP. Reward cards show 1 extra choice.",
     "rarity": "rare",
     "base_weight": 2,
-    "tags": ["offense", "risk", "curse"],
-    "source_types": ["event"],
+    "tags": [
+      "offense",
+      "risk",
+      "curse"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "on_acquire": [
         {
@@ -585,8 +751,14 @@
     "description": "Each combat begins with a random glitch.",
     "rarity": "rare",
     "base_weight": 2,
-    "tags": ["volatility", "risk", "event"],
-    "source_types": ["event"],
+    "tags": [
+      "volatility",
+      "risk",
+      "event"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "combat_start": [
         {
@@ -645,8 +817,14 @@
     "description": "The first card you play each combat repeats.",
     "rarity": "rare",
     "base_weight": 2,
-    "tags": ["offense", "scaling", "blessing"],
-    "source_types": ["event"],
+    "tags": [
+      "offense",
+      "scaling",
+      "blessing"
+    ],
+    "source_types": [
+      "event"
+    ],
     "hooks": {
       "passive": [
         {
@@ -663,8 +841,14 @@
     "description": "Next 3 combats: start with 1 extra Energy.",
     "rarity": "common",
     "base_weight": 6,
-    "tags": ["energy", "blessing", "event"],
-    "source_types": ["event"],
+    "tags": [
+      "energy",
+      "blessing",
+      "event"
+    ],
+    "source_types": [
+      "event"
+    ],
     "duration": {
       "type": "combat",
       "value": 3
@@ -687,8 +871,15 @@
     "description": "Next combat: lose 4 HP at the start.",
     "rarity": "uncommon",
     "base_weight": 4,
-    "tags": ["volatility", "risk", "curse", "event"],
-    "source_types": ["event"],
+    "tags": [
+      "volatility",
+      "risk",
+      "curse",
+      "event"
+    ],
+    "source_types": [
+      "event"
+    ],
     "duration": {
       "type": "combat",
       "value": 1
@@ -699,6 +890,319 @@
         {
           "type": "damage",
           "value": 4
+        }
+      ]
+    }
+  },
+  {
+    "id": "rot_battery",
+    "name": "Rot Battery",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first time you draw a status card each turn, gain 3 Block.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "status",
+      "defense"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_status_drawn": [
+        {
+          "type": "gain_block",
+          "value": 3,
+          "once_per": "turn"
+        }
+      ]
+    }
+  },
+  {
+    "id": "butcher_hooks",
+    "name": "Butcher Hooks",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first time each turn you apply Bleed, deal 3 damage to that enemy.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "bleed",
+      "offense"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_enemy_status_applied": [
+        {
+          "type": "damage_event_target",
+          "value": 3,
+          "status_ids": [
+            "bleed"
+          ],
+          "once_per": "turn"
+        }
+      ]
+    }
+  },
+  {
+    "id": "field_dampener",
+    "name": "Field Dampener",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first time each combat you gain Burn, Bleed, Infect, Suppressed, or Nullified, gain 5 Block.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "defense",
+      "enemy_status"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_player_status_applied": [
+        {
+          "type": "gain_block",
+          "value": 5,
+          "status_ids": [
+            "burn",
+            "bleed",
+            "infect",
+            "suppressed",
+            "nullified"
+          ],
+          "once_per": "combat"
+        }
+      ]
+    }
+  },
+  {
+    "id": "septic_reservoir",
+    "name": "Septic Reservoir",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "At end of your turn, the enemy with the highest Infect gains 1 Infect.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "infect",
+      "scaling"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "turn_end": [
+        {
+          "type": "increase_highest_enemy_status",
+          "status_id": "infect",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "pressure_sight",
+    "name": "Pressure Sight",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first time each turn you apply Weak or Vulnerable, draw 1 card.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": [
+      "control",
+      "draw"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_enemy_status_applied": [
+        {
+          "type": "draw_cards",
+          "value": 1,
+          "status_ids": [
+            "weak",
+            "vulnerable"
+          ],
+          "once_per": "turn"
+        }
+      ]
+    }
+  },
+  {
+    "id": "jam_cycler",
+    "name": "Jam Cycler",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "Whenever a status card is exhausted, deal 3 damage to a random enemy.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "status",
+      "offense"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_card_exhausted": [
+        {
+          "type": "damage_random_enemy",
+          "value": 3,
+          "card_type": "status"
+        }
+      ]
+    }
+  },
+  {
+    "id": "grave_pick",
+    "name": "Grave Pick",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first enemy that dies each combat grants 1 Energy next turn.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "kill",
+      "energy"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_enemy_death": [
+        {
+          "type": "gain_next_turn_energy",
+          "value": 1,
+          "once_per": "combat"
+        }
+      ]
+    }
+  },
+  {
+    "id": "null_damper",
+    "name": "Null Damper",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first time each combat you would gain Suppressed or Nullified, prevent 1 stack and draw 1 card.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "control",
+      "cleanse"
+    ],
+    "source_types": [
+      "elite_reward",
+      "shop"
+    ],
+    "hooks": {
+      "on_player_status_applied": [
+        {
+          "type": "reduce_player_status",
+          "value": 1,
+          "status_ids": [
+            "suppressed",
+            "nullified"
+          ],
+          "once_per": "combat"
+        },
+        {
+          "type": "draw_cards",
+          "value": 1,
+          "status_ids": [
+            "suppressed",
+            "nullified"
+          ],
+          "once_per": "combat"
+        }
+      ]
+    }
+  },
+  {
+    "id": "grave_lantern",
+    "name": "Grave Lantern",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "Start each combat by applying 1 Weak and 1 Bleed to all enemies.",
+    "rarity": "rare",
+    "base_weight": 3,
+    "tags": [
+      "aoe",
+      "status",
+      "setup"
+    ],
+    "source_types": [
+      "boss_reward",
+      "elite_reward"
+    ],
+    "hooks": {
+      "combat_start": [
+        {
+          "type": "apply_status_all_enemies",
+          "status_id": "weak",
+          "value": 1
+        },
+        {
+          "type": "apply_status_all_enemies",
+          "status_id": "bleed",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "execution_array",
+    "name": "Execution Array",
+    "type": "relic",
+    "draft_eligible": true,
+    "description": "The first time each turn you hit an enemy that has a combat status, deal 3 bonus damage and draw 1 card.",
+    "rarity": "rare",
+    "base_weight": 3,
+    "tags": [
+      "status",
+      "offense",
+      "draw"
+    ],
+    "source_types": [
+      "boss_reward",
+      "elite_reward"
+    ],
+    "hooks": {
+      "on_attack_hit": [
+        {
+          "type": "damage_event_target",
+          "value": 3,
+          "require_target_has_statuses": [
+            "weak",
+            "vulnerable",
+            "bleed",
+            "burn",
+            "infect"
+          ],
+          "once_per": "turn"
+        },
+        {
+          "type": "draw_cards",
+          "value": 1,
+          "require_target_has_statuses": [
+            "weak",
+            "vulnerable",
+            "bleed",
+            "burn",
+            "infect"
+          ],
+          "once_per": "turn"
         }
       ]
     }

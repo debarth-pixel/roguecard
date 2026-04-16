@@ -71,8 +71,14 @@ class MapGenerator:
         nodes[boss_node.node_id] = boss_node
         floor_nodes.append([boss_node])
 
-        for floor_index in range(len(floor_nodes) - 1):
-            self._connect_floor_pair(floor_nodes[floor_index], floor_nodes[floor_index + 1])
+        total_pairs = len(floor_nodes) - 1
+        for floor_index in range(total_pairs):
+            self._connect_floor_pair(
+                floor_nodes[floor_index],
+                floor_nodes[floor_index + 1],
+                floor_index=floor_index,
+                total_pairs=total_pairs,
+            )
 
         self._validate_graph(floor_nodes)
 
@@ -148,26 +154,179 @@ class MapGenerator:
                 return node_type
         return "combat"
 
-    def _connect_floor_pair(self, current_floor: list[Node], next_floor: list[Node]) -> None:
-        for node in current_floor:
-            candidate_columns = {min(node.column, len(next_floor) - 1)}
-            if len(next_floor) > 1 and node.column + 1 < len(next_floor):
-                candidate_columns.add(node.column + 1)
-            if len(next_floor) > 1 and node.column - 1 >= 0:
-                candidate_columns.add(node.column - 1)
+    def _connect_floor_pair(
+        self,
+        current_floor: list[Node],
+        next_floor: list[Node],
+        *,
+        floor_index: int,
+        total_pairs: int,
+    ) -> None:
+        existing_edges: list[tuple[int, int]] = []
+        incoming_counts = {node.node_id: 0 for node in next_floor}
 
-            candidates = [next_floor[column] for column in sorted(candidate_columns)]
-            self.rng.shuffle(candidates)
-            connection_count = 1 if len(candidates) == 1 else self.rng.randint(1, min(2, len(candidates)))
-            for target_node in candidates[:connection_count]:
-                node.connect_to(target_node.node_id)
+        for node in current_floor:
+            candidates = self._adjacent_candidates(node, next_floor)
+            if not candidates:
+                continue
+            target_node = min(
+                candidates,
+                key=lambda target: (
+                    incoming_counts[target.node_id],
+                    abs(node.column - target.column),
+                    abs(target.column - node.column),
+                    target.column,
+                ),
+            )
+            safe_target = self._first_non_crossing_target(node.column, candidates, existing_edges)
+            if safe_target is not None:
+                target_node = safe_target
+            node.connect_to(target_node.node_id)
+            incoming_counts[target_node.node_id] += 1
+            existing_edges.append((node.column, target_node.column))
 
         for target_node in next_floor:
-            has_incoming = any(target_node.node_id in node.next_nodes for node in current_floor)
-            if has_incoming:
+            if incoming_counts[target_node.node_id] > 0:
                 continue
-            source_node = min(current_floor, key=lambda node: abs(node.column - target_node.column))
+            source_candidates = sorted(
+                current_floor,
+                key=lambda node: (
+                    abs(node.column - target_node.column),
+                    len(node.next_nodes),
+                    node.column,
+                ),
+            )
+            source_node = next(
+                (
+                    node
+                    for node in source_candidates
+                    if not self._edge_crosses_existing(existing_edges, node.column, target_node.column)
+                ),
+                source_candidates[0],
+            )
             source_node.connect_to(target_node.node_id)
+            incoming_counts[target_node.node_id] += 1
+            existing_edges.append((source_node.column, target_node.column))
+
+        self._add_secondary_edges(
+            current_floor,
+            next_floor,
+            incoming_counts,
+            existing_edges,
+            floor_index=floor_index,
+            total_pairs=total_pairs,
+        )
+
+    def _add_secondary_edges(
+        self,
+        current_floor: list[Node],
+        next_floor: list[Node],
+        incoming_counts: dict[str, int],
+        existing_edges: list[tuple[int, int]],
+        *,
+        floor_index: int,
+        total_pairs: int,
+    ) -> None:
+        if len(current_floor) <= 1 or len(next_floor) <= 1:
+            return
+
+        progress = floor_index / max(1, total_pairs - 1)
+        if progress >= 0.9:
+            return
+
+        next_floor_by_id = {node.node_id: node for node in next_floor}
+        candidate_edges: list[tuple[int, float, Node, Node]] = []
+        for source_node in current_floor:
+            if len(source_node.next_nodes) >= 2:
+                continue
+            current_targets = [
+                next_floor_by_id[target_id]
+                for target_id in source_node.next_nodes
+                if target_id in next_floor_by_id
+            ]
+            if not current_targets:
+                continue
+            for target_node in self._adjacent_candidates(source_node, next_floor):
+                if target_node.node_id in source_node.next_nodes:
+                    continue
+                if abs(source_node.column - target_node.column) != 1:
+                    continue
+                if self._edge_crosses_existing(existing_edges, source_node.column, target_node.column):
+                    continue
+                score = 0
+                if all(existing.node_type != target_node.node_type for existing in current_targets):
+                    score += 3
+                if incoming_counts[target_node.node_id] <= 1:
+                    score += 1
+                if progress <= 0.5:
+                    score += 1
+                candidate_edges.append((score, self.rng.random(), source_node, target_node))
+
+        if not candidate_edges:
+            return
+
+        candidate_edges.sort(key=lambda item: (-item[0], item[1], item[2].column, item[3].column))
+        extra_budget = 2 if len(current_floor) >= 4 and progress < 0.45 else 1
+        branch_chance = 0.45 if progress < 0.25 else 0.3 if progress < 0.6 else 0.12
+        used_sources: set[str] = set()
+        added_edges = 0
+
+        for score, _, source_node, target_node in candidate_edges:
+            if added_edges >= extra_budget:
+                break
+            if source_node.node_id in used_sources or len(source_node.next_nodes) >= 2:
+                continue
+            if target_node.node_id in source_node.next_nodes:
+                continue
+            if self._edge_crosses_existing(existing_edges, source_node.column, target_node.column):
+                continue
+            effective_branch_chance = branch_chance + (0.12 if score >= 4 else 0.0)
+            if self.rng.random() > min(0.72, effective_branch_chance):
+                continue
+            source_node.connect_to(target_node.node_id)
+            incoming_counts[target_node.node_id] += 1
+            existing_edges.append((source_node.column, target_node.column))
+            used_sources.add(source_node.node_id)
+            added_edges += 1
+
+    def _adjacent_candidates(self, node: Node, next_floor: list[Node]) -> list[Node]:
+        candidate_columns = {min(node.column, len(next_floor) - 1)}
+        if len(next_floor) > 1 and node.column + 1 < len(next_floor):
+            candidate_columns.add(node.column + 1)
+        if len(next_floor) > 1 and node.column - 1 >= 0:
+            candidate_columns.add(node.column - 1)
+        return [
+            next_floor[column]
+            for column in sorted(candidate_columns, key=lambda column: (abs(column - node.column), column))
+        ]
+
+    def _first_non_crossing_target(
+        self,
+        source_column: int,
+        candidates: list[Node],
+        existing_edges: list[tuple[int, int]],
+    ) -> Node | None:
+        return next(
+            (
+                candidate
+                for candidate in candidates
+                if not self._edge_crosses_existing(existing_edges, source_column, candidate.column)
+            ),
+            None,
+        )
+
+    def _edge_crosses_existing(
+        self,
+        existing_edges: list[tuple[int, int]],
+        source_column: int,
+        target_column: int,
+    ) -> bool:
+        for existing_source, existing_target in existing_edges:
+            if existing_source == source_column or existing_target == target_column:
+                continue
+            if (source_column - existing_source) * (target_column - existing_target) < 0:
+                return True
+        return False
 
     def _validate_graph(self, floor_nodes: list[list[Node]]) -> None:
         for floor_index, current_floor in enumerate(floor_nodes):
@@ -191,7 +350,7 @@ class MapGenerator:
             return MAP_CANVAS_WIDTH // 2
         lane_spacing = (MAP_CANVAS_WIDTH - 220) / max(1, self.branches - 1)
         base_x = 110 + (column * lane_spacing)
-        jitter = self.rng.randint(-36, 36)
+        jitter = self.rng.randint(-14, 14)
         return int(base_x + jitter)
 
     def _row_y(self, floor: int, route_floor_count: int) -> int:

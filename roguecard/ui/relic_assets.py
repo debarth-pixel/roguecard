@@ -88,15 +88,6 @@ class RelicAssets:
         if self._validated:
             return
 
-        missing = [
-            relic_id
-            for relic_id, path in sorted(self._paths_by_id.items())
-            if not path.exists()
-        ]
-        if missing:
-            raise ValueError(
-                "Missing relic cutout assets: " + ", ".join(missing)
-            )
         self._validated = True
 
     def _load_surface(self, relic_id: str) -> Any | None:

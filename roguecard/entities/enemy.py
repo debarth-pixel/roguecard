@@ -483,12 +483,15 @@ class Enemy:
             if label is None:
                 continue
             if effect_type in {
+                "enemy_apply_weak",
+                "enemy_apply_vulnerable",
                 "enemy_apply_infect",
                 "enemy_apply_marked",
                 "enemy_apply_suppressed",
                 "enemy_apply_burn",
                 "enemy_apply_bleed",
                 "enemy_apply_nullified",
+                "enemy_add_status_card",
                 "enemy_strip_buff",
                 "enemy_trigger_infection_burst",
                 "enemy_steal_block",
@@ -543,6 +546,8 @@ class Enemy:
 
     def _intent_effect_label(self, effect_type: Any) -> str | None:
         labels = {
+            "enemy_apply_weak": "Weak",
+            "enemy_apply_vulnerable": "Vulnerable",
             "enemy_heal_ally": "Heal",
             "enemy_apply_infect": "Infect",
             "enemy_apply_marked": "Marked",
@@ -550,6 +555,7 @@ class Enemy:
             "enemy_apply_burn": "Burn",
             "enemy_apply_bleed": "Bleed",
             "enemy_apply_nullified": "Nullify",
+            "enemy_add_status_card": "Clog",
             "enemy_strip_buff": "Strip Buff",
             "enemy_cleanse_ally": "Cleanse",
             "enemy_gain_strength": "Strength",

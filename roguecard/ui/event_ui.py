@@ -10,24 +10,37 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 
 from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+from ui.card_renderer import draw_card
+from ui.ui_system import (
+    COLOR_CYAN,
+    COLOR_GOLD,
+    COLOR_LINE,
+    COLOR_MUTED,
+    COLOR_PANEL,
+    COLOR_PANEL_ELEVATED,
+    RADIUS_LG,
+    RADIUS_MD,
+    draw_background_stage,
+    draw_chip,
+    draw_hint_row,
+    draw_panel,
+)
 
 
 EVENT_LAYOUT = {
-    "left_panel_rect": (42, 88, 824, 612),
-    "art_rect": (62, 160, 784, 188),
-    "description_rect": (62, 372, 784, 54),
-    "choice_start_y": 446,
-    "choice_height": 74,
-    "choice_gap": 16,
-    "side_x": 900,
-    "side_width": 318,
-    "outcome_rect": (900, 206, 318, 212),
-    "confirm_rect": (1006, 632, 206, 48),
-    "continue_rect": (1006, 632, 206, 48),
-    "purge_columns": 4,
+    "main_rect": (72, 110, 760, 560),
+    "art_rect": (96, 152, 712, 90),
+    "description_rect": (96, 264, 712, 68),
+    "choice_start_y": 356,
+    "choice_height": 58,
+    "choice_gap": 12,
+    "side_rect": (856, 164, 360, 392),
+    "confirm_rect": (1010, 620, 206, 44),
+    "continue_rect": (1010, 620, 206, 44),
+    "purge_columns": 2,
     "purge_gap_x": 12,
     "purge_gap_y": 10,
-    "purge_height": 30,
+    "purge_height": 82,
 }
 
 
@@ -97,7 +110,7 @@ class EventUI:
             choices.append(
                 {
                     **choice,
-                    "rect": (62, EVENT_LAYOUT["choice_start_y"] + (index * (EVENT_LAYOUT["choice_height"] + EVENT_LAYOUT["choice_gap"])), 784, EVENT_LAYOUT["choice_height"]),
+                    "rect": (96, EVENT_LAYOUT["choice_start_y"] + (index * (EVENT_LAYOUT["choice_height"] + EVENT_LAYOUT["choice_gap"])), 712, EVENT_LAYOUT["choice_height"]),
                     "shortcut": index + 1 if index < 9 else None,
                 }
             )
@@ -106,7 +119,7 @@ class EventUI:
         purge_targets: list[dict[str, Any]] = []
         purge_title_y = choice_bottom + 16
         if selected_choice is not None and selected_choice["choice_type"] == "purge" and not event["resolved"]:
-            chip_width = (784 - (EVENT_LAYOUT["purge_gap_x"] * (EVENT_LAYOUT["purge_columns"] - 1))) // EVENT_LAYOUT["purge_columns"]
+            chip_width = (328 - (EVENT_LAYOUT["purge_gap_x"] * (EVENT_LAYOUT["purge_columns"] - 1))) // EVENT_LAYOUT["purge_columns"]
             for index, target in enumerate(event["purge_targets"]):
                 row = index // EVENT_LAYOUT["purge_columns"]
                 col = index % EVENT_LAYOUT["purge_columns"]
@@ -114,8 +127,8 @@ class EventUI:
                     {
                         **target,
                         "rect": (
-                            62 + (col * (chip_width + EVENT_LAYOUT["purge_gap_x"])),
-                            purge_title_y + 18 + (row * (EVENT_LAYOUT["purge_height"] + EVENT_LAYOUT["purge_gap_y"])),
+                            EVENT_LAYOUT["side_rect"][0] + 16 + (col * (chip_width + EVENT_LAYOUT["purge_gap_x"])),
+                            EVENT_LAYOUT["side_rect"][1] + 120 + (row * (EVENT_LAYOUT["purge_height"] + EVENT_LAYOUT["purge_gap_y"])),
                             chip_width,
                             EVENT_LAYOUT["purge_height"],
                         ),
@@ -141,10 +154,10 @@ class EventUI:
             "resolution_details": event["resolution_details"],
             "can_continue": event["can_continue"],
             "can_confirm": can_confirm,
-            "left_panel_rect": EVENT_LAYOUT["left_panel_rect"],
+            "main_rect": EVENT_LAYOUT["main_rect"],
             "art_rect": EVENT_LAYOUT["art_rect"],
             "description_rect": EVENT_LAYOUT["description_rect"],
-            "outcome_rect": EVENT_LAYOUT["outcome_rect"],
+            "side_rect": EVENT_LAYOUT["side_rect"],
             "confirm_rect": EVENT_LAYOUT["confirm_rect"],
             "continue_rect": EVENT_LAYOUT["continue_rect"],
         }
@@ -156,12 +169,10 @@ class EventUI:
         high_contrast = event_state.get("presentation", {}).get("high_contrast", False)
         layout = self.build_layout(event_state)
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (64, 64))
-
-        surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=178)
-        self._draw_left_panel(surface, panel, pygame.Rect(*layout["left_panel_rect"]))
-        self._draw_text(surface, layout["title"], (62, 108), self._title_font, width=780)
+        draw_background_stage(surface, background, veil_alpha=170, top_band_height=72, bottom_band_height=92, line_step=54, line_alpha=6)
+        draw_panel(surface, pygame.Rect(*layout["main_rect"]), accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        draw_panel(surface, pygame.Rect(*layout["side_rect"]), accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        self._draw_text(surface, layout["title"], (96, 120), self._title_font, width=712)
         self._draw_event_art_panel(surface, layout)
         self._draw_text(surface, layout["body"], (layout["description_rect"][0], layout["description_rect"][1]), self._small_font, width=layout["description_rect"][2], color=(220, 232, 246))
 
@@ -169,19 +180,24 @@ class EventUI:
             self._draw_choice(surface, choice, layout, high_contrast=high_contrast)
 
         if layout["purge_targets"]:
-            self._draw_text(surface, "Deck Cards", (62, layout["purge_title_y"]), self._tiny_font, color=(210, 222, 238))
+            self._draw_text(surface, "Deck Cards", (layout["side_rect"][0] + 16, layout["side_rect"][1] + 18), self._tiny_font, color=(210, 222, 238))
             for target in layout["purge_targets"]:
                 self._draw_purge_target(surface, target)
 
-        self._draw_stat_pill(surface, f"HP {layout['player_hp']}/{layout['player_max_hp']}", (900, 112), 104, accent=(236, 104, 118))
-        self._draw_stat_pill(surface, f"Credits {layout['player_credits']}", (1010, 112), 118, accent=(255, 214, 110))
-        self._draw_stat_pill(surface, f"Deck {layout['deck_size']}", (1134, 112), 84, accent=(110, 216, 186))
         self._draw_outcome_rail(surface, layout)
 
         if layout["can_continue"]:
             self._draw_button(surface, layout["continue_rect"], "Continue", self._hovered_action == "continue", self._pressed_action == "continue", enabled=True)
         else:
             self._draw_button(surface, layout["confirm_rect"], "Confirm", self._hovered_action == "confirm", self._pressed_action == "confirm", enabled=layout["can_confirm"])
+        draw_hint_row(
+            surface,
+            pygame.Rect(72, 620, 912, 44),
+            left_text="1-9 choose  |  Enter confirm  |  C continue",
+            font=self._tiny_font,
+            accent=COLOR_LINE,
+            fill=COLOR_PANEL_ELEVATED,
+        )
 
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "confirm":
@@ -228,18 +244,17 @@ class EventUI:
     def _draw_event_art_panel(self, surface: Any, layout: dict[str, Any]) -> None:
         rect = pygame.Rect(*layout["art_rect"])
         accent, shadow = self._event_palette(layout["event_id"])
-        pygame.draw.rect(surface, shadow, rect, border_radius=22)
-        pygame.draw.rect(surface, accent, rect, 2, border_radius=22)
-        for index in range(6):
-            stripe_width = 120 + (index * 10)
-            stripe_rect = pygame.Rect(rect.x - 24 + (index * 118), rect.y + 16, stripe_width, rect.height - 32)
+        draw_panel(surface, rect, accent=accent, fill=shadow, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        for index in range(5):
+            stripe_width = 92 + (index * 16)
+            stripe_rect = pygame.Rect(rect.x + 18 + (index * 128), rect.y + 16, stripe_width, rect.height - 32)
             stripe_surface = pygame.Surface((stripe_rect.width, stripe_rect.height), pygame.SRCALPHA)
-            stripe_surface.fill((*accent, 34 if index % 2 == 0 else 18))
-            stripe_surface = pygame.transform.rotate(stripe_surface, -17)
+            stripe_surface.fill((*accent, 28 if index % 2 == 0 else 14))
+            stripe_surface = pygame.transform.rotate(stripe_surface, -12)
             surface.blit(stripe_surface, stripe_surface.get_rect(center=stripe_rect.center))
-        glow_rect = pygame.Rect(rect.x + 24, rect.y + 26, 210, 12)
+        glow_rect = pygame.Rect(rect.x + 24, rect.y + 24, 180, 10)
         pygame.draw.rect(surface, (255, 214, 110), glow_rect, border_radius=6)
-        pygame.draw.rect(surface, (190, 234, 248), pygame.Rect(rect.x + 24, rect.y + 48, 152, 8), border_radius=4)
+        pygame.draw.rect(surface, (190, 234, 248), pygame.Rect(rect.x + 24, rect.y + 44, 132, 6), border_radius=3)
 
     def _draw_choice(self, surface: Any, choice: dict[str, Any], layout: dict[str, Any], *, high_contrast: bool) -> None:
         rect = pygame.Rect(*choice["rect"])
@@ -248,28 +263,27 @@ class EventUI:
         hovered = self._hovered_action == f"choice:{choice['id']}"
         pressed = self._pressed_action == f"choice:{choice['id']}"
         available = choice["available"] and not layout["resolved"]
-        fill = (22, 34, 52) if available else (22, 24, 32)
-        border = (104, 134, 182)
+        fill = (18, 28, 42) if available else (22, 24, 32)
+        border = (92, 118, 150)
         if hovered and available:
-            fill = (32, 50, 78)
+            fill = (28, 42, 62)
             border = (232, 240, 255)
         if selected:
-            fill = (52, 80, 126)
+            fill = (42, 62, 98)
             border = (255, 214, 110)
         if pressed and available:
             fill = (255, 214, 110)
             border = (255, 214, 110)
         if high_contrast and available and not selected:
             border = (220, 232, 248)
-        pygame.draw.rect(surface, fill, draw_rect, border_radius=18)
-        pygame.draw.rect(surface, border, draw_rect, 2, border_radius=18)
+        draw_panel(surface, draw_rect, accent=border, fill=fill, radius=RADIUS_MD, border_width=2 if selected or hovered else 1, shadow_alpha=0)
         title_color = (18, 24, 36) if pressed and available else (246, 250, 255) if available else (176, 184, 198)
         detail_color = (24, 32, 42) if pressed and available else (204, 216, 236) if available else (136, 144, 156)
-        self._draw_text(surface, choice["label"], (draw_rect.x + 20, draw_rect.y + 12), self._small_font, width=620, color=title_color)
+        self._draw_text(surface, choice["label"], (draw_rect.x + 18, draw_rect.y + 8), self._small_font, width=620, color=title_color)
         detail_text = choice["description"] if available else choice["disabled_reason"] or choice["description"]
-        self._draw_text(surface, detail_text, (draw_rect.x + 20, draw_rect.y + 42), self._tiny_font, width=660, color=detail_color)
+        self._draw_text(surface, detail_text, (draw_rect.x + 18, draw_rect.y + 30), self._tiny_font, width=640, color=detail_color)
         if choice["shortcut"] is not None:
-            self._draw_badge(surface, str(choice["shortcut"]), (draw_rect.right - 42, draw_rect.y + 20), accent=(255, 214, 110), text_color=title_color)
+            draw_chip(surface, pygame.Rect(draw_rect.right - 36, draw_rect.y + 18, 22, 22), label=str(choice["shortcut"]), font=self._tiny_font, accent=border, fill=COLOR_PANEL_ELEVATED)
 
     def _draw_purge_target(self, surface: Any, target: dict[str, Any]) -> None:
         rect = pygame.Rect(*target["rect"])
@@ -283,29 +297,42 @@ class EventUI:
         if pressed:
             fill = (255, 214, 110)
             border = (255, 214, 110)
-        pygame.draw.rect(surface, fill, rect, border_radius=12)
-        pygame.draw.rect(surface, border, rect, 2, border_radius=12)
-        text_color = (16, 24, 38) if pressed else (236, 242, 250)
-        self._draw_text(surface, target["card"]["name"], (rect.x + 10, rect.y + 6), self._tiny_font, width=rect.width - 20, color=text_color)
+        draw_card(
+            surface,
+            rect,
+            target["card"],
+            {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+            variant="mini",
+            selected=target["selected"],
+            hovered=hovered,
+            pressed=pressed,
+            high_contrast=False,
+        )
 
     def _draw_outcome_rail(self, surface: Any, layout: dict[str, Any]) -> None:
-        rect = pygame.Rect(*layout["outcome_rect"])
+        rect = pygame.Rect(*layout["side_rect"])
         visible = layout["resolved"] or layout["selected_choice"] is not None
         if not visible:
             return
-        pygame.draw.rect(surface, (12, 18, 30), rect, border_radius=20)
-        pygame.draw.rect(surface, (72, 94, 126), rect, 1, border_radius=20)
+        if layout["purge_targets"] and not layout["resolved"]:
+            header_rect = pygame.Rect(rect.x + 16, rect.y + 16, rect.width - 32, 86)
+            draw_panel(surface, header_rect, accent=COLOR_LINE, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+            draw_chip(surface, pygame.Rect(header_rect.x + 14, header_rect.y + 14, 94, 24), label="Selected", font=self._tiny_font, accent=(118, 182, 244), fill=COLOR_PANEL)
+            self._draw_text(surface, layout["selected_choice"]["label"], (header_rect.x + 14, header_rect.y + 44), self._tiny_font, width=header_rect.width - 28)
+            return
+        inner_rect = rect.inflate(-16, -16)
+        draw_panel(surface, inner_rect, accent=COLOR_LINE, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
         if layout["resolved"]:
-            self._draw_chip(surface, "Resolved", (rect.x + 18, rect.y + 16), 94, accent=(110, 216, 186))
-            self._draw_text(surface, layout["resolution_summary"] or "Event resolved.", (rect.x + 18, rect.y + 56), self._small_font, width=rect.width - 36)
-            detail_y = rect.y + 110
+            draw_chip(surface, pygame.Rect(inner_rect.x + 16, inner_rect.y + 16, 94, 24), label="Resolved", font=self._tiny_font, accent=(110, 216, 186), fill=COLOR_PANEL)
+            self._draw_text(surface, layout["resolution_summary"] or "Event resolved.", (inner_rect.x + 16, inner_rect.y + 54), self._small_font, width=inner_rect.width - 32)
+            detail_y = inner_rect.y + 108
             for detail in layout["resolution_details"][:4]:
-                self._draw_text(surface, detail, (rect.x + 18, detail_y), self._tiny_font, width=rect.width - 36, color=(210, 222, 238))
+                self._draw_text(surface, detail, (inner_rect.x + 16, detail_y), self._tiny_font, width=inner_rect.width - 32, color=(210, 222, 238))
                 detail_y += 24
         else:
-            self._draw_chip(surface, "Selected", (rect.x + 18, rect.y + 16), 94, accent=(118, 182, 244))
-            self._draw_text(surface, layout["selected_choice"]["label"], (rect.x + 18, rect.y + 58), self._small_font, width=rect.width - 36)
-            self._draw_text(surface, layout["selected_choice"]["description"], (rect.x + 18, rect.y + 98), self._tiny_font, width=rect.width - 36, color=(210, 222, 238))
+            draw_chip(surface, pygame.Rect(inner_rect.x + 16, inner_rect.y + 16, 94, 24), label="Selected", font=self._tiny_font, accent=(118, 182, 244), fill=COLOR_PANEL)
+            self._draw_text(surface, layout["selected_choice"]["label"], (inner_rect.x + 16, inner_rect.y + 54), self._small_font, width=inner_rect.width - 32)
+            self._draw_text(surface, layout["selected_choice"]["description"], (inner_rect.x + 16, inner_rect.y + 94), self._tiny_font, width=inner_rect.width - 32, color=(210, 222, 238))
 
     def _event_palette(self, event_id: str) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
         seed = sum(ord(char) for char in event_id)

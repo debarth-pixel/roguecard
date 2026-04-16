@@ -11,6 +11,7 @@ from config import RUN_MODIFIERS_DATA_PATH, STATUS_SOURCE_TYPES, STATUS_TAGS
 ALLOWED_MODIFIER_TYPES = {"relic", "blessing", "curse", "status"}
 ALLOWED_MODIFIER_RARITIES = {"common", "uncommon", "rare", "cursed", "special"}
 ALLOWED_DURATION_TYPES = {"permanent", "combat", "floor"}
+ALLOWED_ONCE_PER_VALUES = {"turn", "combat"}
 ALLOWED_STACK_BEHAVIORS = {
     "no_duplicate",
     "refresh_duration",
@@ -27,6 +28,13 @@ ALLOWED_MODIFIER_HOOKS = {
     "combat_start",
     "turn_one",
     "on_turn_start",
+    "turn_end",
+    "on_status_drawn",
+    "on_enemy_status_applied",
+    "on_player_status_applied",
+    "on_card_exhausted",
+    "on_enemy_death",
+    "on_attack_hit",
     "post_victory",
     "on_reward",
     "on_shop",
@@ -60,8 +68,15 @@ ALLOWED_MODIFIER_EFFECT_TYPES = {
     "cost_surcharge_after_first_card",
     "repeat_first_card",
     "random_one_of",
+    "damage_event_target",
+    "damage_random_enemy",
+    "apply_status_all_enemies",
+    "increase_highest_enemy_status",
+    "gain_next_turn_energy",
+    "reduce_player_status",
 }
-SHOP_PRICE_TARGETS = {"all", "card", "purge", "heal", "reroll"}
+SHOP_PRICE_TARGETS = {"all", "card", "relic", "purge", "heal", "reroll"}
+ALLOWED_MODIFIER_CARD_TYPES = {"attack", "skill", "power", "status"}
 
 
 class RunModifierLibrary:
@@ -298,10 +313,10 @@ class RunModifierLibrary:
                 raise ValueError(f"Run modifier {modifier_id} add_card effects must define card_id.")
             self.card_library.get_card(card_id)
             validated["card_id"] = card_id
-            return validated
+            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
 
         if effect_type in {"free_first_purge_run", "free_first_reroll_shop", "first_card_free", "repeat_first_card"}:
-            return validated
+            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
 
         if effect_type == "random_one_of":
             if not allow_random:
@@ -312,7 +327,7 @@ class RunModifierLibrary:
             validated["options"] = [
                 self._validate_random_option(option, modifier_id, hook_name) for option in options
             ]
-            return validated
+            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
 
         if effect_type in {
             "percent_discount",
@@ -329,7 +344,23 @@ class RunModifierLibrary:
                 raise ValueError(f"Run modifier {modifier_id} {effect_type} value must be a non-negative integer.")
             validated["target"] = target
             validated["value"] = value
-            return validated
+            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+
+        if effect_type in {"apply_status_all_enemies", "increase_highest_enemy_status"}:
+            status_id = effect_data.get("status_id")
+            if not isinstance(status_id, str) or not status_id:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} effect {effect_type} must define status_id."
+                )
+            validated["status_id"] = status_id
+        elif effect_type == "reduce_player_status":
+            status_id = effect_data.get("status_id")
+            if status_id is not None:
+                if not isinstance(status_id, str) or not status_id:
+                    raise ValueError(
+                        f"Run modifier {modifier_id} hook {hook_name} effect {effect_type} status_id must be a non-empty string when provided."
+                    )
+                validated["status_id"] = status_id
 
         value = effect_data.get("value")
         if not isinstance(value, int):
@@ -347,6 +378,58 @@ class RunModifierLibrary:
                     f"Run modifier {modifier_id} hook {hook_name} encounter_types must be a list of strings."
                 )
             validated["encounter_types"] = list(encounter_types)
+
+        return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+
+    def _apply_common_effect_metadata(
+        self,
+        validated: dict[str, Any],
+        effect_data: dict[str, Any],
+        modifier_id: str,
+        hook_name: str,
+    ) -> dict[str, Any]:
+        once_per = effect_data.get("once_per")
+        if once_per is not None:
+            if once_per not in ALLOWED_ONCE_PER_VALUES:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} once_per must be one of: "
+                    f"{', '.join(sorted(ALLOWED_ONCE_PER_VALUES))}"
+                )
+            validated["once_per"] = once_per
+
+        status_ids = effect_data.get("status_ids")
+        if status_ids is not None:
+            if (
+                not isinstance(status_ids, list)
+                or not status_ids
+                or not all(isinstance(status_id, str) and status_id for status_id in status_ids)
+            ):
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} status_ids must be a non-empty list of strings."
+                )
+            validated["status_ids"] = list(status_ids)
+
+        card_type = effect_data.get("card_type")
+        if card_type is not None:
+            if card_type not in ALLOWED_MODIFIER_CARD_TYPES:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} card_type must be one of: "
+                    f"{', '.join(sorted(ALLOWED_MODIFIER_CARD_TYPES))}"
+                )
+            validated["card_type"] = card_type
+
+        require_target_has_statuses = effect_data.get("require_target_has_statuses")
+        if require_target_has_statuses is not None:
+            if (
+                not isinstance(require_target_has_statuses, list)
+                or not require_target_has_statuses
+                or not all(isinstance(status_id, str) and status_id for status_id in require_target_has_statuses)
+            ):
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} require_target_has_statuses must be a "
+                    "non-empty list of strings."
+                )
+            validated["require_target_has_statuses"] = list(require_target_has_statuses)
 
         return validated
 

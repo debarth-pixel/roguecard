@@ -8,26 +8,44 @@ try:
 except ImportError:  # pragma: no cover - pygame is optional for headless verification.
     pygame = None
 
-from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
-from ui.card_renderer import compact_card_summary
+from config import MAX_UI_SCALE, MIN_UI_SCALE, SHOP_PURGE_OFFER_ID, resolve_asset_path
+from ui.card_renderer import compact_card_summary, draw_card
 from ui.card_style import resolve_card_theme
+from ui.relic_assets import relic_assets
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+from ui.ui_system import (
+    COLOR_CYAN,
+    COLOR_GOLD,
+    COLOR_LINE,
+    COLOR_LINE_SOFT,
+    COLOR_MUTED,
+    COLOR_PANEL,
+    COLOR_PANEL_ELEVATED,
+    COLOR_TEXT,
+    RADIUS_LG,
+    RADIUS_MD,
+    draw_background_stage,
+    draw_chip,
+    draw_hint_row,
+    draw_panel,
+)
 
 
 SHOP_LAYOUT = {
-    "header_rect": (56, 62, 1168, 84),
-    "canvas_rect": (56, 172, 1168, 438),
-    "footer_rect": (56, 632, 1168, 56),
-    "content_padding": 18,
+    "header_rect": (64, 76, 1152, 92),
+    "inventory_rect": (64, 190, 720, 420),
+    "detail_rect": (804, 190, 412, 420),
+    "footer_rect": (64, 632, 1152, 48),
+    "content_padding": 16,
     "offer_columns": 2,
-    "offer_height": 98,
-    "offer_gap_x": 18,
-    "offer_gap_y": 14,
-    "purge_tray_gap": 14,
-    "purge_columns": 6,
-    "purge_chip_height": 30,
-    "purge_chip_gap_x": 10,
-    "purge_chip_gap_y": 8,
+    "offer_height": 90,
+    "offer_gap_x": 14,
+    "offer_gap_y": 12,
+    "purge_tray_gap": 16,
+    "purge_columns": 3,
+    "purge_chip_height": 82,
+    "purge_chip_gap_x": 12,
+    "purge_chip_gap_y": 12,
 }
 
 SERVICE_THEMES = {
@@ -120,42 +138,56 @@ class ShopUI:
 
     def build_layout(self, shop_state: dict[str, Any]) -> dict[str, Any]:
         header_rect = pygame.Rect(*SHOP_LAYOUT["header_rect"]) if pygame is not None else _rect_tuple_to_dict(SHOP_LAYOUT["header_rect"])
-        canvas_rect = pygame.Rect(*SHOP_LAYOUT["canvas_rect"]) if pygame is not None else _rect_tuple_to_dict(SHOP_LAYOUT["canvas_rect"])
+        inventory_rect = pygame.Rect(*SHOP_LAYOUT["inventory_rect"]) if pygame is not None else _rect_tuple_to_dict(SHOP_LAYOUT["inventory_rect"])
+        detail_rect = pygame.Rect(*SHOP_LAYOUT["detail_rect"]) if pygame is not None else _rect_tuple_to_dict(SHOP_LAYOUT["detail_rect"])
         footer_rect = pygame.Rect(*SHOP_LAYOUT["footer_rect"]) if pygame is not None else _rect_tuple_to_dict(SHOP_LAYOUT["footer_rect"])
 
         if pygame is not None:
-            content_rect = canvas_rect.inflate(-SHOP_LAYOUT["content_padding"] * 2, -SHOP_LAYOUT["content_padding"] * 2)
-            offer_width = (content_rect.width - SHOP_LAYOUT["offer_gap_x"]) // SHOP_LAYOUT["offer_columns"]
+            content_rect = inventory_rect.inflate(-SHOP_LAYOUT["content_padding"] * 2, -SHOP_LAYOUT["content_padding"] * 2)
+        else:
+            content_rect = _inflate_rect_tuple(SHOP_LAYOUT["inventory_rect"], -SHOP_LAYOUT["content_padding"] * 2, -SHOP_LAYOUT["content_padding"] * 2)
+
+        inventory = shop_state["shop"]["inventory"]
+        show_purge_targets = bool(
+            shop_state["shop"]["selected_offer_id"] == SHOP_PURGE_OFFER_ID
+            and any(not offer.get("sold_out") and offer["offer_id"] == SHOP_PURGE_OFFER_ID for offer in inventory)
+        )
+
+        if pygame is not None:
+            offers_zone_height = 294 if show_purge_targets else content_rect.height
+            offers_zone = pygame.Rect(content_rect.x, content_rect.y, content_rect.width, offers_zone_height)
+            offer_width = (offers_zone.width - SHOP_LAYOUT["offer_gap_x"]) // SHOP_LAYOUT["offer_columns"]
             offer_rects = []
-            for index in range(len(shop_state["shop"]["inventory"])):
+            for index in range(len(inventory)):
                 row = index // SHOP_LAYOUT["offer_columns"]
                 col = index % SHOP_LAYOUT["offer_columns"]
                 offer_rects.append(
                     pygame.Rect(
-                        content_rect.x + (col * (offer_width + SHOP_LAYOUT["offer_gap_x"])),
-                        content_rect.y + (row * (SHOP_LAYOUT["offer_height"] + SHOP_LAYOUT["offer_gap_y"])),
+                        offers_zone.x + (col * (offer_width + SHOP_LAYOUT["offer_gap_x"])),
+                        offers_zone.y + (row * (SHOP_LAYOUT["offer_height"] + SHOP_LAYOUT["offer_gap_y"])),
                         offer_width,
                         SHOP_LAYOUT["offer_height"],
                     )
                 )
         else:
-            content_rect = _inflate_rect_tuple(SHOP_LAYOUT["canvas_rect"], -SHOP_LAYOUT["content_padding"] * 2, -SHOP_LAYOUT["content_padding"] * 2)
-            offer_width = (content_rect["width"] - SHOP_LAYOUT["offer_gap_x"]) // SHOP_LAYOUT["offer_columns"]
+            offers_zone_height = 294 if show_purge_targets else content_rect["height"]
+            offers_zone = {"x": content_rect["x"], "y": content_rect["y"], "width": content_rect["width"], "height": offers_zone_height}
+            offer_width = (offers_zone["width"] - SHOP_LAYOUT["offer_gap_x"]) // SHOP_LAYOUT["offer_columns"]
             offer_rects = []
-            for index in range(len(shop_state["shop"]["inventory"])):
+            for index in range(len(inventory)):
                 row = index // SHOP_LAYOUT["offer_columns"]
                 col = index % SHOP_LAYOUT["offer_columns"]
                 offer_rects.append(
                     (
-                        content_rect["x"] + (col * (offer_width + SHOP_LAYOUT["offer_gap_x"])),
-                        content_rect["y"] + (row * (SHOP_LAYOUT["offer_height"] + SHOP_LAYOUT["offer_gap_y"])),
+                        offers_zone["x"] + (col * (offer_width + SHOP_LAYOUT["offer_gap_x"])),
+                        offers_zone["y"] + (row * (SHOP_LAYOUT["offer_height"] + SHOP_LAYOUT["offer_gap_y"])),
                         offer_width,
                         SHOP_LAYOUT["offer_height"],
                     )
                 )
 
         offers = []
-        for index, offer in enumerate(shop_state["shop"]["inventory"]):
+        for index, offer in enumerate(inventory):
             offers.append(
                 {
                     **offer,
@@ -167,9 +199,6 @@ class ShopUI:
             )
 
         selected_offer = next((offer for offer in offers if offer["offer_id"] == shop_state["shop"]["selected_offer_id"]), None)
-        show_purge_targets = bool(
-            selected_offer is not None and selected_offer["type"] == "purge" and not selected_offer.get("sold_out")
-        )
         player_credits = shop_state["player"]["credits"]
         player_current_hp = shop_state["player"]["current_hp"]
         player_max_hp = shop_state["player"]["max_hp"]
@@ -194,25 +223,21 @@ class ShopUI:
             can_purchase = True
 
         if pygame is not None:
-            content_rect = canvas_rect.inflate(-SHOP_LAYOUT["content_padding"] * 2, -SHOP_LAYOUT["content_padding"] * 2)
-            last_offer_rect = pygame.Rect(*offers[-1]["rect"]) if offers else pygame.Rect(content_rect.x, content_rect.y, 0, 0)
-            purge_tray_y = last_offer_rect.bottom + SHOP_LAYOUT["purge_tray_gap"]
+            purge_tray_y = content_rect.y + 308
             purge_tray_height = max(
-                88,
-                32
+                98,
+                18
                 + (
                     ((len(shop_state["shop"]["purge_targets"]) - 1) // SHOP_LAYOUT["purge_columns"] + 1)
                     * (SHOP_LAYOUT["purge_chip_height"] + SHOP_LAYOUT["purge_chip_gap_y"])
                 ),
             ) if show_purge_targets and shop_state["shop"]["purge_targets"] else 0
-            purge_tray_rect = pygame.Rect(content_rect.x, purge_tray_y, content_rect.width, purge_tray_height) if show_purge_targets else None
+            purge_tray_rect = pygame.Rect(content_rect.x, purge_tray_y, content_rect.width, min(purge_tray_height, content_rect.bottom - purge_tray_y)) if show_purge_targets else None
         else:
-            content_rect = _inflate_rect_tuple(SHOP_LAYOUT["canvas_rect"], -SHOP_LAYOUT["content_padding"] * 2, -SHOP_LAYOUT["content_padding"] * 2)
-            last_offer_rect = offers[-1]["rect"] if offers else (content_rect["x"], content_rect["y"], 0, 0)
-            purge_tray_y = last_offer_rect[1] + last_offer_rect[3] + SHOP_LAYOUT["purge_tray_gap"]
+            purge_tray_y = content_rect["y"] + 308
             purge_tray_height = max(
-                88,
-                32
+                98,
+                18
                 + (
                     ((len(shop_state["shop"]["purge_targets"]) - 1) // SHOP_LAYOUT["purge_columns"] + 1)
                     * (SHOP_LAYOUT["purge_chip_height"] + SHOP_LAYOUT["purge_chip_gap_y"])
@@ -278,7 +303,8 @@ class ShopUI:
             "reroll_disabled_reason": shop_state["shop"].get("reroll_disabled_reason") or "Reroll unavailable.",
             "buttons": buttons,
             "header_rect": tuple(header_rect) if pygame is not None else SHOP_LAYOUT["header_rect"],
-            "canvas_rect": tuple(canvas_rect) if pygame is not None else SHOP_LAYOUT["canvas_rect"],
+            "inventory_rect": tuple(inventory_rect) if pygame is not None else SHOP_LAYOUT["inventory_rect"],
+            "detail_rect": tuple(detail_rect) if pygame is not None else SHOP_LAYOUT["detail_rect"],
             "footer_rect": tuple(footer_rect) if pygame is not None else SHOP_LAYOUT["footer_rect"],
             "purge_tray_rect": tuple(purge_tray_rect) if pygame is not None and purge_tray_rect is not None else purge_tray_rect,
         }
@@ -291,20 +317,32 @@ class ShopUI:
         high_contrast = shop_state.get("presentation", {}).get("high_contrast", False)
         layout = self.build_layout(shop_state)
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (64, 64))
+        draw_background_stage(surface, background, veil_alpha=156, top_band_height=72, bottom_band_height=92, line_step=54, line_alpha=7)
 
-        surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=166)
-
-        canvas_rect = pygame.Rect(*layout["canvas_rect"])
+        header_rect = pygame.Rect(*layout["header_rect"])
+        inventory_rect = pygame.Rect(*layout["inventory_rect"])
+        detail_rect = pygame.Rect(*layout["detail_rect"])
         footer_rect = pygame.Rect(*layout["footer_rect"])
-        self._draw_panel(surface, panel, canvas_rect, border=(72, 96, 138), alpha=230)
-        self._draw_footer_bar(surface, footer_rect)
+        draw_panel(surface, header_rect, accent=COLOR_LINE, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        draw_panel(surface, inventory_rect, accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        draw_panel(surface, detail_rect, accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
 
-        self._draw_text(surface, "Black Market", (56, 66), self._font)
-        self._draw_text(surface, "Contracts and services on the wire.", (56, 100), self._tiny_font, color=(196, 212, 232))
-        self._draw_stat_chip(surface, f"{layout['player_credits']} cr", (960, 72), width=118, accent=(255, 214, 110))
-        self._draw_stat_chip(surface, f"{layout['player_current_hp']}/{layout['player_max_hp']} HP", (1088, 72), width=136, accent=(236, 110, 124))
+        self._draw_text(surface, "Black Market", (header_rect.x + 22, header_rect.y + 14), self._font)
+        self._draw_text(
+            surface,
+            "Browse the market, inspect the selected item, then commit.",
+            (header_rect.x + 22, header_rect.y + 48),
+            self._tiny_font,
+            color=COLOR_MUTED,
+        )
+        draw_chip(
+            surface,
+            pygame.Rect(header_rect.right - 170, header_rect.y + 20, 146, 28),
+            label=f"Rerolls {layout['reroll_count']}",
+            font=self._tiny_font,
+            accent=COLOR_CYAN,
+            fill=COLOR_PANEL,
+        )
 
         for offer in layout["offers"]:
             self._draw_offer_tile(surface, offer, layout, high_contrast=high_contrast)
@@ -312,6 +350,17 @@ class ShopUI:
         if layout["purge_tray_rect"] is not None:
             self._draw_purge_tray(surface, layout)
 
+        self._draw_detail_panel_clean(surface, layout, high_contrast)
+
+        draw_hint_row(
+            surface,
+            footer_rect,
+            left_text=layout["purchase_disabled_reason"] if not layout["can_purchase"] else "Purchase ready.",
+            right_text="1-9 select  |  Enter buy  |  R reroll  |  L leave",
+            font=self._tiny_font,
+            accent=COLOR_LINE,
+            fill=COLOR_PANEL_ELEVATED,
+        )
         for button in layout["buttons"]:
             self._draw_button(
                 surface,
@@ -366,12 +415,14 @@ class ShopUI:
             return "Sold Out"
         if not can_purchase:
             if selected_offer["type"] == "purge" and shop_state["shop"]["selected_purge_index"] is None:
-                return "Pick Card"
+                return "Choose Purge Target"
             if selected_offer["type"] == "heal" and shop_state["player"]["current_hp"] >= shop_state["player"]["max_hp"]:
                 return "At Full HP"
             if selected_offer["price"] > shop_state["player"]["credits"]:
                 return f"Need {selected_offer['price']}"
-        return f"Buy {selected_offer['price']}"
+        if selected_offer["type"] == "purge":
+            return "Purchase Selected"
+        return "Buy"
 
     def _draw_offer_tile(
         self,
@@ -401,56 +452,145 @@ class ShopUI:
             fill = (22, 24, 30)
             border = (108, 92, 104)
 
-        pygame.draw.rect(surface, fill, draw_rect, border_radius=18)
-        pygame.draw.rect(surface, border, draw_rect, 2, border_radius=18)
+        draw_panel(
+            surface,
+            draw_rect,
+            accent=border,
+            fill=fill,
+            radius=RADIUS_MD,
+            border_width=2 if selected or hovered else 1,
+            shadow_alpha=0,
+        )
 
-        badge_rect = pygame.Rect(draw_rect.x + 14, draw_rect.y + 14, 44, 44)
+        badge_rect = pygame.Rect(draw_rect.x + 14, draw_rect.y + 18, 38, 38)
         pygame.draw.rect(surface, offer["theme"]["pill"], badge_rect, border_radius=14)
-        badge_surface = self._micro_font.render(self._offer_badge(offer), True, (14, 20, 32))
-        surface.blit(badge_surface, badge_surface.get_rect(center=badge_rect.center))
+        if offer["type"] == "relic":
+            art = relic_assets.get_relic_art(offer["relic_id"], badge_rect.inflate(-8, -8).size)
+            if art is not None:
+                art_dest = art.get_rect(center=badge_rect.center)
+                surface.blit(art, art_dest.topleft)
+            else:
+                badge_surface = self._micro_font.render(self._offer_badge(offer), True, (14, 20, 32))
+                surface.blit(badge_surface, badge_surface.get_rect(center=badge_rect.center))
+        else:
+                badge_surface = self._micro_font.render(self._offer_badge(offer), True, (14, 20, 32))
+                surface.blit(badge_surface, badge_surface.get_rect(center=badge_rect.center))
 
         title_color = (16, 24, 36) if pressed and available else (244, 248, 255) if available else (172, 180, 194)
         body_color = (28, 36, 46) if pressed and available else offer["theme"]["muted"]
-        self._draw_text(surface, offer["label"], (draw_rect.x + 74, draw_rect.y + 16), self._small_font, width=draw_rect.width - 212, color=title_color)
-        self._draw_text(surface, offer["summary"], (draw_rect.x + 74, draw_rect.y + 46), self._tiny_font, width=draw_rect.width - 212, color=body_color)
+        self._draw_text(surface, offer["label"], (draw_rect.x + 66, draw_rect.y + 18), self._small_font, width=draw_rect.width - 188, color=title_color)
+        self._draw_text(surface, offer["summary"], (draw_rect.x + 66, draw_rect.y + 46), self._tiny_font, width=draw_rect.width - 188, color=body_color)
 
-        price_rect = pygame.Rect(draw_rect.right - 124, draw_rect.y + 16, 100, 30)
-        pygame.draw.rect(surface, (16, 24, 38), price_rect, border_radius=15)
-        pygame.draw.rect(surface, border, price_rect, 2, border_radius=15)
+        price_rect = pygame.Rect(draw_rect.right - 108, draw_rect.y + 16, 84, 26)
+        draw_chip(
+            surface,
+            price_rect,
+            label="Sold Out" if offer.get("sold_out") else f"{offer['price']} cr",
+            font=self._micro_font,
+            accent=border if available else COLOR_LINE_SOFT,
+            fill=COLOR_PANEL_ELEVATED,
+        )
         price_text = "Sold Out" if offer.get("sold_out") else f"{offer['price']} cr"
-        price_surface = self._tiny_font.render(price_text, True, title_color if pressed and available else (236, 242, 250))
-        surface.blit(price_surface, price_surface.get_rect(center=price_rect.center))
+        del price_text
 
         if offer["shortcut"] is not None:
-            shortcut_rect = pygame.Rect(draw_rect.right - 38, draw_rect.bottom - 34, 24, 24)
-            pygame.draw.rect(surface, (16, 24, 38), shortcut_rect, border_radius=12)
-            pygame.draw.rect(surface, border, shortcut_rect, 2, border_radius=12)
-            shortcut_surface = self._micro_font.render(str(offer["shortcut"]), True, border)
-            surface.blit(shortcut_surface, shortcut_surface.get_rect(center=shortcut_rect.center))
+            shortcut_rect = pygame.Rect(draw_rect.right - 36, draw_rect.bottom - 32, 22, 22)
+            draw_chip(surface, shortcut_rect, label=str(offer["shortcut"]), font=self._micro_font, accent=border, fill=COLOR_PANEL_ELEVATED)
 
     def _draw_purge_tray(self, surface: Any, layout: dict[str, Any]) -> None:
         tray_rect = pygame.Rect(*layout["purge_tray_rect"])
-        pygame.draw.rect(surface, (14, 18, 28), tray_rect, border_radius=18)
-        pygame.draw.rect(surface, (255, 148, 124), tray_rect, 2, border_radius=18)
-        self._draw_text(surface, "Purge Target", (tray_rect.x + 16, tray_rect.y + 10), self._tiny_font, color=(255, 216, 206))
+        draw_panel(surface, tray_rect, accent=(255, 148, 124), fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        self._draw_text(surface, "Deck Drawer", (tray_rect.x + 16, tray_rect.y + 10), self._tiny_font, color=(255, 216, 206))
 
         for target in layout["purge_targets"]:
             rect = pygame.Rect(*target["rect"])
             hovered = self._hovered_action == f"purge:{target['deck_index']}"
             pressed = self._pressed_action == f"purge:{target['deck_index']}"
             selected = target["selected"]
-            fill = (34, 42, 58) if hovered else (24, 30, 42)
-            border = (238, 244, 255) if hovered else (112, 128, 152)
-            if selected:
-                fill = (82, 42, 46)
-                border = (255, 214, 110)
-            if pressed:
-                fill = (255, 214, 110)
-                border = (255, 214, 110)
-            pygame.draw.rect(surface, fill, rect, border_radius=12)
-            pygame.draw.rect(surface, border, rect, 2, border_radius=12)
-            text_color = (18, 24, 36) if pressed else (236, 242, 250)
-            self._draw_text(surface, target["card"]["name"], (rect.x + 10, rect.y + 6), self._micro_font, width=rect.width - 20, color=text_color)
+            draw_card(
+                surface,
+                rect,
+                target["card"],
+                {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="mini",
+                shortcut_label=str(target["shortcut"]) if target["shortcut"] is not None else None,
+                selected=selected,
+                hovered=hovered,
+                pressed=pressed,
+                high_contrast=False,
+            )
+
+    def _draw_detail_panel_clean(self, surface: Any, layout: dict[str, Any], high_contrast: bool) -> None:
+        rect = pygame.Rect(*layout["detail_rect"])
+        offer = layout["selected_offer"]
+        if offer is None:
+            self._draw_text(surface, "Select an offer", (rect.x + 24, rect.y + 24), self._font)
+            self._draw_text(
+                surface,
+                "Cards, relics, healing, and deck services all route through the same purchase flow here.",
+                (rect.x + 24, rect.y + 56),
+                self._tiny_font,
+                width=rect.width - 48,
+                color=COLOR_MUTED,
+            )
+            return
+
+        self._draw_text(surface, offer["label"], (rect.x + 24, rect.y + 24), self._font, width=rect.width - 48)
+        draw_chip(
+            surface,
+            pygame.Rect(rect.x + 24, rect.y + 60, 90, 24),
+            label=self._offer_badge(offer),
+            font=self._micro_font,
+            accent=offer["theme"]["border"],
+            fill=COLOR_PANEL_ELEVATED,
+        )
+        draw_chip(
+            surface,
+            pygame.Rect(rect.right - 128, rect.y + 60, 104, 24),
+            label="Sold Out" if offer.get("sold_out") else f"{offer['price']} cr",
+            font=self._tiny_font,
+            accent=COLOR_GOLD,
+            fill=COLOR_PANEL_ELEVATED,
+        )
+        body_rect = pygame.Rect(rect.x + 24, rect.y + 98, rect.width - 48, rect.height - 122)
+        if offer["type"] == "card":
+            card_rect = pygame.Rect(body_rect.x + 42, body_rect.y + 4, 250, 340)
+            draw_card(
+                surface,
+                card_rect,
+                offer["card"],
+                {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="full",
+                selected=True,
+                high_contrast=high_contrast,
+            )
+        elif offer["type"] == "relic":
+            detail_card = pygame.Rect(body_rect.x, body_rect.y + 12, body_rect.width, 154)
+            draw_panel(surface, detail_card, accent=offer["theme"]["border"], fill=offer["theme"]["fill"], radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+            icon_rect = pygame.Rect(detail_card.x + 18, detail_card.y + 18, 56, 56)
+            pygame.draw.rect(surface, offer["theme"]["pill"], icon_rect, border_radius=14)
+            art = relic_assets.get_relic_art(offer["relic_id"], icon_rect.inflate(-14, -14).size)
+            if art is not None:
+                art_dest = art.get_rect(center=icon_rect.center)
+                surface.blit(art, art_dest.topleft)
+            self._draw_text(surface, str(offer["relic"].get("rarity", "common")).title(), (detail_card.x + 92, detail_card.y + 18), self._tiny_font, color=COLOR_MUTED)
+            self._draw_text(surface, offer["relic"].get("description", "Relic"), (detail_card.x + 18, detail_card.y + 88), self._tiny_font, width=detail_card.width - 36, color=COLOR_TEXT)
+        elif offer["type"] == "purge":
+            self._draw_text(surface, "Choose a card in the drawer and purchase the service.", (body_rect.x, body_rect.y + 8), self._tiny_font, width=body_rect.width, color=COLOR_MUTED)
+            selected_target = next((target for target in layout["purge_targets"] if target["selected"]), None)
+            if selected_target is not None:
+                card_rect = pygame.Rect(body_rect.x + 42, body_rect.y + 44, 250, 340)
+                draw_card(
+                    surface,
+                    card_rect,
+                    selected_target["card"],
+                    {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                    variant="full",
+                    selected=True,
+                    high_contrast=high_contrast,
+                )
+        else:
+            self._draw_text(surface, offer["summary"], (body_rect.x, body_rect.y + 8), self._small_font, width=body_rect.width, color=COLOR_TEXT)
 
     def _draw_footer_bar(self, surface: Any, rect: pygame.Rect) -> None:
         pygame.draw.rect(surface, (12, 18, 30), rect, border_radius=18)
@@ -465,11 +605,20 @@ class ShopUI:
     def _offer_badge(self, offer: dict[str, Any]) -> str:
         if offer["type"] == "card":
             return {"attack": "ATK", "skill": "SKL", "power": "PWR"}.get(offer["card"].get("type", "card"), "CRD")
+        if offer["type"] == "relic":
+            return {"common": "COM", "uncommon": "UNC", "rare": "RAR"}.get(
+                str(offer["relic"].get("rarity", "common")).lower(),
+                "REL",
+            )
         return "HP" if offer["type"] == "heal" else "DEL"
 
     def _offer_summary(self, offer: dict[str, Any]) -> str:
         if offer["type"] == "card":
             return compact_card_summary(offer["card"])
+        if offer["type"] == "relic":
+            rarity = str(offer["relic"].get("rarity", "common")).title()
+            description = offer["relic"].get("description", "Relic")
+            return f"{rarity} relic. {description}"
         return offer.get("description", "Service")
 
     def _offer_theme(self, offer: dict[str, Any]) -> dict[str, tuple[int, int, int]]:
@@ -483,7 +632,39 @@ class ShopUI:
                 "muted": type_theme["muted"],
                 "pill": type_theme["accent_soft"],
             }
+        if offer["type"] == "relic":
+            return self._relic_theme(offer["relic"])
         return SERVICE_THEMES.get(offer["type"], SERVICE_THEMES["heal"])
+
+    def _relic_theme(self, relic: dict[str, Any]) -> dict[str, tuple[int, int, int]]:
+        rarity = str(relic.get("rarity", "common")).lower()
+        palettes = {
+            "common": {
+                "fill": (24, 32, 46),
+                "fill_hover": (32, 42, 60),
+                "fill_selected": (40, 56, 80),
+                "border": (132, 168, 220),
+                "muted": (188, 204, 228),
+                "pill": (148, 188, 255),
+            },
+            "uncommon": {
+                "fill": (22, 42, 36),
+                "fill_hover": (30, 56, 46),
+                "fill_selected": (38, 72, 58),
+                "border": (126, 206, 170),
+                "muted": (190, 224, 208),
+                "pill": (144, 230, 188),
+            },
+            "rare": {
+                "fill": (46, 32, 18),
+                "fill_hover": (62, 42, 24),
+                "fill_selected": (84, 54, 28),
+                "border": (236, 188, 112),
+                "muted": (236, 214, 184),
+                "pill": (255, 214, 110),
+            },
+        }
+        return palettes.get(rarity, palettes["common"])
 
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "purchase":

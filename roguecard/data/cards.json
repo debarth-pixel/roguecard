@@ -4,7 +4,9 @@
     "name": "Strike",
     "cost": 1,
     "type": "attack",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 40,
     "theme": {
       "faction": "shared",
@@ -23,7 +25,9 @@
     "name": "Defend",
     "cost": 1,
     "type": "skill",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 39,
     "theme": {
       "faction": "shared",
@@ -42,7 +46,9 @@
     "name": "Surge Strike",
     "cost": 2,
     "type": "attack",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 48,
     "theme": {
       "faction": "shared",
@@ -61,7 +67,9 @@
     "name": "Firewall",
     "cost": 1,
     "type": "skill",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 44,
     "theme": {
       "faction": "shared",
@@ -80,8 +88,10 @@
     "name": "Patch Kit",
     "cost": 1,
     "type": "skill",
-    "owners": ["shared"],
-    "shop_price": 42,
+    "owners": [
+      "shared"
+    ],
+    "shop_price": 43,
     "theme": {
       "faction": "shared",
       "palette": "starter_neutral",
@@ -91,6 +101,24 @@
       {
         "type": "heal",
         "value": 4
+      },
+      {
+        "type": "cleanse_status",
+        "status_id": "burn",
+        "value": 1
+      },
+      {
+        "type": "cleanse_status",
+        "status_id": "bleed",
+        "value": 1
+      },
+      {
+        "type": "cleanse_status",
+        "status_id": "infect",
+        "value": 1
+      },
+      {
+        "type": "remove_nullified"
       }
     ]
   },
@@ -99,7 +127,9 @@
     "name": "Cache Draw",
     "cost": 1,
     "type": "skill",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 45,
     "theme": {
       "faction": "shared",
@@ -118,7 +148,9 @@
     "name": "Overclock",
     "cost": 0,
     "type": "skill",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 46,
     "theme": {
       "faction": "shared",
@@ -134,6 +166,9 @@
         "type": "draw",
         "value": 1
       }
+    ],
+    "keywords": [
+      "exhaust"
     ]
   },
   {
@@ -141,7 +176,9 @@
     "name": "Volley",
     "cost": 1,
     "type": "attack",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 47,
     "theme": {
       "faction": "shared",
@@ -160,9 +197,14 @@
     "name": "Burn",
     "cost": 0,
     "type": "status",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 0,
-    "keywords": ["combat_only", "exhaust"],
+    "keywords": [
+      "combat_only",
+      "exhaust"
+    ],
     "theme": {
       "faction": "shared",
       "palette": "starter_neutral",
@@ -186,9 +228,14 @@
     "name": "Glitch",
     "cost": 0,
     "type": "status",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 0,
-    "keywords": ["combat_only", "exhaust"],
+    "keywords": [
+      "combat_only",
+      "exhaust"
+    ],
     "theme": {
       "faction": "shared",
       "palette": "starter_neutral",
@@ -233,9 +280,14 @@
     "name": "Lag",
     "cost": 0,
     "type": "status",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 0,
-    "keywords": ["combat_only", "exhaust"],
+    "keywords": [
+      "combat_only",
+      "exhaust"
+    ],
     "theme": {
       "faction": "shared",
       "palette": "starter_neutral",
@@ -259,9 +311,13 @@
     "name": "Junk",
     "cost": 0,
     "type": "status",
-    "owners": ["shared"],
+    "owners": [
+      "shared"
+    ],
     "shop_price": 0,
-    "keywords": ["combat_only"],
+    "keywords": [
+      "combat_only"
+    ],
     "theme": {
       "faction": "shared",
       "palette": "starter_neutral",
@@ -279,8 +335,10 @@
     "name": "Bash Protocol",
     "cost": 1,
     "type": "attack",
-    "owners": ["enforcer"],
-    "shop_price": 42,
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 43,
     "theme": {
       "faction": "enforcer",
       "palette": "enforcer_crimson",
@@ -289,7 +347,11 @@
     "effects": [
       {
         "type": "damage",
-        "value": 8
+        "value": 7
+      },
+      {
+        "type": "apply_bleed",
+        "value": 1
       }
     ]
   },
@@ -298,7 +360,9 @@
     "name": "Double Tap",
     "cost": 1,
     "type": "attack",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 45,
     "theme": {
       "faction": "enforcer",
@@ -318,8 +382,10 @@
     "name": "Breaker Line",
     "cost": 2,
     "type": "attack",
-    "owners": ["enforcer"],
-    "shop_price": 52,
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 53,
     "theme": {
       "faction": "enforcer",
       "palette": "enforcer_crimson",
@@ -328,7 +394,11 @@
     "effects": [
       {
         "type": "damage",
-        "value": 12
+        "value": 11
+      },
+      {
+        "type": "apply_bleed",
+        "value": 2
       }
     ]
   },
@@ -337,7 +407,9 @@
     "name": "Blood Rush",
     "cost": 1,
     "type": "attack",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 50,
     "theme": {
       "faction": "enforcer",
@@ -360,8 +432,10 @@
     "name": "Crackdown",
     "cost": 1,
     "type": "attack",
-    "owners": ["enforcer"],
-    "shop_price": 46,
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 48,
     "theme": {
       "faction": "enforcer",
       "palette": "enforcer_crimson",
@@ -370,11 +444,11 @@
     "effects": [
       {
         "type": "damage",
-        "value": 7
+        "value": 6
       },
       {
         "type": "apply_vulnerable",
-        "value": 1
+        "value": 2
       }
     ]
   },
@@ -383,7 +457,9 @@
     "name": "Riot Barrage",
     "cost": 2,
     "type": "attack",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 54,
     "theme": {
       "faction": "enforcer",
@@ -403,8 +479,10 @@
     "name": "Guard Stance",
     "cost": 1,
     "type": "skill",
-    "owners": ["enforcer"],
-    "shop_price": 40,
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 42,
     "theme": {
       "faction": "enforcer",
       "palette": "enforcer_crimson",
@@ -413,7 +491,7 @@
     "effects": [
       {
         "type": "block",
-        "value": 6
+        "value": 8
       }
     ]
   },
@@ -422,7 +500,9 @@
     "name": "Battle Roar",
     "cost": 1,
     "type": "skill",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 43,
     "theme": {
       "faction": "enforcer",
@@ -445,7 +525,9 @@
     "name": "Hard Commit",
     "cost": 0,
     "type": "skill",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 47,
     "theme": {
       "faction": "enforcer",
@@ -468,8 +550,10 @@
     "name": "Ram Guard",
     "cost": 1,
     "type": "skill",
-    "owners": ["enforcer"],
-    "shop_price": 42,
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 44,
     "theme": {
       "faction": "enforcer",
       "palette": "enforcer_crimson",
@@ -478,7 +562,7 @@
     "effects": [
       {
         "type": "block",
-        "value": 5
+        "value": 6
       },
       {
         "type": "draw",
@@ -491,7 +575,9 @@
     "name": "Open Wound",
     "cost": 0,
     "type": "skill",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 45,
     "theme": {
       "faction": "enforcer",
@@ -512,10 +598,12 @@
   {
     "id": "enforcer_feed_aggression_01",
     "name": "Feed Aggression",
-    "cost": 1,
+    "cost": 0,
     "type": "skill",
-    "owners": ["enforcer"],
-    "shop_price": 44,
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 46,
     "theme": {
       "faction": "enforcer",
       "palette": "enforcer_crimson",
@@ -524,7 +612,7 @@
     "effects": [
       {
         "type": "modify_next_attack_damage",
-        "value": 4
+        "value": 5
       }
     ]
   },
@@ -533,7 +621,9 @@
     "name": "War Engine",
     "cost": 1,
     "type": "power",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 55,
     "theme": {
       "faction": "enforcer",
@@ -558,7 +648,9 @@
     "name": "Chain Assault",
     "cost": 1,
     "type": "power",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 57,
     "theme": {
       "faction": "enforcer",
@@ -583,7 +675,9 @@
     "name": "Redline Core",
     "cost": 2,
     "type": "power",
-    "owners": ["enforcer"],
+    "owners": [
+      "enforcer"
+    ],
     "shop_price": 60,
     "theme": {
       "faction": "enforcer",
@@ -612,8 +706,10 @@
     "name": "Needle Ping",
     "cost": 1,
     "type": "attack",
-    "owners": ["operator"],
-    "shop_price": 42,
+    "owners": [
+      "operator"
+    ],
+    "shop_price": 43,
     "theme": {
       "faction": "operator",
       "palette": "operator_teal",
@@ -622,10 +718,10 @@
     "effects": [
       {
         "type": "damage",
-        "value": 5
+        "value": 4
       },
       {
-        "type": "draw",
+        "type": "apply_weak",
         "value": 1
       }
     ]
@@ -635,8 +731,10 @@
     "name": "Quiet Cut",
     "cost": 0,
     "type": "attack",
-    "owners": ["operator"],
-    "shop_price": 40,
+    "owners": [
+      "operator"
+    ],
+    "shop_price": 41,
     "theme": {
       "faction": "operator",
       "palette": "operator_teal",
@@ -645,7 +743,7 @@
     "effects": [
       {
         "type": "damage",
-        "value": 4
+        "value": 5
       }
     ]
   },
@@ -654,7 +752,9 @@
     "name": "Backdoor",
     "cost": 1,
     "type": "attack",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 46,
     "theme": {
       "faction": "operator",
@@ -677,7 +777,9 @@
     "name": "Packet Storm",
     "cost": 1,
     "type": "attack",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 48,
     "theme": {
       "faction": "operator",
@@ -701,7 +803,9 @@
     "name": "Relay Shot",
     "cost": 1,
     "type": "attack",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 47,
     "theme": {
       "faction": "operator",
@@ -712,20 +816,10 @@
       {
         "type": "damage",
         "value": 7
-      }
-    ],
-    "triggers": [
+      },
       {
-        "hook": "after_card_played",
-        "conditions": {
-          "first_card_this_turn": true
-        },
-        "effects": [
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ]
+        "type": "draw",
+        "value": 1
       }
     ]
   },
@@ -734,8 +828,10 @@
     "name": "Recompile Shot",
     "cost": 2,
     "type": "attack",
-    "owners": ["operator"],
-    "shop_price": 52,
+    "owners": [
+      "operator"
+    ],
+    "shop_price": 53,
     "theme": {
       "faction": "operator",
       "palette": "operator_teal",
@@ -744,7 +840,11 @@
     "effects": [
       {
         "type": "damage",
-        "value": 11
+        "value": 10
+      },
+      {
+        "type": "modify_next_card_cost",
+        "value": -1
       }
     ]
   },
@@ -753,7 +853,9 @@
     "name": "Cache Cycle",
     "cost": 1,
     "type": "skill",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 43,
     "theme": {
       "faction": "operator",
@@ -772,7 +874,9 @@
     "name": "Deflect Mesh",
     "cost": 1,
     "type": "skill",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 42,
     "theme": {
       "faction": "operator",
@@ -795,7 +899,9 @@
     "name": "Priority Queue",
     "cost": 0,
     "type": "skill",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 45,
     "theme": {
       "faction": "operator",
@@ -818,7 +924,9 @@
     "name": "Reroute",
     "cost": 1,
     "type": "skill",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 41,
     "theme": {
       "faction": "operator",
@@ -837,9 +945,13 @@
     "name": "Cold Read",
     "cost": 1,
     "type": "skill",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 49,
-    "keywords": ["exhaust"],
+    "keywords": [
+      "exhaust"
+    ],
     "theme": {
       "faction": "operator",
       "palette": "operator_teal",
@@ -857,15 +969,23 @@
     "name": "Lock In",
     "cost": 1,
     "type": "skill",
-    "owners": ["operator"],
-    "shop_price": 44,
-    "keywords": ["retain"],
+    "owners": [
+      "operator"
+    ],
+    "shop_price": 45,
+    "keywords": [
+      "retain"
+    ],
     "theme": {
       "faction": "operator",
       "palette": "operator_teal",
       "art_style": "signal_mesh"
     },
     "effects": [
+      {
+        "type": "block",
+        "value": 4
+      },
       {
         "type": "draw",
         "value": 1
@@ -877,7 +997,9 @@
     "name": "Auto-Tuner",
     "cost": 1,
     "type": "power",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 55,
     "theme": {
       "faction": "operator",
@@ -902,7 +1024,9 @@
     "name": "Deep Cache",
     "cost": 1,
     "type": "power",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 56,
     "theme": {
       "faction": "operator",
@@ -927,7 +1051,9 @@
     "name": "Control Tower",
     "cost": 1,
     "type": "power",
-    "owners": ["operator"],
+    "owners": [
+      "operator"
+    ],
     "shop_price": 57,
     "theme": {
       "faction": "operator",
@@ -955,8 +1081,10 @@
     "name": "Leech Jab",
     "cost": 1,
     "type": "attack",
-    "owners": ["bio_hacker"],
-    "shop_price": 43,
+    "owners": [
+      "bio_hacker"
+    ],
+    "shop_price": 45,
     "theme": {
       "faction": "bio_hacker",
       "palette": "bio_hacker_verdant",
@@ -965,11 +1093,15 @@
     "effects": [
       {
         "type": "damage",
-        "value": 6
+        "value": 5
+      },
+      {
+        "type": "apply_infect",
+        "value": 1
       },
       {
         "type": "heal",
-        "value": 2
+        "value": 1
       }
     ]
   },
@@ -978,7 +1110,9 @@
     "name": "Hemorrhage",
     "cost": 1,
     "type": "attack",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 49,
     "theme": {
       "faction": "bio_hacker",
@@ -1001,8 +1135,10 @@
     "name": "Parasite Fang",
     "cost": 2,
     "type": "attack",
-    "owners": ["bio_hacker"],
-    "shop_price": 53,
+    "owners": [
+      "bio_hacker"
+    ],
+    "shop_price": 54,
     "theme": {
       "faction": "bio_hacker",
       "palette": "bio_hacker_verdant",
@@ -1011,11 +1147,15 @@
     "effects": [
       {
         "type": "damage",
-        "value": 10
+        "value": 8
+      },
+      {
+        "type": "apply_infect",
+        "value": 2
       },
       {
         "type": "heal",
-        "value": 3
+        "value": 2
       }
     ]
   },
@@ -1024,7 +1164,9 @@
     "name": "Pain Probe",
     "cost": 0,
     "type": "attack",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 41,
     "theme": {
       "faction": "bio_hacker",
@@ -1047,7 +1189,9 @@
     "name": "Rot Slash",
     "cost": 1,
     "type": "attack",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 46,
     "theme": {
       "faction": "bio_hacker",
@@ -1072,8 +1216,10 @@
     "name": "Harvest Bite",
     "cost": 2,
     "type": "attack",
-    "owners": ["bio_hacker"],
-    "shop_price": 50,
+    "owners": [
+      "bio_hacker"
+    ],
+    "shop_price": 51,
     "theme": {
       "faction": "bio_hacker",
       "palette": "bio_hacker_verdant",
@@ -1082,8 +1228,12 @@
     "effects": [
       {
         "type": "multi_damage",
-        "value": 5,
+        "value": 4,
         "count": 2
+      },
+      {
+        "type": "apply_infect",
+        "value": 1
       }
     ]
   },
@@ -1092,7 +1242,9 @@
     "name": "Scar Tissue",
     "cost": 1,
     "type": "skill",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 40,
     "theme": {
       "faction": "bio_hacker",
@@ -1111,7 +1263,9 @@
     "name": "Triage Loop",
     "cost": 1,
     "type": "skill",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 44,
     "theme": {
       "faction": "bio_hacker",
@@ -1134,7 +1288,9 @@
     "name": "Spare Organs",
     "cost": 0,
     "type": "skill",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 45,
     "theme": {
       "faction": "bio_hacker",
@@ -1144,7 +1300,7 @@
     "effects": [
       {
         "type": "self_damage",
-        "value": 3
+        "value": 2
       },
       {
         "type": "draw",
@@ -1157,7 +1313,9 @@
     "name": "Coagulate",
     "cost": 1,
     "type": "skill",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 43,
     "theme": {
       "faction": "bio_hacker",
@@ -1180,7 +1338,9 @@
     "name": "Reclaimer",
     "cost": 0,
     "type": "skill",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 46,
     "theme": {
       "faction": "bio_hacker",
@@ -1203,7 +1363,9 @@
     "name": "Blood Buffer",
     "cost": 1,
     "type": "skill",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 44,
     "theme": {
       "faction": "bio_hacker",
@@ -1226,7 +1388,9 @@
     "name": "Symbiote Mesh",
     "cost": 1,
     "type": "power",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 56,
     "theme": {
       "faction": "bio_hacker",
@@ -1251,42 +1415,48 @@
     "name": "Pain Circuit",
     "cost": 1,
     "type": "power",
-    "owners": ["bio_hacker"],
+    "owners": [
+      "bio_hacker"
+    ],
     "shop_price": 57,
     "theme": {
       "faction": "bio_hacker",
       "palette": "bio_hacker_verdant",
       "art_style": "patch_grid"
     },
-    "effects": [],
     "triggers": [
       {
         "hook": "turn_start",
-        "conditions": {
-          "below_hp_ratio": 0.5
-        },
         "effects": [
           {
             "type": "gain_strength",
             "value": 1
+          },
+          {
+            "type": "add_status_card",
+            "card_id": "status_junk_01",
+            "count": 1,
+            "pile": "discard"
           }
         ]
       }
-    ]
+    ],
+    "effects": []
   },
   {
     "id": "bio_rot_harvest_01",
     "name": "Rot Harvest",
     "cost": 1,
     "type": "power",
-    "owners": ["bio_hacker"],
-    "shop_price": 58,
+    "owners": [
+      "bio_hacker"
+    ],
+    "shop_price": 59,
     "theme": {
       "faction": "bio_hacker",
       "palette": "bio_hacker_verdant",
       "art_style": "circuit_burst"
     },
-    "effects": [],
     "triggers": [
       {
         "hook": "on_status_drawn",
@@ -1296,9 +1466,173 @@
             "value": 1
           },
           {
+            "type": "heal",
+            "value": 1
+          },
+          {
             "type": "exhaust_drawn_card"
           }
         ]
+      }
+    ],
+    "effects": []
+  },
+  {
+    "id": "enforcer_gouge_01",
+    "name": "Gouge",
+    "cost": 1,
+    "type": "attack",
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 48,
+    "theme": {
+      "faction": "enforcer",
+      "palette": "enforcer_crimson",
+      "art_style": "patch_grid"
+    },
+    "effects": [
+      {
+        "type": "damage",
+        "value": 5
+      },
+      {
+        "type": "apply_bleed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "enforcer_spiked_harness_01",
+    "name": "Spiked Harness",
+    "cost": 1,
+    "type": "power",
+    "owners": [
+      "enforcer"
+    ],
+    "shop_price": 56,
+    "theme": {
+      "faction": "enforcer",
+      "palette": "enforcer_crimson",
+      "art_style": "patch_grid"
+    },
+    "effects": [],
+    "triggers": [
+      {
+        "hook": "on_self_damage",
+        "effects": [
+          {
+            "type": "block",
+            "value": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "operator_static_haze_01",
+    "name": "Static Haze",
+    "cost": 1,
+    "type": "skill",
+    "owners": [
+      "operator"
+    ],
+    "shop_price": 48,
+    "theme": {
+      "faction": "operator",
+      "palette": "operator_teal",
+      "art_style": "signal_mesh"
+    },
+    "effects": [
+      {
+        "type": "apply_weak",
+        "value": 2
+      },
+      {
+        "type": "draw",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "operator_zero_day_burst_01",
+    "name": "Zero-Day Burst",
+    "cost": 1,
+    "type": "attack",
+    "owners": [
+      "operator"
+    ],
+    "shop_price": 50,
+    "theme": {
+      "faction": "operator",
+      "palette": "operator_teal",
+      "art_style": "circuit_burst"
+    },
+    "effects": [
+      {
+        "type": "multi_damage",
+        "value": 2,
+        "count": 3
+      },
+      {
+        "type": "modify_next_card_cost",
+        "value": -1
+      }
+    ]
+  },
+  {
+    "id": "bio_septic_round_01",
+    "name": "Septic Round",
+    "cost": 1,
+    "type": "attack",
+    "owners": [
+      "bio_hacker"
+    ],
+    "shop_price": 48,
+    "theme": {
+      "faction": "bio_hacker",
+      "palette": "bio_hacker_verdant",
+      "art_style": "circuit_burst"
+    },
+    "effects": [
+      {
+        "type": "damage",
+        "value": 4
+      },
+      {
+        "type": "apply_infect",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "bio_waste_recycler_01",
+    "name": "Waste Recycler",
+    "cost": 0,
+    "type": "skill",
+    "owners": [
+      "bio_hacker"
+    ],
+    "shop_price": 47,
+    "theme": {
+      "faction": "bio_hacker",
+      "palette": "bio_hacker_verdant",
+      "art_style": "signal_mesh"
+    },
+    "effects": [
+      {
+        "type": "add_status_card",
+        "card_id": "status_junk_01",
+        "count": 1,
+        "pile": "discard"
+      },
+      {
+        "type": "energy",
+        "value": 1
+      },
+      {
+        "type": "draw",
+        "value": 1
       }
     ]
   }

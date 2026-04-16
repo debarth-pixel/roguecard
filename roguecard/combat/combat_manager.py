@@ -38,6 +38,7 @@ class CombatManager:
         self._bark_cooldown_remaining = 0
         self._speaker_bark_counts: dict[str, int] = {}
         self._enemy_factory: Any | None = None
+        self._event_sink: Any | None = None
         self._defeated_enemy_ids: set[str] = set()
         self._player_cards_played_this_turn = 0
         self._player_cards_played_last_turn = 0
@@ -181,6 +182,7 @@ class CombatManager:
             self.player.add_active_power(moved_card)
         elif card.has_keyword("exhaust"):
             self.player.deck_manager.exhaust_pile.append(moved_card)
+            self._notify_card_exhausted(moved_card)
         else:
             self.player.deck_manager.discard_pile.append(moved_card)
 
@@ -239,7 +241,8 @@ class CombatManager:
         self._process_drawn_cards(target, drawn_cards)
         return drawn_cards
 
-    def apply_damage(self, source: Any, target: Any, amount: int) -> int:
+    def apply_damage(self, source: Any, target: Any, amount: int, *, emit_event: bool = True) -> int:
+        target_statuses_before = self._combat_status_ids(target)
         adjusted = self._adjust_attack_amount(source, target, amount)
         if getattr(source, "faction_id", None) == "blackwire_directorate" and hasattr(target, "marked"):
             adjusted += getattr(target, "marked", 0) * 2
@@ -252,6 +255,20 @@ class CombatManager:
         total_applied = applied + bleed_bonus
         if hasattr(source, "get_status") and source.get_status("momentum") > 0:
             source.clear_status("momentum")
+        if (
+            emit_event
+            and source is self.player
+            and target in self.enemies
+            and total_applied > 0
+        ):
+            self._emit_runtime_event(
+                {
+                    "hook": "on_attack_hit",
+                    "target_id": target.id,
+                    "damage": total_applied,
+                    "target_status_ids": target_statuses_before,
+                }
+            )
         if hasattr(target, "check_phase_transition"):
             phase_rule = target.check_phase_transition()
             if phase_rule is not None:
@@ -283,6 +300,118 @@ class CombatManager:
 
     def set_enemy_factory(self, factory: Any) -> None:
         self._enemy_factory = factory
+
+    def set_event_sink(self, sink: Any) -> None:
+        self._event_sink = sink
+
+    def _emit_runtime_event(self, event: dict[str, Any]) -> None:
+        if self._event_sink is None:
+            return
+        self._event_sink(dict(event))
+
+    def _combat_status_ids(self, target: Any) -> list[str]:
+        status_ids: list[str] = []
+        for status_id in ("weak", "vulnerable", "infect", "burn", "bleed", "marked", "suppressed", "nullified"):
+            if status_id == "nullified":
+                if bool(getattr(target, "nullified", False)):
+                    status_ids.append(status_id)
+                continue
+            value = getattr(target, status_id, None)
+            if isinstance(value, int) and value > 0:
+                status_ids.append(status_id)
+                continue
+            if hasattr(target, "get_status") and int(target.get_status(status_id)) > 0:
+                status_ids.append(status_id)
+        return status_ids
+
+    def _notify_status_applied(self, hook_name: str, target: Any, status_id: str, amount: int) -> None:
+        if amount <= 0:
+            return
+        self._emit_runtime_event(
+            {
+                "hook": hook_name,
+                "target_id": getattr(target, "id", "player"),
+                "status_id": status_id,
+                "amount": amount,
+                "target_status_ids": self._combat_status_ids(target),
+            }
+        )
+
+    def _notify_card_exhausted(self, card: Any) -> None:
+        self._emit_runtime_event(
+            {
+                "hook": "on_card_exhausted",
+                "card_id": getattr(card, "id", None),
+                "card_type": getattr(card, "type", None),
+            }
+        )
+
+    def _apply_status_to_enemy(self, target: Any, status_id: str, amount: int) -> int:
+        if amount <= 0:
+            return 0
+        key = str(status_id).strip().lower()
+        if key == "weak":
+            applied = target.apply_weak(amount)
+        elif key == "vulnerable":
+            applied = target.apply_vulnerable(amount)
+        elif key == "bleed":
+            applied = target.apply_bleed(amount) if hasattr(target, "apply_bleed") else target.apply_status("bleed", amount)
+        elif key == "infect":
+            applied = target.apply_infect(amount) if hasattr(target, "apply_infect") else target.apply_status("infect", amount)
+        elif key == "burn":
+            applied = target.apply_burn(amount) if hasattr(target, "apply_burn") else target.apply_status("burn", amount)
+        elif key == "marked":
+            applied = target.apply_marked(amount) if hasattr(target, "apply_marked") else target.apply_status("marked", amount)
+        elif key == "suppressed":
+            applied = target.apply_suppressed(amount) if hasattr(target, "apply_suppressed") else target.apply_status("suppressed", amount)
+        elif key == "nullified":
+            if hasattr(target, "apply_nullified"):
+                target.apply_nullified()
+                applied = amount
+            else:
+                applied = target.apply_status("nullified", amount)
+        else:
+            raise ValueError(f"Unsupported enemy combat status: {status_id}")
+        self._notify_status_applied("on_enemy_status_applied", target, key, amount)
+        return applied
+
+    def _apply_status_to_player(self, target: Any, status_id: str, amount: int) -> int:
+        if amount <= 0:
+            return 0
+        key = str(status_id).strip().lower()
+        if key == "weak":
+            applied = target.apply_weak(amount)
+        elif key == "vulnerable":
+            applied = target.apply_vulnerable(amount)
+        elif key == "infect":
+            applied = target.apply_infect(amount)
+        elif key == "burn":
+            applied = target.apply_burn(amount)
+        elif key == "bleed":
+            applied = target.apply_bleed(amount)
+        elif key == "marked":
+            applied = target.apply_marked(amount)
+        elif key == "suppressed":
+            applied = target.apply_suppressed(amount)
+        elif key == "nullified":
+            target.apply_nullified()
+            applied = amount
+        else:
+            raise ValueError(f"Unsupported player combat status: {status_id}")
+        self._notify_status_applied("on_player_status_applied", target, key, amount)
+        return applied
+
+    def _add_status_cards_to_player(self, card_id: str, count: int, pile: str = "discard") -> int:
+        added = 0
+        for _ in range(count):
+            status_card = self._create_status_card(card_id)
+            self.player.add_temporary_combat_card(status_card)
+            if pile == "draw":
+                self.player.deck_manager.add_to_draw_pile(status_card)
+            else:
+                self.player.deck_manager.add_to_discard(status_card)
+            added += 1
+        return added
 
     def living_enemy_count(self) -> int:
         return len(self._living_enemies())
@@ -474,52 +603,51 @@ class CombatManager:
             return results
 
         if effect_type == "enemy_apply_infect":
-            if hasattr(target, "apply_infect"):
-                applied = target.apply_infect(value)
-            else:
-                applied = target.apply_status("infect", value)
+            applied = self._apply_status_to_player(target, "infect", value)
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_apply_marked":
-            if hasattr(target, "apply_marked"):
-                applied = target.apply_marked(value)
-            else:
-                applied = target.apply_status("marked", value)
+            applied = self._apply_status_to_player(target, "marked", value)
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_apply_suppressed":
-            if hasattr(target, "apply_suppressed"):
-                applied = target.apply_suppressed(value)
-            else:
-                applied = target.apply_status("suppressed", value)
+            applied = self._apply_status_to_player(target, "suppressed", value)
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_apply_burn":
-            if hasattr(target, "apply_burn"):
-                applied = target.apply_burn(value)
-            else:
-                applied = target.apply_status("burn", value)
+            applied = self._apply_status_to_player(target, "burn", value)
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_apply_bleed":
-            if hasattr(target, "apply_bleed"):
-                applied = target.apply_bleed(value)
-            else:
-                applied = target.apply_status("bleed", value)
+            applied = self._apply_status_to_player(target, "bleed", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_weak":
+            applied = self._apply_status_to_player(target, "weak", value)
+            results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_apply_vulnerable":
+            applied = self._apply_status_to_player(target, "vulnerable", value)
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_apply_nullified":
-            if hasattr(target, "apply_nullified"):
-                target.apply_nullified()
-                applied = 1
-            else:
-                applied = target.set_status("nullified", 1)
+            applied = self._apply_status_to_player(target, "nullified", max(1, value))
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
+            return results
+
+        if effect_type == "enemy_add_status_card":
+            count = int(effect.get("count", 1))
+            pile = str(effect.get("pile", "discard"))
+            card_id = str(effect.get("card_id", ""))
+            added = self._add_status_cards_to_player(card_id, count, pile)
+            results.append(self._resolution_record(effect_type, count, added, self.player, echoed=False))
             return results
 
         if effect_type == "enemy_strip_buff":
@@ -752,6 +880,7 @@ class CombatManager:
         if enemy.id in self._defeated_enemy_ids:
             return
         self._defeated_enemy_ids.add(enemy.id)
+        self._emit_runtime_event({"hook": "on_enemy_death", "enemy_id": enemy.id})
         for effect in enemy.death_effects:
             target = self.player if effect.get("target") == "player" else enemy
             self._resolve_enemy_effect(enemy, effect, target, self.action_resolver)
@@ -916,14 +1045,61 @@ class CombatManager:
 
         if effect_type == "apply_weak":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
-            target.apply_weak(effect["value"])
-            results.append(self._resolution_record(effect_type, effect["value"], effect["value"], target, echoed=echoed))
+            applied = self._apply_status_to_enemy(target, "weak", effect["value"])
+            results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             return results, block_penalty
 
         if effect_type == "apply_vulnerable":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
-            target.apply_vulnerable(effect["value"])
-            results.append(self._resolution_record(effect_type, effect["value"], effect["value"], target, echoed=echoed))
+            applied = self._apply_status_to_enemy(target, "vulnerable", effect["value"])
+            results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
+            return results, block_penalty
+
+        if effect_type == "apply_bleed":
+            target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
+            applied = self._apply_status_to_enemy(target, "bleed", effect["value"])
+            results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
+            return results, block_penalty
+
+        if effect_type == "apply_infect":
+            target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
+            applied = self._apply_status_to_enemy(target, "infect", effect["value"])
+            results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
+            return results, block_penalty
+
+        if effect_type == "apply_nullified":
+            target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
+            applied = self._apply_status_to_enemy(target, "nullified", effect["value"])
+            results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
+            return results, block_penalty
+
+        if effect_type == "cleanse_status":
+            target = self._resolve_effect_target(effect, explicit_target, default_target="self")
+            status_id = str(effect.get("status_id", "")).strip().lower()
+            if hasattr(target, "cleanse_combat_status"):
+                applied = target.cleanse_combat_status(status_id, effect["value"])
+            elif hasattr(target, "consume_status"):
+                applied = target.consume_status(status_id, effect["value"])
+            elif hasattr(target, "clear_status"):
+                before = target.get_status(status_id) if hasattr(target, "get_status") else 0
+                target.clear_status(status_id)
+                applied = before
+            else:
+                applied = 0
+            results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
+            return results, block_penalty
+
+        if effect_type == "remove_nullified":
+            target = self._resolve_effect_target(effect, explicit_target, default_target="self")
+            if hasattr(target, "remove_nullified"):
+                applied = 1 if target.remove_nullified() else 0
+            elif hasattr(target, "clear_status"):
+                before = target.get_status("nullified") if hasattr(target, "get_status") else 0
+                target.clear_status("nullified")
+                applied = 1 if before > 0 else 0
+            else:
+                applied = 0
+            results.append(self._resolution_record(effect_type, 1, applied, target, echoed=echoed))
             return results, block_penalty
 
         if effect_type == "modify_next_card_cost":
@@ -988,6 +1164,7 @@ class CombatManager:
             drawn_card = explicit_target
             if drawn_card is not None and drawn_card in self.player.deck_manager.hand:
                 self.player.deck_manager.exhaust_card(drawn_card)
+                self._notify_card_exhausted(drawn_card)
                 results.append(self._resolution_record(effect_type, 0, 1, self.player, echoed=echoed))
             return results, block_penalty
 
@@ -1003,6 +1180,13 @@ class CombatManager:
             if draw_logs:
                 self.event_log.extend(draw_logs)
             if card.type == "status":
+                self._emit_runtime_event(
+                    {
+                        "hook": "on_status_drawn",
+                        "card_id": getattr(card, "id", None),
+                        "card_type": getattr(card, "type", None),
+                    }
+                )
                 status_logs = self._resolve_hook_sources(
                     self.player.active_powers,
                     "on_status_drawn",
@@ -1013,6 +1197,7 @@ class CombatManager:
                     self.event_log.extend(status_logs)
             if card.has_keyword("exhaust") and card in target.deck_manager.hand:
                 target.deck_manager.exhaust_card(card)
+                self._notify_card_exhausted(card)
 
     def _hook_sources_for_play(self, played_card: Any) -> list[Any]:
         sources = list(self.player.active_powers)

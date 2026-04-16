@@ -196,7 +196,7 @@ class EnemyLibrary:
             if not isinstance(value, int):
                 raise ValueError(f"Enemy {enemy_id} {label} effect {effect_type} must use an integer value.")
             normalized_effect = {"type": effect_type, "value": value}
-            for optional_key in {"target", "enemy_id", "summary"}:
+            for optional_key in {"target", "enemy_id", "summary", "card_id", "pile"}:
                 if optional_key in effect:
                     normalized_effect[optional_key] = effect[optional_key]
             if "count" in effect:

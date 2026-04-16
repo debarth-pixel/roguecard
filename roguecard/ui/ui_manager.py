@@ -39,6 +39,23 @@ from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, p
 from ui.shop_ui import ShopUI
 from ui.sprite_sheet_assets import sprite_sheet_assets
 from ui.title_ui import TitleUI
+from ui.ui_system import (
+    COLOR_CYAN,
+    COLOR_GOLD,
+    COLOR_LINE,
+    COLOR_LINE_SOFT,
+    COLOR_MUTED,
+    COLOR_PANEL,
+    COLOR_PANEL_ELEVATED,
+    COLOR_RED,
+    RADIUS_LG,
+    RADIUS_MD,
+    SPACE_2,
+    SPACE_3,
+    draw_focus_glow,
+    draw_modal_scrim,
+    draw_panel,
+)
 
 
 class UIManager:
@@ -243,6 +260,7 @@ class UIManager:
             "event_log": combat_state.get("event_log", []),
             "active_bark": combat_state.get("active_bark"),
             "player_hand": hand,
+            "run_modifiers": list((state_snapshot.get("run_modifiers") or {}).get("active", [])),
             "presentation": state_snapshot.get("presentation", {}),
         }
 
@@ -338,18 +356,34 @@ class UIManager:
     def _render_top_bar(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
         presentation = state_snapshot.get("presentation", {})
         high_contrast = presentation.get("high_contrast", False)
-        accent = (220, 230, 255) if high_contrast else (105, 120, 150)
         layout = self._top_bar_layout(state_snapshot)
-        if layout["state_rect"] is not None:
-            state_rect = pygame.Rect(*layout["state_rect"])
-            pygame.draw.rect(surface, (12, 19, 30), state_rect, border_radius=12)
-            pygame.draw.rect(surface, accent, state_rect, 2, border_radius=12)
-            self._draw_text(surface, layout["state_label"], (state_rect.x + 16, state_rect.y + 10), self._tiny_font, width=state_rect.width - 32)
+        accent = (220, 230, 255) if high_contrast else COLOR_CYAN
+        state_rect = pygame.Rect(*layout["state_rect"])
+        summary_rect = pygame.Rect(*layout["summary_rect"])
+        draw_panel(surface, state_rect, accent=COLOR_LINE, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        self._draw_text(surface, layout["state_label"], (state_rect.x + 14, state_rect.y + 9), self._tiny_font, width=state_rect.width - 28)
 
-        for stat in layout["stats"]:
-            self._draw_top_stat_chip(surface, stat, high_contrast)
+        draw_panel(surface, summary_rect, accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        for index, segment in enumerate(layout["segments"]):
+            rect = pygame.Rect(*segment["rect"])
+            if segment.get("active"):
+                draw_focus_glow(surface, rect, accent=segment["accent"], alpha=22, inflate_x=10, inflate_y=10, radius=RADIUS_MD)
+            if index > 0:
+                pygame.draw.line(surface, COLOR_LINE_SOFT, (rect.x, summary_rect.y + 10), (rect.x, summary_rect.bottom - 10), 1)
+            pygame.draw.rect(surface, segment["accent"], pygame.Rect(rect.x + 12, rect.y + 12, 4, rect.height - 24), border_radius=2)
+            self._draw_text(surface, segment["label"], (rect.x + 24, rect.y + 15), self._tiny_font, width=rect.width - 32)
 
-        self._render_modifier_icons(surface, layout["modifier_icons"], high_contrast)
+        if layout["secondary_text"]:
+            self._draw_text(
+                surface,
+                layout["secondary_text"],
+                (summary_rect.x + 16, summary_rect.bottom + 6),
+                self._tiny_font,
+                width=summary_rect.width - 32,
+            )
+
+        if state_snapshot.get("current_state") != "combat":
+            self._render_modifier_icons(surface, layout["modifier_icons"], high_contrast)
 
         intel_rect = layout.get("intel_rect")
         if intel_rect is not None:
@@ -361,8 +395,15 @@ class UIManager:
                 intel_fill = (40, 54, 76)
             if intel_pressed:
                 intel_fill = (255, 214, 110)
-            pygame.draw.rect(surface, intel_fill, intel_rect_obj, border_radius=12)
-            pygame.draw.rect(surface, accent if not intel_pressed else (255, 214, 110), intel_rect_obj, 2, border_radius=12)
+            draw_panel(
+                surface,
+                intel_rect_obj,
+                accent=accent if not intel_pressed else COLOR_GOLD,
+                fill=intel_fill,
+                radius=RADIUS_MD,
+                border_width=2 if intel_hovered or intel_pressed else 1,
+                shadow_alpha=0,
+            )
             intel_label_color = (18, 24, 36) if intel_pressed else (240, 245, 255)
             intel_label = self._small_font.render("Intel", True, intel_label_color)
             surface.blit(intel_label, intel_label.get_rect(center=intel_rect_obj.center))
@@ -375,8 +416,15 @@ class UIManager:
             fill = (40, 54, 76)
         if pressed:
             fill = (255, 214, 110)
-        pygame.draw.rect(surface, fill, pause_rect, border_radius=12)
-        pygame.draw.rect(surface, accent if not pressed else (255, 214, 110), pause_rect, 2, border_radius=12)
+        draw_panel(
+            surface,
+            pause_rect,
+            accent=accent if not pressed else COLOR_GOLD,
+            fill=fill,
+            radius=RADIUS_MD,
+            border_width=2 if hovered or pressed else 1,
+            shadow_alpha=0,
+        )
         label_color = (18, 24, 36) if pressed else (240, 245, 255)
         pause_label = self._small_font.render("Pause", True, label_color)
         surface.blit(pause_label, pause_label.get_rect(center=pause_rect.center))
@@ -391,16 +439,16 @@ class UIManager:
             "shop": "Shop",
             "event": "Event",
         }.get(current_state, current_state.replace("_", " ").title())
-        run_seed = state_snapshot.get("run_seed")
-        label = f"{state_label} | Seed {run_seed}" if run_seed is not None and current_state in {"map", "modifier_draft"} else state_label
         intel_available = isinstance(state_snapshot.get("grayspine_intel"), dict)
         pause_rect = (1280 - PAUSE_BUTTON_WIDTH - 24, 12, PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)
         intel_rect = None
         if intel_available:
             intel_rect = (pause_rect[0] - 96, 12, 84, PAUSE_BUTTON_HEIGHT)
-        state_width = max(152, self._tiny_font.size(label)[0] + 32)
-        state_rect = (24, 14, state_width, 34)
-        active_modifiers = list(state_snapshot.get("run_modifiers", {}).get("active", []))
+        state_width = max(118, self._tiny_font.size(state_label)[0] + 28)
+        state_rect = (24, 12, state_width, 36)
+        active_modifiers = []
+        if current_state != "combat":
+            active_modifiers = list(state_snapshot.get("run_modifiers", {}).get("active", []))
         if len(active_modifiers) > 6:
             active_modifiers = active_modifiers[-6:]
         strip_width = 0
@@ -421,21 +469,31 @@ class UIManager:
                     ),
                 }
             )
-        stats = []
-        cursor_x = state_rect[0] + state_rect[2] + 12
-        max_x = modifier_start_x - 12 if modifier_icons else pause_rect[0] - 12
-        for item in self._top_bar_stat_items(state_snapshot):
-            chip_width = max(82, self._tiny_font.size(item["label"])[0] + 34)
-            if cursor_x + chip_width > max_x:
+        segment_items = self._top_bar_stat_items(state_snapshot)
+        segment_widths = [max(88, self._tiny_font.size(item["label"])[0] + 40) for item in segment_items]
+        summary_width = min(
+            modifier_start_x - (state_rect[0] + state_rect[2]) - 20,
+            sum(segment_widths) + 12,
+        )
+        summary_width = max(420, summary_width)
+        summary_rect = (state_rect[0] + state_rect[2] + 12, 12, summary_width, 48)
+        segments = []
+        cursor_x = summary_rect[0] + 8
+        for index, item in enumerate(segment_items):
+            width = segment_widths[index]
+            if cursor_x + width > summary_rect[0] + summary_rect[2] - 8:
                 break
-            stats.append({**item, "rect": (cursor_x, 14, chip_width, 34)})
-            cursor_x += chip_width + 10
+            segments.append({**item, "rect": (cursor_x, summary_rect[1] + 4, width, summary_rect[3] - 8)})
+            cursor_x += width
+        secondary_text = self._top_bar_secondary_text(state_snapshot)
         return {
             "state_rect": state_rect,
-            "state_label": label,
+            "summary_rect": summary_rect,
+            "state_label": state_label,
             "intel_rect": intel_rect,
             "pause_rect": pause_rect,
-            "stats": stats,
+            "segments": segments,
+            "secondary_text": secondary_text,
             "modifier_icons": modifier_icons,
         }
 
@@ -443,7 +501,6 @@ class UIManager:
         player = state_snapshot.get("player")
         character = state_snapshot.get("character")
         campaign = state_snapshot.get("campaign")
-        current_state = state_snapshot.get("current_state")
         items: list[dict[str, Any]] = []
         if isinstance(character, dict):
             accent = tuple(character.get("accent_color", [120, 150, 190]))
@@ -454,41 +511,53 @@ class UIManager:
             if isinstance(map_name, str) and map_name:
                 map_label = map_name if not isinstance(map_index, int) or map_index <= 0 else f"M{map_index} {map_name}"
                 items.append({"label": map_label, "accent": (92, 198, 240)})
-        if current_state == "event":
-            return items
         if isinstance(player, dict):
             items.append(
                 {
                     "label": f"HP {player.get('current_hp', 0)}/{player.get('max_hp', 0)}",
-                    "accent": (232, 106, 112),
+                    "accent": COLOR_RED,
                 }
             )
             items.append(
                 {
-                    "label": f"Credits {player.get('credits', 0)}",
-                    "accent": (240, 196, 96),
+                    "label": f"{player.get('credits', 0)} cr",
+                    "accent": COLOR_GOLD,
                 }
             )
+        progress_label = self._top_bar_progress_label(state_snapshot)
+        if progress_label is not None:
+            items.append({"label": progress_label, "accent": COLOR_CYAN, "active": True})
+        return items
 
-        if current_state == "map" and isinstance(state_snapshot.get("map"), dict):
-            map_state = state_snapshot["map"]
+    def _top_bar_progress_label(self, state_snapshot: dict[str, Any]) -> str | None:
+        map_state = state_snapshot.get("map")
+        if isinstance(map_state, dict):
             nodes = map_state.get("nodes", {})
             selected_node_id = map_state.get("selected_node_id")
             selected_node = nodes.get(selected_node_id) if isinstance(nodes, dict) and selected_node_id is not None else None
             if selected_node is None:
-                progress_label = "Progress Entrance"
-            elif selected_node["node_type"] == "boss":
-                progress_label = f"Progress Boss F{map_state.get('route_floor_count', 0)}"
-            else:
-                progress_label = f"Progress F{selected_node['route_floor']} {selected_node['node_type'].title()}"
-            items.append({"label": progress_label, "accent": (92, 198, 240)})
-            items.append(
-                {
-                    "label": f"Routes {len(map_state.get('available_node_ids', []))}",
-                    "accent": (255, 214, 110),
-                }
-            )
-        return items
+                return "Entrance"
+            if selected_node["node_type"] == "boss":
+                return f"Boss F{map_state.get('route_floor_count', 0)}"
+            return f"F{selected_node['route_floor']} {selected_node['node_type'].title()}"
+        campaign = state_snapshot.get("campaign")
+        if isinstance(campaign, dict):
+            route_floor_index = campaign.get("route_floor_index")
+            map_name = campaign.get("map_name")
+            if isinstance(route_floor_index, int) and isinstance(map_name, str):
+                return f"F{route_floor_index} {map_name}"
+        return None
+
+    def _top_bar_secondary_text(self, state_snapshot: dict[str, Any]) -> str:
+        parts: list[str] = []
+        if state_snapshot.get("current_state") == "map" and isinstance(state_snapshot.get("map"), dict):
+            map_state = state_snapshot["map"]
+            route_count = len(map_state.get("available_node_ids", []))
+            parts.append(f"{route_count} routes open")
+        run_seed = state_snapshot.get("run_seed")
+        if run_seed is not None:
+            parts.append(f"Seed {run_seed}")
+        return "  |  ".join(parts)
 
     def _draw_top_stat_chip(
         self,
@@ -566,6 +635,9 @@ class UIManager:
 
     def _update_modifier_hover(self, event: Any, state_snapshot: dict[str, Any]) -> None:
         if pygame is None or event.type not in {pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP}:
+            return
+        if state_snapshot.get("current_state") == "combat":
+            self._modifier_hovered_id = None
             return
         self._modifier_hovered_id = None
         for modifier in self._modifier_icon_layout(state_snapshot):
@@ -646,27 +718,15 @@ class UIManager:
 
     def _pause_layout(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         buttons = [
-            {"action": "pause_continue", "label": "Continue", "description": "Close the menu and resume the run."},
+            {"action": "pause_continue", "label": "Resume", "description": ""},
+            {"action": "pause_open_settings", "label": "Settings", "description": ""},
+            {"action": "pause_home", "label": "Return to Title", "description": ""},
+            {"action": "pause_quit", "label": "Exit Game", "description": ""},
         ]
-        if isinstance(state_snapshot.get("grayspine_intel"), dict):
-            buttons.append(
-                {
-                    "action": "pause_open_intel",
-                    "label": "Grayspine Intel",
-                    "description": "Review the city, factions, and Spine Core dossier.",
-                }
-            )
-        buttons.extend(
-            [
-                {"action": "pause_open_settings", "label": "Settings", "description": "Open settings and controls."},
-                {"action": "pause_home", "label": "Home Screen", "description": "Return to title and keep Continue available."},
-                {"action": "pause_quit", "label": "Close Game", "description": "Exit the game immediately."},
-            ]
-        )
-        panel_height = 224 + (len(buttons) * 66)
-        panel_rect = (440, 170, 400, panel_height)
+        panel_height = 284
+        panel_rect = (430, 184, 420, panel_height)
         for index, button in enumerate(buttons):
-            button["rect"] = (472, 238 + (index * 66), 336, 52)
+            button["rect"] = (462, 236 + (index * 50), 356, 40)
         return {"panel_rect": panel_rect, "buttons": buttons}
 
     def _handle_pause_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
@@ -720,16 +780,11 @@ class UIManager:
 
     def _render_pause_overlay(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
         layout = self._pause_layout(state_snapshot)
-        backdrop = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        backdrop.fill((4, 8, 14, 188))
-        surface.blit(backdrop, (0, 0))
+        draw_modal_scrim(surface, alpha=204)
 
         panel_rect = pygame.Rect(*layout["panel_rect"])
-        panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), panel_rect.size)
-        surface.blit(panel, panel_rect.topleft)
-        pygame.draw.rect(surface, (180, 198, 226), panel_rect, 2, border_radius=16)
-        self._draw_text(surface, "Paused", (panel_rect.x + 34, panel_rect.y + 28), self._title_font)
-        self._draw_text(surface, "Continue, adjust settings, head home, or exit the game.", (panel_rect.x + 34, panel_rect.y + 72), self._tiny_font, width=panel_rect.width - 68)
+        draw_panel(surface, panel_rect, accent=COLOR_CYAN, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_LG, border_width=2, shadow_alpha=68)
+        self._draw_text(surface, "Paused", (panel_rect.x + 34, panel_rect.y + 30), self._title_font)
 
         for index, button in enumerate(layout["buttons"]):
             rect = pygame.Rect(*button["rect"])
@@ -741,12 +796,10 @@ class UIManager:
                 fill = (34, 50, 72)
             if pressed:
                 fill = (255, 214, 110)
-            outline = (255, 214, 110) if selected else (168, 184, 214)
-            pygame.draw.rect(surface, fill, rect, border_radius=14)
-            pygame.draw.rect(surface, outline, rect, 2, border_radius=14)
+            outline = COLOR_GOLD if selected else COLOR_LINE
+            draw_panel(surface, rect, accent=outline, fill=fill, radius=RADIUS_MD, border_width=2 if selected or hovered else 1, shadow_alpha=0)
             label_color = (18, 24, 36) if pressed else (240, 245, 255)
-            self._draw_text(surface, button["label"], (rect.x + 16, rect.y + 12), self._small_font, width=140)
-            self._draw_text(surface, button["description"], (rect.x + 16, rect.y + 30), self._tiny_font, width=rect.width - 32)
+            self._draw_text(surface, button["label"], (rect.x + 16, rect.y + 10), self._small_font, width=rect.width - 32)
 
     def _render_notice(
         self,

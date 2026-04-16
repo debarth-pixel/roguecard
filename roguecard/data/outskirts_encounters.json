@@ -1,0 +1,144 @@
+{
+  "generation": {
+    "max_enemies": 5,
+    "combat_bands": [
+      {
+        "max_floor": 5,
+        "difficulty_weights": {
+          "easy": 1.0,
+          "medium": 0.35
+        }
+      },
+      {
+        "max_floor": 10,
+        "difficulty_weights": {
+          "easy": 0.55,
+          "medium": 1.0
+        }
+      },
+      {
+        "max_floor": 15,
+        "difficulty_weights": {
+          "easy": 0.25,
+          "medium": 1.0
+        }
+      }
+    ],
+    "elite_bands": [
+      {
+        "max_floor": 15,
+        "difficulty_weights": {
+          "elite": 1.0
+        }
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "outskirts",
+      "encounters": [
+        {
+          "id": "outskirts_dune_raider_hound",
+          "difficulty": "easy",
+          "node_types": [
+            "combat"
+          ],
+          "enemy_ids": [
+            "dune_raider",
+            "carrion_hound"
+          ]
+        },
+        {
+          "id": "outskirts_embersnout_ticker",
+          "difficulty": "easy",
+          "node_types": [
+            "combat"
+          ],
+          "enemy_ids": [
+            "embersnout",
+            "scrap_ticker"
+          ]
+        },
+        {
+          "id": "outskirts_leech_bulwark",
+          "difficulty": "easy",
+          "node_types": [
+            "combat"
+          ],
+          "enemy_ids": [
+            "waste_leech",
+            "salvage_bulwark"
+          ]
+        },
+        {
+          "id": "outskirts_dust_vulture",
+          "difficulty": "medium",
+          "node_types": [
+            "combat"
+          ],
+          "enemy_ids": [
+            "dust_saboteur",
+            "relay_vulture"
+          ]
+        },
+        {
+          "id": "outskirts_raider_saboteur_pack",
+          "difficulty": "medium",
+          "node_types": [
+            "combat"
+          ],
+          "enemy_ids": [
+            "dune_raider",
+            "dust_saboteur",
+            "carrion_hound"
+          ]
+        },
+        {
+          "id": "outskirts_salvage_scrap_fire",
+          "difficulty": "medium",
+          "node_types": [
+            "combat"
+          ],
+          "enemy_ids": [
+            "salvage_bulwark",
+            "scrap_ticker",
+            "embersnout"
+          ]
+        },
+        {
+          "id": "outskirts_reaver_ticker",
+          "difficulty": "elite",
+          "node_types": [
+            "elite"
+          ],
+          "enemy_ids": [
+            "caravan_reaver",
+            "scrap_ticker"
+          ]
+        },
+        {
+          "id": "outskirts_junker_raider",
+          "difficulty": "elite",
+          "node_types": [
+            "elite"
+          ],
+          "enemy_ids": [
+            "signal_junker",
+            "dune_raider"
+          ]
+        },
+        {
+          "id": "outskirts_junker_bulwark",
+          "difficulty": "elite",
+          "node_types": [
+            "elite"
+          ],
+          "enemy_ids": [
+            "signal_junker",
+            "salvage_bulwark"
+          ]
+        }
+      ]
+    }
+  ]
+}

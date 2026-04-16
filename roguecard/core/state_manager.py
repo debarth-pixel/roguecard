@@ -9,8 +9,10 @@ from cards.deck_manager import DeckManager
 from combat.combat_manager import CombatManager
 from config import (
     BOSS_CHECKPOINT_HEAL,
+    BOSS_RELIC_CHOICE_COUNT,
     BOSS_REWARD_CARD_CHOICE_COUNT,
     ELITE_COMBAT_CREDIT_REWARD,
+    ELITE_RELIC_CHOICE_COUNT,
     ENCOUNTER_ENEMY_IDS,
     MIN_STARTING_DECK_SIZE,
     PLAYER_STARTING_CREDITS,
@@ -27,6 +29,8 @@ from config import (
     SHOP_HEAL_PRICE,
     SHOP_PURGE_OFFER_ID,
     SHOP_PURGE_PRICE,
+    SHOP_RELIC_OFFER_COUNT,
+    SHOP_RELIC_PRICES_BY_RARITY,
     SHOP_REROLL_BASE_PRICE,
     SHOP_REROLL_PRICE_STEP,
 )
@@ -34,6 +38,7 @@ from core.campaign_library import CampaignLibrary
 from core.character_library import CharacterLibrary
 from core.event_library import EventLibrary
 from core.event_selector import EventSelector
+from core.outskirts_content_library import OutskirtsContentLibrary
 from core.run_modifier_engine import RunModifierEngine
 from core.run_modifier_library import RunModifierLibrary
 from entities.enemy_library import EnemyLibrary
@@ -56,6 +61,7 @@ class StateManager:
         self.character_library = CharacterLibrary(card_library=self.card_library)
         self.campaign_library = CampaignLibrary()
         self.grayspine_content = self.campaign_library.grayspine_content
+        self.outskirts_content = OutskirtsContentLibrary()
         self.enemy_library = enemy_library or EnemyLibrary()
         self.run_modifier_library = modifier_library or RunModifierLibrary(card_library=self.card_library)
         self.run_modifier_engine = RunModifierEngine(self.run_modifier_library)
@@ -219,6 +225,7 @@ class StateManager:
     def end_combat_turn(self) -> dict[str, Any]:
         self._require_combat()
         self._lock_in_turn_history()
+        self._apply_combat_modifier_effects("turn_end")
         self.combat_manager.end_turn()
 
         if not self.combat_manager.combat_active:
@@ -250,7 +257,14 @@ class StateManager:
             raise ValueError("Select a reward option before confirming it.")
 
         option = self._reward_option(section_state, option_id)
-        if section_state["type"] == "card_offer":
+        if section_state["type"] == "relic_offer":
+            acquire_details = self._acquire_run_modifier(
+                option["relic_id"],
+                source=section_state.get("source_type", "reward"),
+                source_detail=self.selected_node_id,
+            )
+            summary = " ".join(acquire_details).strip() or f"Acquired {option['relic']['name']}."
+        elif section_state["type"] == "card_offer":
             card = self.card_library.create_card(option["card_id"])
             self.player.deck_manager.add_to_starting_deck(card)
             self.player.deck_manager.normalize_overworld_deck()
@@ -338,6 +352,13 @@ class StateManager:
             self.player.deck_manager.normalize_overworld_deck()
             summary = f"Purchased {offer['card']['name']} for {price} credits."
             self._mark_shop_modifier_use("card")
+        elif offer["type"] == "relic":
+            acquire_details = self._acquire_run_modifier(
+                offer["relic_id"],
+                source="shop",
+                source_detail=self.selected_node_id,
+            )
+            summary = " ".join(acquire_details).strip() or f"Purchased {offer['relic']['name']} for {price} credits."
         elif offer["type"] == "purge":
             if len(self.player.deck_manager.starting_deck) <= MIN_STARTING_DECK_SIZE:
                 self.player.gain_credits(price)
@@ -658,12 +679,13 @@ class StateManager:
         )
         self.combat_manager.set_card_factory(self.card_library.create_card)
         self.combat_manager.set_enemy_factory(self.enemy_library.create_enemy)
-        self.combat_manager.start_combat()
+        self.combat_manager.set_event_sink(self._handle_combat_runtime_event)
         self._begin_combat_modifier_runtime()
+        self.current_state = "combat"
+        self.combat_manager.start_combat()
         self._apply_combat_modifier_effects("combat_start")
         self._apply_combat_modifier_effects("on_turn_start")
         self._apply_combat_modifier_effects("turn_one")
-        self.current_state = "combat"
         if node.node_type == "boss" and self.map_graph is not None:
             boss_id = node.boss_slot_id or self.map_graph.get("selected_boss_id")
             if isinstance(boss_id, str):
@@ -1319,7 +1341,7 @@ class StateManager:
             branch_faction=branch_faction,
             selected_boss=selected_boss,
         )
-        self._assign_grayspine_encounters(self.map_graph)
+        self._assign_route_encounters(self.map_graph)
         self.available_node_ids = list(self.map_graph["start_nodes"])
         self.visited_node_ids = []
         self.selected_node_id = None
@@ -1365,12 +1387,19 @@ class StateManager:
         }
 
         sections = {
-            "card_offer": self._build_card_reward_section(choice_count=BOSS_REWARD_CARD_CHOICE_COUNT)
+            "relic_offer": self._build_relic_reward_section(
+                choice_count=BOSS_RELIC_CHOICE_COUNT,
+                source_type="boss_reward",
+                title="Boss Relic",
+                description="Choose one relic to carry into the next map.",
+                can_skip=False,
+            ),
+            "card_offer": self._build_card_reward_section(choice_count=BOSS_REWARD_CARD_CHOICE_COUNT),
         }
         return {
             "encounter_type": "boss",
             "credits_granted": 0,
-            "section_order": ["card_offer"],
+            "section_order": ["relic_offer", "card_offer"],
             "sections": sections,
             "intro_message": (
                 f"{selected_boss['name']} defeated. Claim a checkpoint reward before entering {next_map_definition['name']}."
@@ -1425,6 +1454,10 @@ class StateManager:
             "current_turn_attack_played": False,
             "last_turn_attack_played": False,
             "first_block_penalty_remaining": 0,
+            "pending_energy_next_turn": 0,
+            "triggered_modifier_ids_this_turn": [],
+            "triggered_modifier_ids_this_combat": [],
+            "runtime_event_index": 0,
         }
 
     def _combat_runtime_flags(self) -> dict[str, Any]:
@@ -1510,7 +1543,12 @@ class StateManager:
             refreshed_text = f"{refreshed_text} {duration_label.title()}."
         return [refreshed_text]
 
-    def _apply_modifier_effect(self, effect: dict[str, Any]) -> list[str]:
+    def _apply_modifier_effect(
+        self,
+        effect: dict[str, Any],
+        *,
+        event: dict[str, Any] | None = None,
+    ) -> list[str]:
         effect_type = effect["type"]
         if effect_type == "gain_credits":
             gained = self.player.gain_credits(effect["value"])
@@ -1543,22 +1581,80 @@ class StateManager:
             self.player.block -= lost
             return [f"Lost {lost} Block."]
         if effect_type == "draw_cards":
-            drawn = self.player.deck_manager.draw_cards(effect["value"])
+            if self.combat_manager is not None and self.current_state == "combat":
+                drawn = self.combat_manager.draw_cards(self.player, effect["value"])
+            else:
+                drawn = self.player.deck_manager.draw_cards(effect["value"])
             return [f"Drew {len(drawn)} card{'s' if len(drawn) != 1 else ''}."]
         if effect_type == "gain_energy":
             self.player.energy += effect["value"]
             return [f"Gained {effect['value']} Energy."]
+        if effect_type == "gain_next_turn_energy":
+            combat_flags = self._combat_runtime_flags()
+            combat_flags["pending_energy_next_turn"] = max(
+                0,
+                int(combat_flags.get("pending_energy_next_turn", 0)) + effect["value"],
+            )
+            return [f"Banked {effect['value']} Energy for next turn."]
         if effect_type == "heal":
             healed = self.player.heal(effect["value"])
             return [f"Recovered {healed} HP."]
         if effect_type == "heal_after_event":
             healed = self.player.heal(effect["value"])
             return [] if healed <= 0 else [f"Recovered {healed} HP."]
+        if effect_type == "damage_event_target":
+            enemy = self._event_target_enemy(event)
+            if enemy is None:
+                return []
+            applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
+            return [] if applied <= 0 else [f"{enemy.name} took {applied} bonus damage."]
+        if effect_type == "damage_random_enemy":
+            enemy = self._random_living_enemy()
+            if enemy is None:
+                return []
+            applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
+            return [] if applied <= 0 else [f"{enemy.name} took {applied} random damage."]
+        if effect_type == "apply_status_all_enemies":
+            if self.combat_manager is None:
+                return []
+            applied_count = 0
+            for enemy in self.combat_manager.enemies:
+                if not enemy.is_alive():
+                    continue
+                applied = self.combat_manager._apply_status_to_enemy(
+                    enemy,
+                    effect["status_id"],
+                    effect["value"],
+                )
+                if applied > 0:
+                    applied_count += 1
+            return [] if applied_count <= 0 else [f"Applied {effect['status_id']} to {applied_count} enemies."]
+        if effect_type == "increase_highest_enemy_status":
+            enemy = self._highest_status_enemy(effect["status_id"])
+            if enemy is None:
+                return []
+            applied = self.combat_manager._apply_status_to_enemy(
+                enemy,
+                effect["status_id"],
+                effect["value"],
+            )
+            return [] if applied <= 0 else [f"{enemy.name}'s {effect['status_id']} increased."]
+        if effect_type == "reduce_player_status":
+            status_id = effect.get("status_id")
+            if status_id is None and event is not None:
+                status_id = event.get("status_id")
+            if not isinstance(status_id, str) or not status_id:
+                return []
+            if status_id == "nullified":
+                reduced = 1 if self.player.remove_nullified() else 0
+            else:
+                reduced = self.player.cleanse_combat_status(status_id, effect["value"])
+            return [] if reduced <= 0 else [f"Reduced {status_id} by {reduced}."]
         if effect_type == "random_one_of":
             option = self._resolve_random_modifier_option(effect)
             nested_details: list[str] = []
             for nested_effect in option["effects"]:
-                nested_details.extend(self._apply_modifier_effect(nested_effect))
+                nested_details.extend(self._apply_modifier_effect(nested_effect, event=event))
             if option.get("summary"):
                 return [option["summary"], *nested_details]
             return nested_details
@@ -1567,6 +1663,117 @@ class StateManager:
     def _apply_combat_modifier_effects(self, hook_name: str) -> None:
         for effect in self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), hook_name):
             self._apply_modifier_effect(effect)
+
+    def _handle_combat_runtime_event(self, event: dict[str, Any]) -> None:
+        if self.current_state != "combat" or self.combat_manager is None:
+            return
+        hook_name = event.get("hook")
+        if not isinstance(hook_name, str) or not hook_name:
+            return
+
+        combat_flags = self._combat_runtime_flags()
+        combat_flags["runtime_event_index"] = int(combat_flags.get("runtime_event_index", 0)) + 1
+        triggered_this_turn = set(combat_flags.get("triggered_modifier_ids_this_turn", []))
+        triggered_this_combat = set(combat_flags.get("triggered_modifier_ids_this_combat", []))
+
+        for record in self._active_modifiers_for_combat():
+            modifier = self.run_modifier_library.get_modifier(record["id"])
+            hook_effects = modifier.get("hooks", {}).get(hook_name, [])
+            matching_effects = [
+                effect for effect in hook_effects if self._modifier_effect_matches_event(effect, event)
+            ]
+            if not matching_effects:
+                continue
+
+            gate_key = f"{modifier['id']}:{hook_name}"
+            if any(effect.get("once_per") == "turn" for effect in matching_effects) and gate_key in triggered_this_turn:
+                continue
+            if any(effect.get("once_per") == "combat" for effect in matching_effects) and gate_key in triggered_this_combat:
+                continue
+
+            for effect in matching_effects:
+                self._apply_modifier_effect(effect, event=event)
+
+            if any(effect.get("once_per") == "turn" for effect in matching_effects):
+                triggered_this_turn.add(gate_key)
+            if any(effect.get("once_per") == "combat" for effect in matching_effects):
+                triggered_this_combat.add(gate_key)
+
+        combat_flags["triggered_modifier_ids_this_turn"] = sorted(triggered_this_turn)
+        combat_flags["triggered_modifier_ids_this_combat"] = sorted(triggered_this_combat)
+
+    def _modifier_effect_matches_event(self, effect: dict[str, Any], event: dict[str, Any]) -> bool:
+        status_ids = effect.get("status_ids")
+        if status_ids is not None:
+            event_status_id = event.get("status_id")
+            if event_status_id not in status_ids:
+                return False
+
+        card_type = effect.get("card_type")
+        if card_type is not None and event.get("card_type") != card_type:
+            return False
+
+        required_statuses = effect.get("require_target_has_statuses")
+        if required_statuses is not None:
+            target_status_ids = set(event.get("target_status_ids", []))
+            if not target_status_ids.intersection(required_statuses):
+                return False
+
+        return True
+
+    def _event_target_enemy(self, event: dict[str, Any] | None) -> Any | None:
+        if self.combat_manager is None or event is None:
+            return None
+        target_id = event.get("target_id")
+        if not isinstance(target_id, str) or not target_id:
+            return None
+        return self.combat_manager.get_enemy(target_id)
+
+    def _random_living_enemy(self) -> Any | None:
+        if self.combat_manager is None:
+            return None
+        living_enemies = [enemy for enemy in self.combat_manager.enemies if enemy.is_alive()]
+        if not living_enemies:
+            return None
+        event_index = int(self._combat_runtime_flags().get("runtime_event_index", 0))
+        rng = self._state_rng(f"modifier_event_enemy:{event_index}")
+        return rng.choice(living_enemies)
+
+    def _highest_status_enemy(self, status_id: str) -> Any | None:
+        if self.combat_manager is None:
+            return None
+        living_enemies = [enemy for enemy in self.combat_manager.enemies if enemy.is_alive()]
+        if not living_enemies:
+            return None
+        ranked = sorted(
+            living_enemies,
+            key=lambda enemy: (
+                self._combat_status_value(enemy, status_id),
+                enemy.current_hp,
+                enemy.id,
+            ),
+            reverse=True,
+        )
+        top_enemy = ranked[0]
+        if self._combat_status_value(top_enemy, status_id) <= 0:
+            return None
+        return top_enemy
+
+    def _combat_status_value(self, target: Any, status_id: str) -> int:
+        key = str(status_id).strip().lower()
+        if hasattr(target, "combat_status_value"):
+            try:
+                return int(target.combat_status_value(key))
+            except ValueError:
+                return 0
+        value = getattr(target, key, None)
+        if isinstance(value, bool):
+            return 1 if value else 0
+        if isinstance(value, int):
+            return max(0, value)
+        if hasattr(target, "get_status"):
+            return max(0, int(target.get_status(key)))
+        return 0
 
     def _apply_post_victory_modifier_effects(self, encounter_type: str | None) -> str | None:
         summaries: list[str] = []
@@ -1632,6 +1839,11 @@ class StateManager:
         combat_flags = self._combat_runtime_flags()
         combat_flags["cards_played_this_turn"] = 0
         combat_flags["current_turn_attack_played"] = False
+        combat_flags["triggered_modifier_ids_this_turn"] = []
+        pending_energy = int(combat_flags.get("pending_energy_next_turn", 0))
+        if pending_energy > 0:
+            self.player.gain_energy(pending_energy)
+        combat_flags["pending_energy_next_turn"] = 0
         self._apply_combat_modifier_effects("on_turn_start")
 
     def _combat_card_context(self, card: Any) -> dict[str, int]:
@@ -1786,6 +1998,10 @@ class StateManager:
         for offer in target_shop["inventory"]:
             if offer["type"] == "card":
                 offer["price"] = self._shop_price("card", self._card_shop_base_price(offer["card_id"]), shop_node_id)
+            elif offer["type"] == "relic":
+                rarity = str(offer["relic"].get("rarity", "common")).lower()
+                base_price = SHOP_RELIC_PRICES_BY_RARITY.get(rarity, SHOP_RELIC_PRICES_BY_RARITY["common"])
+                offer["price"] = self._shop_price("relic", base_price, shop_node_id)
             elif offer["type"] == "heal":
                 offer["price"] = self._shop_price("heal", SHOP_HEAL_PRICE, shop_node_id)
             elif offer["type"] == "purge":
@@ -1894,9 +2110,15 @@ class StateManager:
         section_order: list[str] = []
 
         if encounter_type == "boss":
-            sections["card_offer"] = self._build_card_reward_section(
-                choice_count=BOSS_REWARD_CARD_CHOICE_COUNT
+            sections["relic_offer"] = self._build_relic_reward_section(
+                choice_count=BOSS_RELIC_CHOICE_COUNT,
+                source_type="boss_reward",
+                title="Boss Relic",
+                description="Choose one relic to strengthen the next map.",
+                can_skip=False,
             )
+            section_order.append("relic_offer")
+            sections["card_offer"] = self._build_card_reward_section(choice_count=BOSS_REWARD_CARD_CHOICE_COUNT)
             section_order.append("card_offer")
         elif encounter_type == "combat":
             if not self._regular_reward_enabled():
@@ -1914,10 +2136,26 @@ class StateManager:
                     sections["card_offer"] = self._build_card_reward_section()
                     section_order.append("card_offer")
         else:
-            sections["card_offer"] = self._build_card_reward_section()
-            section_order.append("card_offer")
-            sections["purge_offer"] = self._build_purge_reward_section()
-            section_order.append("purge_offer")
+            sections["relic_offer"] = self._build_relic_reward_section(
+                choice_count=ELITE_RELIC_CHOICE_COUNT,
+                source_type="elite_reward",
+                title="Elite Relic",
+                description="Choose one relic, then continue with the rest of the spoils.",
+                can_skip=False,
+            )
+            section_order.append("relic_offer")
+            reward_type = self._regular_reward_type()
+            if reward_type == "purge_offer":
+                purge_section = self._build_purge_reward_section()
+                if purge_section["options"]:
+                    sections["purge_offer"] = purge_section
+                    section_order.append("purge_offer")
+                else:
+                    sections["card_offer"] = self._build_card_reward_section()
+                    section_order.append("card_offer")
+            else:
+                sections["card_offer"] = self._build_card_reward_section()
+                section_order.append("card_offer")
 
         return {
             "encounter_type": encounter_type,
@@ -1974,6 +2212,60 @@ class StateManager:
             "can_skip": True,
         }
 
+    def _build_relic_reward_section(
+        self,
+        *,
+        choice_count: int,
+        source_type: str,
+        title: str,
+        description: str,
+        can_skip: bool,
+    ) -> dict[str, Any]:
+        chosen_ids = self._select_offer_relic_ids(
+            slot_count=choice_count,
+            label=f"reward_relic:{source_type}",
+            source_type=source_type,
+            seen_relic_ids=[],
+            sold_out_relic_ids=[],
+            current_unsold_ids=[],
+        )
+        if not chosen_ids:
+            return {
+                "type": "relic_offer",
+                "title": title,
+                "description": description,
+                "source_type": source_type,
+                "options": [],
+                "selected_option_id": None,
+                "resolved": True,
+                "resolution": {
+                    "type": "locked",
+                    "summary": "No relics remain in this pool.",
+                },
+                "can_skip": False,
+                "seen_relic_ids": [],
+            }
+        return {
+            "type": "relic_offer",
+            "title": title,
+            "description": description,
+            "source_type": source_type,
+            "options": [
+                {
+                    "option_id": relic_id,
+                    "relic_id": relic_id,
+                    "relic": copy.deepcopy(self.run_modifier_library.get_modifier(relic_id)),
+                    "label": f"Take {self.run_modifier_library.get_modifier(relic_id)['name']}",
+                }
+                for relic_id in chosen_ids
+            ],
+            "selected_option_id": None,
+            "resolved": False,
+            "resolution": None,
+            "can_skip": can_skip,
+            "seen_relic_ids": list(chosen_ids),
+        }
+
     def _build_purge_reward_section(self) -> dict[str, Any]:
         deck = self.player.deck_manager.starting_deck
         options = [
@@ -2015,14 +2307,23 @@ class StateManager:
     def _generate_shop_state(self) -> dict[str, Any]:
         purge_locked = len(self.player.deck_manager.starting_deck) <= MIN_STARTING_DECK_SIZE
         shop_node_id = self.selected_node_id
-        chosen_ids = self._shop_card_selection(
+        chosen_card_ids = self._shop_card_selection(
             slot_count=SHOP_CARD_OFFER_COUNT,
             seen_card_ids=[],
             sold_out_card_ids=[],
             current_unsold_ids=[],
             label="shop_inventory:0",
         )
-        inventory = [self._shop_card_offer(card_id, shop_node_id=shop_node_id) for card_id in chosen_ids]
+        chosen_relic_ids = self._select_offer_relic_ids(
+            slot_count=SHOP_RELIC_OFFER_COUNT,
+            label="shop_relic_inventory:0",
+            source_type="shop",
+            seen_relic_ids=[],
+            sold_out_relic_ids=[],
+            current_unsold_ids=[],
+        )
+        inventory = [self._shop_card_offer(card_id, shop_node_id=shop_node_id) for card_id in chosen_card_ids]
+        inventory.extend(self._shop_relic_offer(relic_id, shop_node_id=shop_node_id) for relic_id in chosen_relic_ids)
         if SHOP_HEAL_ENABLED:
             inventory.append(self._shop_heal_offer(shop_node_id=shop_node_id))
         inventory.append(self._shop_purge_offer(shop_node_id=shop_node_id, purge_locked=purge_locked))
@@ -2032,7 +2333,8 @@ class StateManager:
             "selected_offer_id": None,
             "selected_purge_index": None,
             "reroll_count": 0,
-            "seen_card_ids": list(chosen_ids),
+            "seen_card_ids": list(chosen_card_ids),
+            "seen_relic_ids": list(chosen_relic_ids),
         }
 
     def _shop_card_offer(self, card_id: str, shop_node_id: str | None = None) -> dict[str, Any]:
@@ -2044,6 +2346,20 @@ class StateManager:
             "card": card.to_dict(),
             "label": card.name,
             "price": self._shop_price("card", self._card_shop_base_price(card_id), shop_node_id=shop_node_id),
+            "sold_out": False,
+        }
+
+    def _shop_relic_offer(self, relic_id: str, shop_node_id: str | None = None) -> dict[str, Any]:
+        relic = copy.deepcopy(self.run_modifier_library.get_modifier(relic_id))
+        rarity = str(relic.get("rarity", "common")).lower()
+        base_price = SHOP_RELIC_PRICES_BY_RARITY.get(rarity, SHOP_RELIC_PRICES_BY_RARITY["common"])
+        return {
+            "offer_id": f"relic:{relic_id}",
+            "type": "relic",
+            "relic_id": relic_id,
+            "relic": relic,
+            "label": relic["name"],
+            "price": self._shop_price("relic", base_price, shop_node_id=shop_node_id),
             "sold_out": False,
         }
 
@@ -2110,10 +2426,18 @@ class StateManager:
 
         unsold_offer_indices = self._rerollable_shop_offer_indices()
         if not unsold_offer_indices:
-            return False, "No unsold card offers remain to reroll."
+            return False, "No unsold card or relic offers remain to reroll."
 
-        if not self._shop_replacement_card_ids():
+        unsold_card_count = len(
+            [index for index in unsold_offer_indices if self.active_shop["inventory"][index]["type"] == "card"]
+        )
+        unsold_relic_count = len(
+            [index for index in unsold_offer_indices if self.active_shop["inventory"][index]["type"] == "relic"]
+        )
+        if unsold_card_count > 0 and len(self._shop_replacement_card_ids()) < unsold_card_count:
             return False, "No replacement card offers remain for this shop."
+        if unsold_relic_count > 0 and len(self._shop_replacement_relic_ids()) < unsold_relic_count:
+            return False, "No replacement relic offers remain for this shop."
 
         reroll_price = self._shop_reroll_price()
         if self.player.credits < reroll_price:
@@ -2127,7 +2451,7 @@ class StateManager:
         return [
             index
             for index, offer in enumerate(self.active_shop["inventory"])
-            if offer["type"] == "card" and not offer.get("sold_out")
+            if offer["type"] in {"card", "relic"} and not offer.get("sold_out")
         ]
 
     def _shop_sold_out_card_ids(self) -> list[str]:
@@ -2148,6 +2472,24 @@ class StateManager:
             if offer["type"] == "card" and not offer.get("sold_out")
         ]
 
+    def _shop_sold_out_relic_ids(self) -> list[str]:
+        if self.active_shop is None:
+            return []
+        return [
+            offer["relic_id"]
+            for offer in self.active_shop["inventory"]
+            if offer["type"] == "relic" and offer.get("sold_out")
+        ]
+
+    def _shop_current_unsold_relic_ids(self) -> list[str]:
+        if self.active_shop is None:
+            return []
+        return [
+            offer["relic_id"]
+            for offer in self.active_shop["inventory"]
+            if offer["type"] == "relic" and not offer.get("sold_out")
+        ]
+
     def _shop_replacement_card_ids(self) -> list[str]:
         sold_out_set = set(self._shop_sold_out_card_ids())
         current_unsold_set = set(self._shop_current_unsold_card_ids())
@@ -2159,24 +2501,56 @@ class StateManager:
             current_unsold_ids=list(current_unsold_set),
         )
 
+    def _shop_replacement_relic_ids(self) -> list[str]:
+        sold_out_set = set(self._shop_sold_out_relic_ids())
+        current_unsold_set = set(self._shop_current_unsold_relic_ids())
+        return self._select_offer_relic_ids(
+            slot_count=SHOP_RELIC_OFFER_COUNT,
+            label=f"shop_relic_replacement_probe:{self.active_shop.get('reroll_count', 0) if self.active_shop is not None else 0}",
+            source_type="shop",
+            seen_relic_ids=self.active_shop.get("seen_relic_ids", []) if self.active_shop is not None else [],
+            sold_out_relic_ids=list(sold_out_set),
+            current_unsold_ids=list(current_unsold_set),
+        )
+
     def _apply_shop_reroll(self) -> None:
         if self.active_shop is None:
             raise ValueError("Shop reroll requested without an active shop.")
 
-        unsold_offer_indices = self._rerollable_shop_offer_indices()
+        unsold_card_indices = [
+            index for index in self._rerollable_shop_offer_indices() if self.active_shop["inventory"][index]["type"] == "card"
+        ]
+        unsold_relic_indices = [
+            index for index in self._rerollable_shop_offer_indices() if self.active_shop["inventory"][index]["type"] == "relic"
+        ]
         new_card_ids = self._shop_card_selection(
-            slot_count=len(unsold_offer_indices),
+            slot_count=len(unsold_card_indices),
             seen_card_ids=self.active_shop.get("seen_card_ids", []),
             sold_out_card_ids=self._shop_sold_out_card_ids(),
             current_unsold_ids=self._shop_current_unsold_card_ids(),
             label=f"shop_inventory:{self.active_shop.get('reroll_count', 0) + 1}",
         )
-        if not new_card_ids:
+        new_relic_ids = self._select_offer_relic_ids(
+            slot_count=len(unsold_relic_indices),
+            label=f"shop_relic_inventory:{self.active_shop.get('reroll_count', 0) + 1}",
+            source_type="shop",
+            seen_relic_ids=self.active_shop.get("seen_relic_ids", []),
+            sold_out_relic_ids=self._shop_sold_out_relic_ids(),
+            current_unsold_ids=self._shop_current_unsold_relic_ids(),
+        )
+        if unsold_card_indices and len(new_card_ids) < len(unsold_card_indices):
             raise ValueError("No replacement card offers remain for this shop.")
+        if unsold_relic_indices and len(new_relic_ids) < len(unsold_relic_indices):
+            raise ValueError("No replacement relic offers remain for this shop.")
 
-        for offer_index, card_id in zip(unsold_offer_indices, new_card_ids):
+        for offer_index, card_id in zip(unsold_card_indices, new_card_ids):
             self.active_shop["inventory"][offer_index] = self._shop_card_offer(
                 card_id,
+                shop_node_id=self.active_shop.get("shop_node_id"),
+            )
+        for offer_index, relic_id in zip(unsold_relic_indices, new_relic_ids):
+            self.active_shop["inventory"][offer_index] = self._shop_relic_offer(
+                relic_id,
                 shop_node_id=self.active_shop.get("shop_node_id"),
             )
 
@@ -2184,6 +2558,9 @@ class StateManager:
         seen_card_ids = set(self.active_shop.get("seen_card_ids", []))
         seen_card_ids.update(new_card_ids)
         self.active_shop["seen_card_ids"] = sorted(seen_card_ids)
+        seen_relic_ids = set(self.active_shop.get("seen_relic_ids", []))
+        seen_relic_ids.update(new_relic_ids)
+        self.active_shop["seen_relic_ids"] = sorted(seen_relic_ids)
         self._refresh_shop_prices()
 
     def _shop_card_selection(
@@ -2293,6 +2670,60 @@ class StateManager:
 
         return chosen_ids[:slot_count]
 
+    def _select_offer_relic_ids(
+        self,
+        *,
+        slot_count: int,
+        label: str,
+        source_type: str,
+        seen_relic_ids: list[str],
+        sold_out_relic_ids: list[str],
+        current_unsold_ids: list[str],
+    ) -> list[str]:
+        if slot_count <= 0:
+            return []
+
+        rng = self._state_rng(label)
+        seen_set = set(seen_relic_ids)
+        blocked_ids = set(sold_out_relic_ids) | set(current_unsold_ids) | set(self._owned_relic_ids())
+
+        def pool_ids(*, fresh_only: bool) -> list[str]:
+            return [
+                modifier["id"]
+                for modifier in self.run_modifier_library.list_modifiers(source_type=source_type)
+                if modifier["type"] == "relic"
+                and modifier["id"] not in blocked_ids
+                and (not fresh_only or modifier["id"] not in seen_set)
+            ]
+
+        chosen_ids: list[str] = []
+        for fresh_only in (True, False):
+            candidate_ids = [modifier_id for modifier_id in pool_ids(fresh_only=fresh_only) if modifier_id not in chosen_ids]
+            if not candidate_ids:
+                continue
+            chosen_ids.extend(
+                self.run_modifier_engine.pick_weighted_modifier_ids(
+                    rng,
+                    self.run_modifiers,
+                    source_type=source_type,
+                    rarity_profile="positive",
+                    allow_types=["relic"],
+                    pool_ids=candidate_ids,
+                    count=slot_count - len(chosen_ids),
+                )
+            )
+            if len(chosen_ids) >= slot_count:
+                break
+        return chosen_ids[:slot_count]
+
+    def _owned_relic_ids(self) -> list[str]:
+        relic_ids: list[str] = []
+        for record in self.run_modifiers:
+            modifier = self.run_modifier_library.get_modifier(record["id"])
+            if modifier["type"] == "relic":
+                relic_ids.append(modifier["id"])
+        return relic_ids
+
     def _shop_purge_targets(self) -> list[dict[str, Any]]:
         if self.player is None or self.player.deck_manager is None:
             return []
@@ -2322,8 +2753,21 @@ class StateManager:
         node_id = self.selected_node_id or "root"
         return random.Random(f"{self.run_seed}:{map_key}:{node_id}:{label}")
 
-    def _assign_grayspine_encounters(self, map_graph: dict[str, Any] | None) -> None:
+    def _assign_route_encounters(self, map_graph: dict[str, Any] | None) -> None:
         if map_graph is None:
+            return
+        if map_graph["map_id"] == "outskirts":
+            for node in map_graph["nodes"].values():
+                if node.node_type not in {"combat", "elite"}:
+                    continue
+                encounter = self.outskirts_content.choose_encounter(
+                    "outskirts",
+                    node_type=node.node_type,
+                    route_floor=node.route_floor,
+                    rng=self._state_rng(f"outskirts_encounter:{map_graph['map_id']}:{node.node_id}"),
+                )
+                node.encounter_hook_id = encounter["id"]
+                node.enemy_ids = list(encounter["enemy_ids"])
             return
         faction_id = self.grayspine_content.faction_for_map(map_graph["map_id"])
         if faction_id is None:
@@ -2857,8 +3301,19 @@ class StateManager:
         if not isinstance(seen_card_ids, list) or not all(isinstance(card_id, str) for card_id in seen_card_ids):
             raise ValueError("Shop seen_card_ids must be a list of card ids.")
 
+        seen_relic_ids = restored_shop.get("seen_relic_ids")
+        if seen_relic_ids is None:
+            seen_relic_ids = [
+                offer["relic_id"]
+                for offer in restored_shop["inventory"]
+                if isinstance(offer, dict) and offer.get("type") == "relic" and isinstance(offer.get("relic_id"), str)
+            ]
+        if not isinstance(seen_relic_ids, list) or not all(isinstance(relic_id, str) for relic_id in seen_relic_ids):
+            raise ValueError("Shop seen_relic_ids must be a list of relic ids.")
+
         restored_shop["reroll_count"] = reroll_count
         restored_shop["seen_card_ids"] = list(dict.fromkeys(seen_card_ids))
+        restored_shop["seen_relic_ids"] = list(dict.fromkeys(seen_relic_ids))
         restored_shop["shop_node_id"] = restored_shop.get("shop_node_id", self.selected_node_id)
         if SHOP_HEAL_ENABLED and not any(
             isinstance(offer, dict) and offer.get("offer_id") == SHOP_HEAL_OFFER_ID

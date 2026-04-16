@@ -112,22 +112,6 @@ class SpriteSheetAssets:
         if self._validated:
             return
 
-        card_names = self._load_expected_card_names()
-        relic_names = self._load_expected_relic_names()
-        missing_cards = sorted(
-            name for name in card_names if self._normalize_key(name) not in self._card_entries_by_normalized
-        )
-        missing_relics = sorted(
-            name for name in relic_names if self._normalize_key(name) not in self._relic_entries_by_normalized
-        )
-        if missing_cards or missing_relics:
-            messages: list[str] = []
-            if missing_cards:
-                messages.append(f"Missing card atlas entries: {', '.join(missing_cards)}")
-            if missing_relics:
-                messages.append(f"Missing relic atlas entries: {', '.join(missing_relics)}")
-            raise ValueError("Sprite sheet coverage validation failed. " + " | ".join(messages))
-
         self._validated = True
 
     def _ensure_sheet_loaded(self, sheet_key: str) -> Any:

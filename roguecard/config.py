@@ -91,6 +91,7 @@ GRAYSPINE_LORE_DATA_PATH = DATA_ROOT / "grayspine_lore.json"
 FINAL_MAP_BOSSES_DATA_PATH = DATA_ROOT / "final_map_bosses.json"
 FINAL_MAP_ENCOUNTERS_DATA_PATH = DATA_ROOT / "final_map_encounters.json"
 FINAL_MAP_BARKS_DATA_PATH = DATA_ROOT / "final_map_barks.json"
+OUTSKIRTS_ENCOUNTERS_DATA_PATH = DATA_ROOT / "outskirts_encounters.json"
 CARD_ART_ATLAS_PATH = SPRITE_REFERENCE_PACK_ROOT / "card_art_atlas.png"
 CARD_ART_ATLAS_COORDINATES_PATH = SPRITE_REFERENCE_PACK_ROOT / "card_art_atlas_coordinates.csv"
 RELIC_SPRITE_SHEET_PATH = SPRITE_REFERENCE_PACK_ROOT / "relic_sprite_sheet_reference.png"
@@ -104,7 +105,10 @@ ENCOUNTER_ENEMY_IDS = {
 }
 
 REWARD_CARD_CHOICE_COUNT = 3
+BOSS_RELIC_CHOICE_COUNT = 2
+ELITE_RELIC_CHOICE_COUNT = 3
 SHOP_CARD_OFFER_COUNT = 3
+SHOP_RELIC_OFFER_COUNT = 1
 REGULAR_COMBAT_CREDIT_REWARD = 20
 ELITE_COMBAT_CREDIT_REWARD = 40
 REGULAR_REWARD_CHANCE = 0.5
@@ -119,6 +123,11 @@ SHOP_PURGE_OFFER_ID = "purge_service"
 SHOP_PURGE_PRICE = 40
 SHOP_REROLL_BASE_PRICE = 12
 SHOP_REROLL_PRICE_STEP = 8
+SHOP_RELIC_PRICES_BY_RARITY = {
+    "common": 90,
+    "uncommon": 120,
+    "rare": 150,
+}
 EVENT_RARITY_WEIGHTS = {
     "common": 1.0,
     "uncommon": 0.55,
@@ -191,6 +200,15 @@ STATUS_TAGS = (
     "defense",
     "energy",
     "draw",
+    "status",
+    "control",
+    "cleanse",
+    "enemy_status",
+    "bleed",
+    "infect",
+    "kill",
+    "aoe",
+    "setup",
     "risk",
     "recovery",
     "scaling",
@@ -206,6 +224,7 @@ STATUS_SOURCE_TYPES = (
     "run_start",
     "shop",
     "combat_reward",
+    "elite_reward",
     "boss_reward",
 )
 FINAL_MAP_FACTION_IDS = (
@@ -219,5 +238,7 @@ FINAL_MAP_ROUTE_IDS = {
     "blackwire_directorate": "blackwire_lockdown_sector",
     "cinder_jackals": "cinder_jackals_edgeworks",
 }
+
+
 def resolve_asset_path(*parts: str) -> Path:
     return ASSETS_ROOT.joinpath(*parts)

@@ -11,21 +11,34 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.card_renderer import draw_card
 from ui.card_style import CARD_PORTRAIT_HEIGHT_RATIO, resolve_card_theme
+from ui.relic_assets import relic_assets
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+from ui.ui_system import (
+    COLOR_CYAN,
+    COLOR_GOLD,
+    COLOR_LINE,
+    COLOR_LINE_SOFT,
+    COLOR_MUTED,
+    COLOR_PANEL,
+    COLOR_PANEL_ELEVATED,
+    COLOR_TEXT,
+    RADIUS_LG,
+    RADIUS_MD,
+    draw_background_stage,
+    draw_chip,
+    draw_hint_row,
+    draw_panel,
+)
 
 
 REWARD_LAYOUT = {
-    "header_rect": (56, 54, 1168, 114),
-    "hero_rect": (64, 192, 1152, 344),
-    "secondary_rect": (92, 552, 1096, 86),
-    "action_rect": (92, 652, 1096, 52),
-    "panel_radius": 24,
-    "inner_radius": 20,
-    "chip_gap": 18,
-    "card_gap": 28,
+    "header_rect": (64, 76, 1152, 92),
+    "stage_rect": (64, 190, 1152, 420),
+    "action_rect": (64, 632, 1152, 48),
+    "card_gap": 24,
     "purge_columns": 4,
-    "purge_tile_height": 42,
-    "purge_tile_gap": 10,
+    "purge_tile_height": 86,
+    "purge_tile_gap": 12,
 }
 
 
@@ -102,53 +115,35 @@ class RewardUI:
         reward = reward_state["reward"]
         sections = [dict(section) for section in reward["sections"]]
         active_section = next((section for section in sections if not section["resolved"]), None)
-        hero_section = active_section
-        if hero_section is None:
-            hero_section = next((section for section in sections if section["type"] == "card_offer"), sections[0] if sections else None)
-        secondary_sections = [section for section in sections if hero_section is None or section["id"] != hero_section["id"]]
+        display_section = active_section
+        if display_section is None and sections:
+            display_section = sections[-1]
 
-        title, subtitle = self._header_copy(reward["encounter_type"], active_section, reward["can_continue"])
-        hero_panel = pygame.Rect(*REWARD_LAYOUT["hero_rect"])
-        secondary_base = pygame.Rect(*REWARD_LAYOUT["secondary_rect"])
         action_rect = pygame.Rect(*REWARD_LAYOUT["action_rect"])
-
-        layout_sections = []
-        if hero_section is not None:
-            layout_sections.append(
-                self._layout_section(
-                    hero_section,
-                    hero_panel,
-                    role="hero",
-                    active=(active_section is not None and hero_section["id"] == active_section["id"]),
-                )
-            )
-
-        for index, section in enumerate(secondary_sections):
-            rect = secondary_base.move(0, index * (secondary_base.height + 12))
-            layout_sections.append(
-                self._layout_section(
-                    section,
-                    rect,
-                    role="secondary",
-                    active=(active_section is not None and section["id"] == active_section["id"]),
-                )
-            )
-
-        button_layout = self._build_action_buttons(action_rect, active_section, reward["can_continue"])
+        stage_rect = pygame.Rect(*REWARD_LAYOUT["stage_rect"])
+        option_entries = self._active_option_entries(display_section, stage_rect) if display_section is not None and not reward["can_continue"] else []
+        button_layout = self._build_action_buttons(action_rect, display_section, reward["can_continue"])
+        step_index = 0
+        if display_section is not None:
+            step_index = next((index for index, section in enumerate(sections) if section["id"] == display_section["id"]), 0)
         return {
             "encounter_type": reward["encounter_type"],
-            "title": title,
-            "subtitle": subtitle,
+            "title": self._reward_title(reward["encounter_type"]),
+            "subtitle": self._reward_subtitle(reward["encounter_type"], display_section, reward["can_continue"], reward["credits_granted"]),
             "credits_granted": reward["credits_granted"],
-            "player_credits": reward_state["player"]["credits"],
             "deck_size": reward["deck_size"],
-            "sections": layout_sections,
+            "sections": sections,
+            "display_section": display_section,
             "active_section": active_section,
             "can_continue": reward["can_continue"],
+            "header_rect": pygame.Rect(*REWARD_LAYOUT["header_rect"]),
+            "stage_rect": stage_rect,
             "action_rect": action_rect,
             "buttons": button_layout["buttons"],
             "action_hint": button_layout["hint"],
             "continue_rect": button_layout.get("continue_rect"),
+            "option_entries": option_entries,
+            "step_label": "Rewards Locked" if reward["can_continue"] else f"Step {step_index + 1} of {max(1, len(sections))}",
         }
 
     def _layout_section(
@@ -197,10 +192,17 @@ class RewardUI:
 
         buttons = []
         primary_rect = pygame.Rect(action_rect.right - 236, action_rect.y + 2, 220, 48)
+        confirm_label = "Confirm"
+        if active_section["type"] == "relic_offer":
+            confirm_label = "Take Relic"
+        elif active_section["type"] == "card_offer":
+            confirm_label = "Take Card"
+        elif active_section["type"] == "purge_offer":
+            confirm_label = "Purge Card"
         buttons.append(
             {
                 "action_id": f"confirm:{active_section['id']}",
-                "label": "Confirm",
+                "label": confirm_label,
                 "rect": primary_rect,
                 "kind": "primary",
                 "enabled": active_section["selected_option_id"] is not None,
@@ -219,9 +221,12 @@ class RewardUI:
             )
 
         hint = (
-            "Choose one card to shape the next fight, then confirm or skip."
+            "Pick 1 relic to add to this run."
+            if active_section["type"] == "relic_offer"
+            else
+            "Pick 1 card to add to the deck, or skip it."
             if active_section["type"] == "card_offer"
-            else "Optional cleanup: remove one deck card, or skip and keep your build as-is."
+            else "Choose a card to remove from the deck, or skip and keep your build intact."
         )
         return {"hint": hint, "buttons": buttons}
 
@@ -234,16 +239,232 @@ class RewardUI:
         layout = self.build_layout(reward_state)
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
 
-        surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=188)
+        draw_background_stage(surface, background, veil_alpha=174, top_band_height=70, bottom_band_height=94, line_step=54, line_alpha=7)
+        self._draw_header_clean(surface, layout)
+        self._draw_stage_clean(surface, layout, high_contrast)
+        self._draw_action_bar_clean(surface, layout)
 
-        self._draw_header(surface, layout, high_contrast)
+    def _draw_header_clean(self, surface: Any, layout: dict[str, Any]) -> None:
+        header_rect = layout["header_rect"]
+        draw_panel(surface, header_rect, accent=COLOR_LINE, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        self._draw_text(surface, layout["title"], (header_rect.x + 22, header_rect.y + 14), self._title_font)
+        self._draw_text(surface, layout["subtitle"], (header_rect.x + 22, header_rect.y + 48), self._tiny_font, width=720, color=COLOR_MUTED)
+        step_rect = pygame.Rect(header_rect.right - 314, header_rect.y + 18, 130, 28)
+        credit_rect = pygame.Rect(header_rect.right - 168, header_rect.y + 18, 144, 28)
+        draw_chip(surface, step_rect, label=layout["step_label"], font=self._tiny_font, accent=COLOR_CYAN, fill=COLOR_PANEL, active=not layout["can_continue"])
+        draw_chip(surface, credit_rect, label=f"+{layout['credits_granted']} cr", font=self._tiny_font, accent=COLOR_GOLD, fill=COLOR_PANEL)
+
+    def _draw_stage_clean(self, surface: Any, layout: dict[str, Any], high_contrast: bool) -> None:
+        stage_rect = layout["stage_rect"]
+        draw_panel(surface, stage_rect, accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        section = layout["display_section"]
+        if section is None:
+            return
+        self._draw_text(surface, section["title"], (stage_rect.x + 28, stage_rect.y + 22), self._font)
+        self._draw_text(surface, section["description"], (stage_rect.x + 28, stage_rect.y + 54), self._tiny_font, width=stage_rect.width - 56, color=COLOR_MUTED)
+        if layout["can_continue"]:
+            self._draw_completed_reward_stage(surface, stage_rect, layout, high_contrast)
+            return
+        if section["type"] == "relic_offer":
+            self._draw_relic_reward_stage(surface, stage_rect, layout, high_contrast)
+        elif section["type"] == "card_offer":
+            self._draw_card_reward_stage(surface, stage_rect, layout, high_contrast)
+        else:
+            self._draw_purge_reward_stage(surface, stage_rect, layout, high_contrast)
+
+    def _draw_relic_reward_stage(self, surface: Any, stage_rect: pygame.Rect, layout: dict[str, Any], high_contrast: bool) -> None:
+        del high_contrast
+        section = layout["display_section"]
+        selected_option = self._selected_option(section)
+        if selected_option is not None:
+            self._draw_text(surface, f"Selected: {selected_option['relic']['name']}", (stage_rect.x + 28, stage_rect.y + 84), self._tiny_font, width=360)
+        for option in layout["option_entries"]:
+            rect = pygame.Rect(*option["rect"])
+            selected = section["selected_option_id"] == option["option_id"]
+            hovered = self._hovered_action == option["action_id"]
+            pressed = self._pressed_action == option["action_id"]
+            self._draw_relic_option_clean(surface, rect, option, selected, hovered, pressed)
+
+    def _draw_card_reward_stage(self, surface: Any, stage_rect: pygame.Rect, layout: dict[str, Any], high_contrast: bool) -> None:
+        section = layout["display_section"]
+        for option in layout["option_entries"]:
+            base_rect = pygame.Rect(*option["rect"])
+            selected = section["selected_option_id"] == option["option_id"]
+            hovered = self._hovered_action == option["action_id"]
+            pressed = self._pressed_action == option["action_id"]
+            render_rect = self._reward_card_render_rect(base_rect, selected=selected, hovered=hovered, pressed=pressed)
+            draw_card(
+                surface,
+                render_rect,
+                option["card"],
+                {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="full",
+                shortcut_label=str(option["shortcut"]) if option["shortcut"] is not None else None,
+                selected=selected,
+                hovered=hovered,
+                pressed=pressed,
+                high_contrast=high_contrast,
+            )
+        self._draw_text(surface, "Pick 1 of 3 and confirm, or skip.", (stage_rect.x + 28, stage_rect.bottom - 44), self._tiny_font, width=360, color=COLOR_MUTED)
+
+    def _draw_purge_reward_stage(self, surface: Any, stage_rect: pygame.Rect, layout: dict[str, Any], high_contrast: bool) -> None:
+        section = layout["display_section"]
+        grid_rect = pygame.Rect(stage_rect.x + 28, stage_rect.y + 92, stage_rect.width - 380, stage_rect.height - 124)
+        preview_rect = pygame.Rect(stage_rect.right - 320, stage_rect.y + 92, 292, stage_rect.height - 124)
+        draw_panel(surface, grid_rect, accent=COLOR_LINE_SOFT, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        draw_panel(surface, preview_rect, accent=COLOR_LINE_SOFT, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        preview_option = self._selected_option(section)
+        if preview_option is None and section["options"]:
+            preview_option = section["options"][0]
+
+        for option in layout["option_entries"]:
+            rect = pygame.Rect(*option["rect"])
+            selected = section["selected_option_id"] == option["option_id"]
+            hovered = self._hovered_action == option["action_id"]
+            pressed = self._pressed_action == option["action_id"]
+            draw_card(
+                surface,
+                rect,
+                option["card"],
+                {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="mini",
+                shortcut_label=str(option["shortcut"]) if option["shortcut"] is not None else None,
+                selected=selected,
+                hovered=hovered,
+                pressed=pressed,
+                high_contrast=high_contrast,
+            )
+
+        self._draw_text(surface, "Preview", (preview_rect.x + 18, preview_rect.y + 14), self._tiny_font, color=COLOR_MUTED)
+        if preview_option is not None:
+            preview_card_rect = pygame.Rect(preview_rect.x + 22, preview_rect.y + 42, 248, int(248 * CARD_PORTRAIT_HEIGHT_RATIO))
+            draw_card(
+                surface,
+                preview_card_rect,
+                preview_option["card"],
+                {"title": self._tiny_font, "body": self._tiny_font, "tiny": self._tiny_font},
+                variant="full",
+                selected=True,
+                high_contrast=high_contrast,
+            )
+
+    def _draw_completed_reward_stage(self, surface: Any, stage_rect: pygame.Rect, layout: dict[str, Any], high_contrast: bool) -> None:
+        del high_contrast
+        y = stage_rect.y + 94
         for section in layout["sections"]:
-            if section["role"] == "hero":
-                self._draw_hero_section(surface, section, layout, high_contrast)
-            else:
-                self._draw_secondary_section(surface, section)
-        self._draw_action_bar(surface, layout)
+            summary_rect = pygame.Rect(stage_rect.x + 28, y, stage_rect.width - 56, 64)
+            draw_panel(
+                surface,
+                summary_rect,
+                accent=COLOR_GOLD if section["type"] == "relic_offer" else COLOR_LINE_SOFT,
+                fill=COLOR_PANEL_ELEVATED,
+                radius=RADIUS_MD,
+                border_width=1,
+                shadow_alpha=0,
+            )
+            self._draw_text(surface, section["title"], (summary_rect.x + 18, summary_rect.y + 12), self._tiny_font, width=200)
+            self._draw_text(
+                surface,
+                self._section_summary(section),
+                (summary_rect.x + 18, summary_rect.y + 32),
+                self._tiny_font,
+                width=summary_rect.width - 36,
+                color=COLOR_MUTED,
+            )
+            y += 76
+
+    def _draw_action_bar_clean(self, surface: Any, layout: dict[str, Any]) -> None:
+        hint_text = layout["action_hint"]
+        right_hint = "C continue" if layout["can_continue"] else "1-9 choose  |  Enter confirm  |  X skip"
+        draw_hint_row(
+            surface,
+            layout["action_rect"],
+            left_text=hint_text,
+            right_text=right_hint,
+            font=self._tiny_font,
+            accent=COLOR_LINE,
+            fill=COLOR_PANEL_ELEVATED,
+        )
+        for button in layout["buttons"]:
+            self._draw_button(
+                surface,
+                button["rect"],
+                button["label"],
+                self._hovered_action == button["action_id"],
+                self._pressed_action == button["action_id"],
+                button["enabled"],
+                kind=button["kind"],
+            )
+
+    def _active_option_entries(self, section: dict[str, Any] | None, stage_rect: pygame.Rect) -> list[dict[str, Any]]:
+        if section is None:
+            return []
+        if section["type"] == "card_offer":
+            zone_rect = pygame.Rect(stage_rect.x + 46, stage_rect.y + 92, stage_rect.width - 92, stage_rect.height - 132)
+            count = max(1, len(section["options"]))
+            gap = REWARD_LAYOUT["card_gap"]
+            card_width = min(214, int((zone_rect.width - (gap * (count - 1))) / count))
+            card_height = int(card_width * CARD_PORTRAIT_HEIGHT_RATIO)
+            if card_height > zone_rect.height:
+                card_height = zone_rect.height
+                card_width = int(card_height / CARD_PORTRAIT_HEIGHT_RATIO)
+            total_width = (card_width * count) + (gap * (count - 1))
+            start_x = zone_rect.x + max(0, (zone_rect.width - total_width) // 2)
+            start_y = zone_rect.y + max(0, (zone_rect.height - card_height) // 2)
+            return [
+                {
+                    "action_id": f"option:{section['id']}:{option['option_id']}",
+                    "option_id": option["option_id"],
+                    "card": option["card"],
+                    "rect": (start_x + (index * (card_width + gap)), start_y, card_width, card_height),
+                    "shortcut": index + 1 if index < 9 else None,
+                }
+                for index, option in enumerate(section["options"])
+            ]
+        if section["type"] == "relic_offer":
+            zone_rect = pygame.Rect(stage_rect.x + 28, stage_rect.y + 108, stage_rect.width - 56, stage_rect.height - 146)
+            count = max(1, len(section["options"]))
+            gap = 18
+            tile_width = min(312, int((zone_rect.width - (gap * (count - 1))) / count))
+            tile_height = min(210, zone_rect.height)
+            total_width = (tile_width * count) + (gap * (count - 1))
+            start_x = zone_rect.x + max(0, (zone_rect.width - total_width) // 2)
+            start_y = zone_rect.y + max(0, (zone_rect.height - tile_height) // 2)
+            return [
+                {
+                    "action_id": f"option:{section['id']}:{option['option_id']}",
+                    "option_id": option["option_id"],
+                    "relic_id": option["relic_id"],
+                    "relic": option["relic"],
+                    "rect": (start_x + (index * (tile_width + gap)), start_y, tile_width, tile_height),
+                    "shortcut": index + 1 if index < 9 else None,
+                }
+                for index, option in enumerate(section["options"])
+            ]
+        grid_rect = pygame.Rect(stage_rect.x + 40, stage_rect.y + 104, stage_rect.width - 404, stage_rect.height - 148)
+        columns = min(REWARD_LAYOUT["purge_columns"], max(1, len(section["options"])))
+        gap = REWARD_LAYOUT["purge_tile_gap"]
+        tile_width = int((grid_rect.width - ((columns - 1) * gap)) / columns)
+        entries = []
+        for index, option in enumerate(section["options"]):
+            row = index // columns
+            column = index % columns
+            rect = pygame.Rect(
+                grid_rect.x + (column * (tile_width + gap)),
+                grid_rect.y + (row * (REWARD_LAYOUT["purge_tile_height"] + gap)),
+                tile_width,
+                REWARD_LAYOUT["purge_tile_height"],
+            )
+            entries.append(
+                {
+                    "action_id": f"option:{section['id']}:{option['option_id']}",
+                    "option_id": option["option_id"],
+                    "card": option["card"],
+                    "rect": rect,
+                    "shortcut": index + 1 if index < 9 else None,
+                }
+            )
+        return entries
 
     def _draw_header(self, surface: Any, layout: dict[str, Any], high_contrast: bool) -> None:
         header_rect = pygame.Rect(*REWARD_LAYOUT["header_rect"])
@@ -288,7 +509,13 @@ class RewardUI:
         border = (255, 214, 110) if section["active"] else (94, 124, 162)
         self._draw_panel(surface, panel_rect, fill=(10, 18, 30), border=border, radius=REWARD_LAYOUT["panel_radius"])
 
-        label = "Primary Reward" if section["type"] == "card_offer" else "Optional Reward"
+        label = (
+            "Relic Choice"
+            if section["type"] == "relic_offer"
+            else "Card Choice"
+            if section["type"] == "card_offer"
+            else "Deck Purge"
+        )
         if layout["can_continue"]:
             label = "Rewards Collected"
         self._draw_section_heading(surface, panel_rect, label, section["title"], section["description"], section, condensed=False)
@@ -297,7 +524,9 @@ class RewardUI:
             self._draw_resolved_hero(surface, section, high_contrast)
             return
 
-        if section["type"] == "card_offer":
+        if section["type"] == "relic_offer":
+            self._draw_relic_showcase(surface, section, high_contrast)
+        elif section["type"] == "card_offer":
             self._draw_card_showcase(surface, section, high_contrast)
         else:
             self._draw_purge_showcase(surface, section, high_contrast)
@@ -307,7 +536,13 @@ class RewardUI:
         border = (120, 244, 170) if section["resolved"] else (78, 102, 134)
         self._draw_panel(surface, panel_rect, fill=(12, 18, 28), border=border, radius=REWARD_LAYOUT["inner_radius"])
 
-        label = "Optional Utility" if section["type"] == "purge_offer" else "Reward Summary"
+        label = (
+            "Relic Choice"
+            if section["type"] == "relic_offer"
+            else "Deck Purge"
+            if section["type"] == "purge_offer"
+            else "Card Choice"
+        )
         self._draw_section_heading(surface, panel_rect, label, section["title"], section["description"], section, condensed=True)
 
         summary = self._section_summary(section)
@@ -324,6 +559,33 @@ class RewardUI:
         if section["type"] == "purge_offer" and not section["resolved"]:
             chip_rect = pygame.Rect(panel_rect.right - 246, panel_rect.y + 22, 220, 28)
             self._draw_chip(surface, chip_rect, "Optional after current choice", (24, 36, 56), (96, 182, 255), self._micro_font)
+
+    def _draw_relic_showcase(self, surface: Any, section: dict[str, Any], high_contrast: bool) -> None:
+        panel_rect = section["panel_rect"]
+        stage_rect = pygame.Rect(panel_rect.x + 34, panel_rect.y + 86, panel_rect.width - 68, panel_rect.height - 118)
+        self._draw_panel(surface, stage_rect, fill=(16, 24, 38), border=(52, 76, 110), radius=20)
+
+        selected_option = section["selected_option"]
+        selected_text = (
+            f"Selected: {selected_option['relic']['name']}"
+            if selected_option is not None
+            else "Choose one relic to add to this run."
+        )
+        self._draw_text(
+            surface,
+            selected_text,
+            (panel_rect.x + 36, panel_rect.y + 58),
+            self._small_font,
+            width=560,
+            color=(236, 243, 255),
+        )
+
+        for option in section["option_entries"]:
+            rect = pygame.Rect(*option["rect"])
+            selected = section["selected_option_id"] == option["option_id"]
+            hovered = self._hovered_action == option["action_id"]
+            pressed = self._pressed_action == option["action_id"]
+            self._draw_relic_option(surface, rect, option, selected, hovered, pressed, high_contrast)
 
     def _draw_card_showcase(self, surface: Any, section: dict[str, Any], high_contrast: bool) -> None:
         panel_rect = section["panel_rect"]
@@ -428,6 +690,45 @@ class RewardUI:
                     high_contrast=high_contrast,
                 )
                 return
+        if section["type"] == "relic_offer" and section["resolution"] is not None and section["resolution"]["type"] == "claimed":
+            claimed = self._selected_option(section)
+            if claimed is not None:
+                preview_rect = pygame.Rect(panel_rect.centerx - 220, panel_rect.y + 110, 440, 142)
+                palette = self._relic_palette(claimed["relic"])
+                self._draw_panel(surface, preview_rect, fill=palette["fill"], border=palette["border"], radius=20)
+                art_rect = pygame.Rect(preview_rect.x + 18, preview_rect.y + 18, 106, 106)
+                pygame.draw.rect(surface, palette["art_fill"], art_rect, border_radius=18)
+                art = relic_assets.get_relic_art(claimed["relic_id"], art_rect.inflate(-12, -12).size)
+                if art is not None:
+                    art_dest = art.get_rect(center=art_rect.center)
+                    surface.blit(art, art_dest.topleft)
+                else:
+                    self._draw_text(
+                        surface,
+                        "Relic",
+                        (art_rect.x + 22, art_rect.y + 42),
+                        self._tiny_font,
+                        width=art_rect.width - 28,
+                        color=palette["accent"],
+                    )
+                self._draw_text(surface, claimed["relic"]["name"], (preview_rect.x + 142, preview_rect.y + 22), self._small_font, width=260, color=(248, 248, 255))
+                self._draw_chip(
+                    surface,
+                    pygame.Rect(preview_rect.x + 142, preview_rect.y + 58, 96, 26),
+                    str(claimed["relic"].get("rarity", "common")).title(),
+                    palette["pill_fill"],
+                    palette["accent"],
+                    self._micro_font,
+                )
+                self._draw_text(
+                    surface,
+                    claimed["relic"].get("description", "No description."),
+                    (preview_rect.x + 142, preview_rect.y + 90),
+                    self._tiny_font,
+                    width=270,
+                    color=(208, 220, 236),
+                )
+                return
 
         badge_rect = pygame.Rect(panel_rect.x + 36, panel_rect.y + 110, 210, 34)
         self._draw_chip(surface, badge_rect, "Reward resolved", (20, 44, 38), (132, 238, 184), self._tiny_font)
@@ -499,6 +800,8 @@ class RewardUI:
     def _option_entries(self, section: dict[str, Any], panel_rect: pygame.Rect, *, role: str) -> list[dict[str, Any]]:
         if section["type"] == "card_offer":
             return self._card_option_entries(section, panel_rect, role=role)
+        if section["type"] == "relic_offer":
+            return self._relic_option_entries(section, panel_rect, role=role)
         return self._purge_option_entries(section, panel_rect, role=role)
 
     def _card_option_entries(self, section: dict[str, Any], panel_rect: pygame.Rect, *, role: str) -> list[dict[str, Any]]:
@@ -568,6 +871,115 @@ class RewardUI:
             )
         return entries
 
+    def _relic_option_entries(self, section: dict[str, Any], panel_rect: pygame.Rect, *, role: str) -> list[dict[str, Any]]:
+        if role != "hero":
+            return []
+
+        stage_rect = pygame.Rect(panel_rect.x + 34, panel_rect.y + 86, panel_rect.width - 68, panel_rect.height - 118)
+        tile_gap = 20
+        count = max(1, len(section["options"]))
+        tile_width = min(280, int((stage_rect.width - (tile_gap * (count - 1))) / count))
+        tile_height = min(stage_rect.height - 16, 222)
+        total_width = (tile_width * count) + (tile_gap * (count - 1))
+        start_x = stage_rect.x + max(8, (stage_rect.width - total_width) // 2)
+        start_y = stage_rect.y + max(8, (stage_rect.height - tile_height) // 2)
+
+        entries = []
+        for index, option in enumerate(section["options"]):
+            entries.append(
+                {
+                    "action_id": f"option:{section['id']}:{option['option_id']}",
+                    "option_id": option["option_id"],
+                    "kind": "relic",
+                    "relic_id": option["relic_id"],
+                    "relic": option["relic"],
+                    "rect": (start_x + (index * (tile_width + tile_gap)), start_y, tile_width, tile_height),
+                    "shortcut": index + 1 if index < 9 else None,
+                }
+            )
+        return entries
+
+    def _reward_title(self, encounter_type: str | None) -> str:
+        if encounter_type == "boss":
+            return "Boss Reward"
+        if encounter_type == "elite":
+            return "Elite Reward"
+        return "Combat Reward"
+
+    def _reward_subtitle(
+        self,
+        encounter_type: str | None,
+        active_section: dict[str, Any] | None,
+        can_continue: bool,
+        credits_granted: int,
+    ) -> str:
+        if can_continue:
+            return "Resolve the route when you are ready."
+        if active_section is None:
+            return f"+{credits_granted} credits secured."
+        if active_section["type"] == "relic_offer":
+            return "Choose the relic that best reinforces this run."
+        if active_section["type"] == "card_offer":
+            if encounter_type == "boss":
+                return "Choose the card that best prepares the next map."
+            return "Pick 1 of 3 and move on."
+        return "Clean the deck if you want the trim, or skip and keep the build as-is."
+
+    def _draw_relic_option_clean(
+        self,
+        surface: Any,
+        rect: pygame.Rect,
+        option: dict[str, Any],
+        selected: bool,
+        hovered: bool,
+        pressed: bool,
+    ) -> None:
+        palette = self._relic_palette(option["relic"])
+        accent = palette["accent"] if selected or hovered else palette["border"]
+        fill = palette["fill_selected"] if selected else palette["fill_hover"] if hovered else palette["fill"]
+        if pressed:
+            fill = palette["pill_fill"]
+            accent = palette["accent"]
+        draw_panel(
+            surface,
+            rect,
+            accent=accent,
+            fill=fill,
+            radius=RADIUS_MD,
+            border_width=2 if selected or hovered else 1,
+            shadow_alpha=0,
+        )
+        if option["shortcut"] is not None:
+            chip_rect = pygame.Rect(rect.right - 36, rect.y + 12, 24, 24)
+            draw_chip(surface, chip_rect, label=str(option["shortcut"]), font=self._micro_font, accent=accent, fill=COLOR_PANEL_ELEVATED)
+
+        icon_rect = pygame.Rect(rect.x + 18, rect.y + 18, 56, 56)
+        pygame.draw.rect(surface, palette["pill_fill"], icon_rect, border_radius=14)
+        art = relic_assets.get_relic_art(option["relic_id"], icon_rect.inflate(-14, -14).size)
+        if art is not None:
+            art_dest = art.get_rect(center=icon_rect.center)
+            surface.blit(art, art_dest.topleft)
+        else:
+            self._draw_text(surface, option["relic"]["name"][:1], (icon_rect.x + 20, icon_rect.y + 12), self._small_font, color=(18, 24, 36))
+        self._draw_text(surface, option["relic"]["name"], (rect.x + 92, rect.y + 20), self._small_font, width=rect.width - 110, color=COLOR_TEXT)
+        rarity_rect = pygame.Rect(rect.x + 92, rect.y + 52, 100, 24)
+        draw_chip(
+            surface,
+            rarity_rect,
+            label=str(option["relic"].get("rarity", "common")).title(),
+            font=self._micro_font,
+            accent=accent,
+            fill=COLOR_PANEL,
+        )
+        self._draw_text(
+            surface,
+            option["relic"].get("description", "No description."),
+            (rect.x + 18, rect.y + 92),
+            self._tiny_font,
+            width=rect.width - 36,
+            color=COLOR_MUTED,
+        )
+
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "continue":
             if not layout["can_continue"]:
@@ -588,10 +1000,9 @@ class RewardUI:
         return {"type": "notice", "message": "Unknown reward action.", "level": "error"}
 
     def _action_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:
-        for section in layout["sections"]:
-            for option in section["option_entries"]:
-                if point_in_rect(position, option["rect"]):
-                    return option["action_id"]
+        for option in layout["option_entries"]:
+            if point_in_rect(position, option["rect"]):
+                return option["action_id"]
         for button in layout["buttons"]:
             if button["enabled"] and point_in_rect(position, button["rect"]):
                 return button["action_id"]
@@ -613,6 +1024,8 @@ class RewardUI:
             return title, "Victory secured. Your rewards are ready and your route is open again."
         if active_section is None:
             return title, "Resolve the remaining reward steps to continue the run."
+        if active_section["type"] == "relic_offer":
+            return title, "Choose the relic that best reinforces this build."
         if active_section["type"] == "card_offer":
             if encounter_type == "boss":
                 return title, "Choose the reward that best prepares the next map."
@@ -642,11 +1055,98 @@ class RewardUI:
             return section["resolution"]["summary"]
         if section["resolved"]:
             return "Resolved."
+        if section["type"] == "relic_offer":
+            return "Choose one relic to claim this reward."
         if section["type"] == "card_offer":
             return "Resolve this reward to add a card or skip it."
         if section["options"]:
             return "Choose one card to remove after the primary reward, or skip it."
         return "Deck is too small to purge further."
+
+    def _draw_relic_option(
+        self,
+        surface: Any,
+        rect: pygame.Rect,
+        option: dict[str, Any],
+        selected: bool,
+        hovered: bool,
+        pressed: bool,
+        high_contrast: bool,
+    ) -> None:
+        palette = self._relic_palette(option["relic"])
+        fill = palette["fill_selected"] if selected else palette["fill_hover"] if hovered else palette["fill"]
+        border = palette["accent"] if selected or hovered else palette["border"]
+        if high_contrast and not selected and not hovered:
+            border = (232, 238, 246)
+        if pressed:
+            fill = palette["pill_fill"]
+            border = palette["accent"]
+        self._draw_panel(surface, rect, fill=fill, border=border, radius=22)
+
+        art_rect = pygame.Rect(rect.x + 16, rect.y + 16, rect.width - 32, 84)
+        pygame.draw.rect(surface, palette["art_fill"], art_rect, border_radius=18)
+        art = relic_assets.get_relic_art(option["relic_id"], art_rect.inflate(-18, -18).size)
+        if art is not None:
+            art_dest = art.get_rect(center=art_rect.center)
+            surface.blit(art, art_dest.topleft)
+        else:
+            self._draw_text(
+                surface,
+                "Relic",
+                (art_rect.x + 18, art_rect.y + 28),
+                self._tiny_font,
+                width=art_rect.width - 36,
+                color=palette["accent"],
+            )
+
+        if option["shortcut"] is not None:
+            shortcut_rect = pygame.Rect(rect.right - 34, rect.y + 12, 22, 22)
+            self._draw_chip(surface, shortcut_rect, str(option["shortcut"]), (16, 24, 38), palette["accent"], self._micro_font)
+
+        self._draw_text(surface, option["relic"]["name"], (rect.x + 18, rect.y + 110), self._tiny_font, width=rect.width - 36, color=(246, 248, 255))
+        rarity_rect = pygame.Rect(rect.x + 18, rect.y + 138, 94, 24)
+        self._draw_chip(surface, rarity_rect, str(option["relic"].get("rarity", "common")).title(), palette["pill_fill"], palette["accent"], self._micro_font)
+        self._draw_text(
+            surface,
+            option["relic"].get("description", "No description."),
+            (rect.x + 18, rect.y + 170),
+            self._micro_font,
+            width=rect.width - 36,
+            color=(204, 216, 234),
+        )
+
+    def _relic_palette(self, relic: dict[str, Any]) -> dict[str, tuple[int, int, int]]:
+        rarity = str(relic.get("rarity", "common")).lower()
+        palettes = {
+            "common": {
+                "fill": (24, 30, 44),
+                "fill_hover": (30, 38, 56),
+                "fill_selected": (40, 52, 76),
+                "border": (108, 132, 168),
+                "accent": (148, 188, 255),
+                "pill_fill": (22, 44, 74),
+                "art_fill": (18, 24, 38),
+            },
+            "uncommon": {
+                "fill": (20, 38, 34),
+                "fill_hover": (26, 50, 42),
+                "fill_selected": (34, 68, 54),
+                "border": (102, 170, 146),
+                "accent": (144, 230, 188),
+                "pill_fill": (20, 58, 48),
+                "art_fill": (16, 32, 28),
+            },
+            "rare": {
+                "fill": (38, 26, 18),
+                "fill_hover": (54, 34, 22),
+                "fill_selected": (76, 48, 24),
+                "border": (210, 160, 98),
+                "accent": (255, 214, 118),
+                "pill_fill": (72, 42, 16),
+                "art_fill": (34, 22, 16),
+            },
+        }
+        return palettes.get(rarity, palettes["common"])
 
     def _selected_option(self, section: dict[str, Any]) -> dict[str, Any] | None:
         option_id = section.get("selected_option_id")

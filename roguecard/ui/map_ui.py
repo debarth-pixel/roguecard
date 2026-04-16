@@ -10,10 +10,25 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 
 from config import MAP_NODE_HIT_RADIUS, MAP_NODE_RADIUS, MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text
+from ui.ui_system import (
+    COLOR_CYAN,
+    COLOR_GOLD,
+    COLOR_LINE,
+    COLOR_LINE_SOFT,
+    COLOR_MUTED,
+    COLOR_PANEL,
+    COLOR_PANEL_ELEVATED,
+    COLOR_TEXT,
+    RADIUS_LG,
+    RADIUS_MD,
+    draw_background_stage,
+    draw_hint_row,
+    draw_panel,
+)
 
-MAP_PANEL_BOUNDS = (104, 84, 1036, 620)
-MAP_HEADER_HEIGHT = 94
-MAP_VIEWPORT_PADDING = 26
+MAP_PANEL_BOUNDS = (36, 84, 1208, 608)
+MAP_HEADER_HEIGHT = 72
+MAP_VIEWPORT_PADDING = 12
 MAP_SCROLL_STEP = 120
 
 
@@ -182,34 +197,26 @@ class MapUI:
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         map_bounds = pygame.Rect(*layout["map_bounds"])
         viewport_rect = pygame.Rect(*layout["viewport_rect"])
-        header_rect = pygame.Rect(map_bounds.x + 18, map_bounds.y + 16, map_bounds.width - 36, MAP_HEADER_HEIGHT - 24)
+        header_rect = pygame.Rect(map_bounds.x + 12, map_bounds.y + 10, map_bounds.width - 24, MAP_HEADER_HEIGHT - 14)
+        info_rect = pygame.Rect(map_bounds.x + 16, map_bounds.bottom - 58, map_bounds.width - 32, 40)
 
-        surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=148)
-        map_panel = pygame.Surface(map_bounds.size, pygame.SRCALPHA)
-        map_panel.fill((12, 18, 28, 132))
-        surface.blit(map_panel, map_bounds.topleft)
-        pygame.draw.rect(surface, (104, 118, 146), map_bounds, 2, border_radius=28)
-        pygame.draw.rect(surface, (10, 16, 26, 220), header_rect, border_radius=18)
-        pygame.draw.rect(surface, (92, 198, 240), header_rect, 2, border_radius=18)
+        draw_background_stage(surface, background, veil_alpha=128, top_band_height=66, bottom_band_height=84, line_step=54, line_alpha=8)
+        draw_panel(surface, map_bounds, accent=COLOR_LINE, fill=(8, 12, 20), radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        draw_panel(surface, header_rect, accent=COLOR_LINE_SOFT, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
 
-        self._draw_text(surface, layout["map_name"], (header_rect.x + 20, header_rect.y + 14), self._font)
-        subtitle = f"Map {layout['map_index']} | {self._progress_label(layout, map_state)}"
+        self._draw_text(surface, layout["map_name"], (header_rect.x + 18, header_rect.y + 10), self._font)
+        subtitle = f"Map {layout['map_index']}  |  {self._progress_label(layout, map_state)}"
         if layout["branch_faction"]:
-            subtitle = f"{subtitle} | {str(layout['branch_faction']).title()} route"
-        self._draw_text(surface, subtitle, (header_rect.x + 20, header_rect.y + 48), self._small_font, width=620)
-        self._draw_text(
-            surface,
-            f"Scroll {int(layout['scroll_offset'])}/{int(layout['max_scroll'])}",
-            (header_rect.right - 168, header_rect.y + 18),
-            self._tiny_font,
-            width=146,
-        )
-
-        viewport_surface = pygame.Surface(viewport_rect.size, pygame.SRCALPHA)
-        viewport_surface.fill((8, 12, 20, 74))
-        surface.blit(viewport_surface, viewport_rect.topleft)
-        pygame.draw.rect(surface, (56, 70, 94), viewport_rect, 1, border_radius=22)
+            subtitle = f"{subtitle}  |  {str(layout['branch_faction']).title()} route"
+        self._draw_text(surface, subtitle, (header_rect.x + 18, header_rect.y + 38), self._tiny_font, width=680)
+        if layout["max_scroll"] > 0:
+            self._draw_text(
+                surface,
+                f"Scroll {int(layout['scroll_offset'])}/{int(layout['max_scroll'])}",
+                (header_rect.right - 156, header_rect.y + 18),
+                self._tiny_font,
+                width=140,
+            )
 
         clip_previous = surface.get_clip()
         surface.set_clip(viewport_rect)
@@ -221,20 +228,20 @@ class MapUI:
             for next_node_id in node["next_nodes"]:
                 if next_node_id not in positions:
                     continue
-                line_color = (108, 114, 128)
-                width = 3
+                line_color = (78, 88, 106)
+                width = 2
                 if next_node_id in available_set:
-                    line_color = (255, 214, 110)
+                    line_color = COLOR_GOLD
                     width = 4
                 elif node_id == selected_node_id or next_node_id == selected_node_id:
-                    line_color = (240, 245, 255)
+                    line_color = (224, 236, 250)
                     width = 4
                 elif node_id in map_state.get("visited_node_ids", []) or next_node_id in map_state.get("visited_node_ids", []):
-                    line_color = (120, 244, 170)
+                    line_color = (108, 214, 170)
                     width = 3
                 elif node_id == focus_node_id or next_node_id == focus_node_id:
-                    line_color = (190, 205, 230) if high_contrast else (146, 164, 194)
-                    width = 4
+                    line_color = (190, 205, 230) if high_contrast else (132, 156, 190)
+                    width = 3
                 pygame.draw.line(surface, line_color, start, positions[next_node_id], width)
 
         for node_id, node in nodes.items():
@@ -254,20 +261,18 @@ class MapUI:
                 high_contrast=high_contrast,
             )
 
-        if focus_node_id is not None and layout["focused_node_label"] and focus_node_id in positions:
-            label = layout["focused_node_label"]
-            label_width = max(108, self._small_font.size(label)[0] + 22)
-            center = positions[focus_node_id]
-            pill_y = max(viewport_rect.y + 10, center[1] - 94)
-            pill_rect = pygame.Rect(center[0] - (label_width // 2), pill_y, label_width, 26)
-            pygame.draw.rect(surface, (14, 20, 32), pill_rect, border_radius=13)
-            pygame.draw.rect(surface, (255, 214, 110), pill_rect, 2, border_radius=13)
-            self._draw_text(surface, label, (pill_rect.x + 12, pill_rect.y + 6), self._tiny_font, width=pill_rect.width - 24)
-
         surface.set_clip(clip_previous)
 
         self._draw_scrollbar(surface, viewport_rect, layout["scroll_offset"], layout["max_scroll"])
-        self._draw_text(surface, layout["status_message"], (map_bounds.x + 28, map_bounds.bottom - 36), self._tiny_font, width=map_bounds.width - 56)
+        draw_hint_row(
+            surface,
+            info_rect,
+            left_text=self._focused_node_detail(layout, map_state),
+            right_text="1-9 select  |  Enter confirm  |  Wheel scroll",
+            font=self._tiny_font,
+            accent=COLOR_LINE_SOFT,
+            fill=COLOR_PANEL_ELEVATED,
+        )
 
     def _draw_node(
         self,
@@ -290,18 +295,18 @@ class MapUI:
         }[status]
         fill_color = {
             "selected": (255, 255, 255, 36),
-            "available": (255, 226, 112, 30),
+            "available": (255, 226, 112, 34),
             "visited": (120, 244, 170, 26),
             "inactive": (70, 74, 88, 36) if high_contrast else (50, 54, 68, 20),
         }[status]
 
-        pulse_radius = radius + (12 if is_hovered else 8)
+        pulse_radius = radius + (8 if is_hovered else 4)
         if is_focused:
-            pulse_radius += 4
-        pygame.draw.circle(surface, outline_color, center, pulse_radius, 4)
+            pulse_radius += 6
+        pygame.draw.circle(surface, outline_color, center, pulse_radius, 3)
 
         glow = pygame.Surface((radius * 3, radius * 3), pygame.SRCALPHA)
-        pygame.draw.circle(glow, fill_color, (glow.get_width() // 2, glow.get_height() // 2), radius + 16)
+        pygame.draw.circle(glow, fill_color, (glow.get_width() // 2, glow.get_height() // 2), radius + 10)
         surface.blit(glow, (center[0] - glow.get_width() // 2, center[1] - glow.get_height() // 2))
 
         image_path = resolve_asset_path("ui", f"node_{node['node_type']}.png")
@@ -316,16 +321,12 @@ class MapUI:
 
         if is_pressed:
             pygame.draw.circle(surface, (255, 255, 255), center, radius + 2, 2)
-        if status == "selected":
-            you_label = self._tiny_font.render("YOU", True, (255, 255, 255))
-            you_rect = you_label.get_rect(center=(center[0], center[1] - 70))
-            surface.blit(you_label, you_rect)
 
         if shortcut_label is not None:
-            badge_rect = pygame.Rect(center[0] + 26, center[1] - 56, 24, 24)
+            badge_rect = pygame.Rect(center[0] + 24, center[1] - 52, 22, 22)
             pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=12)
-            pygame.draw.rect(surface, (255, 226, 112), badge_rect, 2, border_radius=12)
-            shortcut = self._tiny_font.render(str(shortcut_label), True, (255, 226, 112))
+            pygame.draw.rect(surface, COLOR_GOLD, badge_rect, 2, border_radius=12)
+            shortcut = self._tiny_font.render(str(shortcut_label), True, COLOR_GOLD)
             shortcut_rect = shortcut.get_rect(center=badge_rect.center)
             surface.blit(shortcut, shortcut_rect)
 
@@ -394,7 +395,7 @@ class MapUI:
             bounds[0] + MAP_VIEWPORT_PADDING,
             bounds[1] + MAP_HEADER_HEIGHT,
             bounds[2] - (MAP_VIEWPORT_PADDING * 2),
-            bounds[3] - MAP_HEADER_HEIGHT - 54,
+            bounds[3] - MAP_HEADER_HEIGHT - 70,
         )
 
     def _ensure_focus_visible(self, node: dict[str, Any], viewport_height: int, max_scroll: int) -> None:
@@ -469,6 +470,19 @@ class MapUI:
         self._font = pygame.font.SysFont("consolas", max(20, int(26 * scale)))
         self._small_font = pygame.font.SysFont("consolas", max(15, int(18 * scale)))
         self._tiny_font = pygame.font.SysFont("consolas", max(12, int(14 * scale)))
+
+    def _focused_node_detail(self, layout: dict[str, Any], map_state: dict[str, Any]) -> str:
+        focused_node_id = layout.get("focused_node_id")
+        nodes = map_state.get("nodes", {})
+        if focused_node_id is not None and focused_node_id in nodes:
+            node = nodes[focused_node_id]
+            detail = f"{node['node_type'].title()} node  |  Floor {node['route_floor']}"
+            if focused_node_id in map_state.get("available_node_ids", []):
+                detail = f"Next up: {detail}"
+            elif focused_node_id == map_state.get("selected_node_id"):
+                detail = f"Current position: {detail}"
+            return detail
+        return layout.get("status_message", "Select the next node.")
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         image = self._load_image(path)

@@ -5,22 +5,37 @@
     "faction_id": "legacy",
     "role": "basic",
     "tier": "normal",
-    "tags": ["legacy"],
+    "tags": [
+      "legacy"
+    ],
     "max_hp": 40,
     "bark_profile_id": null,
-    "intent_pattern": ["jab", "brace"],
+    "intent_pattern": [
+      "jab",
+      "brace"
+    ],
     "moves": [
       {
         "id": "jab",
         "intent_text": "Attack for 6",
         "target": "player",
-        "effects": [{"type": "enemy_damage", "value": 6}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 6
+          }
+        ]
       },
       {
         "id": "brace",
         "intent_text": "Gain 5 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 5}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 5
+          }
+        ]
       }
     ]
   },
@@ -30,22 +45,38 @@
     "faction_id": "legacy",
     "role": "elite",
     "tier": "elite",
-    "tags": ["legacy"],
+    "tags": [
+      "legacy"
+    ],
     "max_hp": 65,
     "bark_profile_id": null,
-    "intent_pattern": ["press", "press", "brace"],
+    "intent_pattern": [
+      "press",
+      "press",
+      "brace"
+    ],
     "moves": [
       {
         "id": "press",
         "intent_text": "Attack for 8",
         "target": "player",
-        "effects": [{"type": "enemy_damage", "value": 8}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 8
+          }
+        ]
       },
       {
         "id": "brace",
         "intent_text": "Gain 7 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 7}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 7
+          }
+        ]
       }
     ]
   },
@@ -55,28 +86,50 @@
     "faction_id": "legacy",
     "role": "boss",
     "tier": "boss",
-    "tags": ["legacy"],
+    "tags": [
+      "legacy"
+    ],
     "max_hp": 110,
     "bark_profile_id": null,
-    "intent_pattern": ["smash", "brace", "crush", "smash"],
+    "intent_pattern": [
+      "smash",
+      "brace",
+      "crush",
+      "smash"
+    ],
     "moves": [
       {
         "id": "smash",
         "intent_text": "Attack for 12",
         "target": "player",
-        "effects": [{"type": "enemy_damage", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "brace",
         "intent_text": "Gain 10 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 10}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 10
+          }
+        ]
       },
       {
         "id": "crush",
         "intent_text": "Attack for 14",
         "target": "player",
-        "effects": [{"type": "enemy_damage", "value": 14}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 14
+          }
+        ]
       }
     ]
   },
@@ -86,17 +139,28 @@
     "faction_id": "helix_ward",
     "role": "fodder",
     "tier": "normal",
-    "tags": ["summon", "toxic"],
+    "tags": [
+      "summon",
+      "toxic"
+    ],
     "max_hp": 18,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["nibble", "seep"],
+    "intent_pattern": [
+      "nibble",
+      "seep"
+    ],
     "moves": [
       {
         "id": "nibble",
         "intent_text": "Nibble for 4",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 4}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          }
+        ]
       },
       {
         "id": "seep",
@@ -104,13 +168,23 @@
         "target": "player",
         "bark_trigger": "infect",
         "effects": [
-          {"type": "enemy_damage", "value": 2},
-          {"type": "enemy_apply_infect", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 2
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 1
+          }
         ]
       }
     ],
     "death_effects": [
-      {"type": "enemy_apply_infect", "target": "player", "value": 1}
+      {
+        "type": "enemy_apply_infect",
+        "target": "player",
+        "value": 1
+      }
     ]
   },
   {
@@ -119,17 +193,31 @@
     "faction_id": "helix_ward",
     "role": "support",
     "tier": "normal",
-    "tags": ["heal", "buff"],
+    "tags": [
+      "heal",
+      "buff"
+    ],
     "max_hp": 30,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["stabilize", "tox_shot", "catalyze"],
+    "intent_pattern": [
+      "stabilize",
+      "tox_shot",
+      "catalyze"
+    ],
     "moves": [
       {
         "id": "stabilize",
         "intent_text": "Heal an ally for 7",
         "target": "most_damaged_ally",
-        "conditions": {"any_ally_missing_hp": true},
-        "effects": [{"type": "enemy_heal_ally", "value": 7}]
+        "conditions": {
+          "any_ally_missing_hp": true
+        },
+        "effects": [
+          {
+            "type": "enemy_heal_ally",
+            "value": 7
+          }
+        ]
       },
       {
         "id": "tox_shot",
@@ -137,15 +225,26 @@
         "target": "player",
         "bark_trigger": "infect",
         "effects": [
-          {"type": "enemy_damage", "value": 4},
-          {"type": "enemy_apply_infect", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 4
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 1
+          }
         ]
       },
       {
         "id": "catalyze",
         "intent_text": "Gain 1 Strength",
         "target": "self",
-        "effects": [{"type": "enemy_gain_strength", "value": 1}]
+        "effects": [
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
+        ]
       }
     ]
   },
@@ -155,25 +254,48 @@
     "faction_id": "helix_ward",
     "role": "skirmisher",
     "tier": "normal",
-    "tags": ["fast", "infect"],
+    "tags": [
+      "fast",
+      "infect"
+    ],
     "max_hp": 24,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["slice", "infected_lunge", "slice"],
+    "intent_pattern": [
+      "slice",
+      "infected_lunge",
+      "slice"
+    ],
     "moves": [
       {
         "id": "slice",
         "intent_text": "Slice twice for 3",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 3, "count": 2}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 3,
+            "count": 2
+          }
+        ]
       },
       {
         "id": "infected_lunge",
         "intent_text": "Lunge for 7",
         "target": "player",
-        "conditions": {"player_status_at_least": {"status": "infect", "value": 1}},
+        "conditions": {
+          "player_status_at_least": {
+            "status": "infect",
+            "value": 1
+          }
+        },
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 7}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 7
+          }
+        ]
       }
     ]
   },
@@ -183,19 +305,35 @@
     "faction_id": "helix_ward",
     "role": "summoner",
     "tier": "normal",
-    "tags": ["spawn", "harvest"],
+    "tags": [
+      "spawn",
+      "harvest"
+    ],
     "max_hp": 34,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["brood_release", "sludge_whip", "brood_release", "siphon"],
+    "intent_pattern": [
+      "brood_release",
+      "sludge_whip",
+      "brood_release",
+      "siphon"
+    ],
     "moves": [
       {
         "id": "brood_release",
         "intent_text": "Summon a Sludge Whelp",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "sludge_whelp", "count": 1}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sludge_whelp",
+            "count": 1
+          }
+        ]
       },
       {
         "id": "sludge_whip",
@@ -203,20 +341,39 @@
         "target": "player",
         "bark_trigger": "infect",
         "effects": [
-          {"type": "enemy_damage", "value": 5},
-          {"type": "enemy_apply_infect", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 5
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 1
+          }
         ]
       },
       {
         "id": "siphon",
         "intent_text": "Heal 5",
         "target": "self",
-        "effects": [{"type": "enemy_heal_ally", "value": 5}]
+        "effects": [
+          {
+            "type": "enemy_heal_ally",
+            "value": 5
+          }
+        ]
       }
     ],
     "ally_death_effects": [
-      {"type": "enemy_heal_ally", "target": "self", "value": 4},
-      {"type": "enemy_gain_strength", "target": "self", "value": 1}
+      {
+        "type": "enemy_heal_ally",
+        "target": "self",
+        "value": 4
+      },
+      {
+        "type": "enemy_gain_strength",
+        "target": "self",
+        "value": 1
+      }
     ]
   },
   {
@@ -225,10 +382,16 @@
     "faction_id": "helix_ward",
     "role": "bruiser",
     "tier": "normal",
-    "tags": ["frontline", "mutate"],
+    "tags": [
+      "frontline",
+      "mutate"
+    ],
     "max_hp": 54,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["toxin_crash", "brace_tissue"],
+    "intent_pattern": [
+      "toxin_crash",
+      "brace_tissue"
+    ],
     "moves": [
       {
         "id": "toxin_crash",
@@ -236,15 +399,26 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 11},
-          {"type": "enemy_apply_infect", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 11
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 1
+          }
         ]
       },
       {
         "id": "brace_tissue",
         "intent_text": "Gain 8 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 8}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 8
+          }
+        ]
       },
       {
         "id": "mutant_rend",
@@ -252,8 +426,14 @@
         "target": "player",
         "bark_trigger": "infect",
         "effects": [
-          {"type": "enemy_damage", "value": 14},
-          {"type": "enemy_apply_infect", "value": 2}
+          {
+            "type": "enemy_damage",
+            "value": 14
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 2
+          }
         ]
       },
       {
@@ -261,8 +441,14 @@
         "intent_text": "Gain 10 Block and 1 Strength",
         "target": "self",
         "effects": [
-          {"type": "enemy_block", "value": 10},
-          {"type": "enemy_gain_strength", "value": 1}
+          {
+            "type": "enemy_block",
+            "value": 10
+          },
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
         ]
       }
     ],
@@ -270,7 +456,11 @@
       {
         "threshold_ratio": 0.5,
         "name": "mutated",
-        "intent_pattern": ["mutant_rend", "mutant_guard", "mutant_rend"],
+        "intent_pattern": [
+          "mutant_rend",
+          "mutant_guard",
+          "mutant_rend"
+        ],
         "bark_trigger": "phase_change"
       }
     ]
@@ -281,17 +471,32 @@
     "faction_id": "helix_ward",
     "role": "drain_support",
     "tier": "elite",
-    "tags": ["siphon", "cleanse"],
+    "tags": [
+      "siphon",
+      "cleanse"
+    ],
     "max_hp": 42,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["transfusion", "siphon", "purge_serum", "siphon"],
+    "intent_pattern": [
+      "transfusion",
+      "siphon",
+      "purge_serum",
+      "siphon"
+    ],
     "moves": [
       {
         "id": "transfusion",
         "intent_text": "Heal an ally for 8",
         "target": "most_damaged_ally",
-        "conditions": {"any_ally_missing_hp": true},
-        "effects": [{"type": "enemy_heal_ally", "value": 8}]
+        "conditions": {
+          "any_ally_missing_hp": true
+        },
+        "effects": [
+          {
+            "type": "enemy_heal_ally",
+            "value": 8
+          }
+        ]
       },
       {
         "id": "siphon",
@@ -299,16 +504,30 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 6},
-          {"type": "enemy_heal_ally", "target": "self", "value": 4}
+          {
+            "type": "enemy_damage",
+            "value": 6
+          },
+          {
+            "type": "enemy_heal_ally",
+            "target": "self",
+            "value": 4
+          }
         ]
       },
       {
         "id": "purge_serum",
         "intent_text": "Cleanse an ally",
         "target": "most_debuffed_ally",
-        "conditions": {"any_ally_debuffed": true},
-        "effects": [{"type": "enemy_cleanse_ally", "value": 2}]
+        "conditions": {
+          "any_ally_debuffed": true
+        },
+        "effects": [
+          {
+            "type": "enemy_cleanse_ally",
+            "value": 2
+          }
+        ]
       }
     ]
   },
@@ -318,32 +537,57 @@
     "faction_id": "helix_ward",
     "role": "elite",
     "tier": "elite",
-    "tags": ["mutate", "horror"],
+    "tags": [
+      "mutate",
+      "horror"
+    ],
     "max_hp": 68,
     "bark_profile_id": "helix_ward",
-    "intent_pattern": ["hushed_advance", "graft_maul", "spill_residue"],
+    "intent_pattern": [
+      "hushed_advance",
+      "graft_maul",
+      "spill_residue"
+    ],
     "moves": [
       {
         "id": "hushed_advance",
         "intent_text": "Gain 8 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 8}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 8
+          }
+        ]
       },
       {
         "id": "graft_maul",
         "intent_text": "Maul for 12",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "spill_residue",
         "intent_text": "Summon a Sludge Whelp",
         "target": "self",
         "cooldown": 2,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "sludge_whelp", "count": 1}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sludge_whelp",
+            "count": 1
+          }
+        ]
       },
       {
         "id": "mutant_bloom",
@@ -351,9 +595,20 @@
         "target": "player",
         "bark_trigger": "heal",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_heal_ally", "target": "self", "value": 10},
-          {"type": "enemy_gain_strength", "target": "self", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_heal_ally",
+            "target": "self",
+            "value": 10
+          },
+          {
+            "type": "enemy_gain_strength",
+            "target": "self",
+            "value": 1
+          }
         ]
       }
     ],
@@ -361,12 +616,21 @@
       {
         "threshold_ratio": 0.5,
         "name": "awakened",
-        "intent_pattern": ["mutant_bloom", "graft_maul", "spill_residue", "mutant_bloom"],
+        "intent_pattern": [
+          "mutant_bloom",
+          "graft_maul",
+          "spill_residue",
+          "mutant_bloom"
+        ],
         "bark_trigger": "phase_change"
       }
     ],
     "ally_death_effects": [
-      {"type": "enemy_gain_strength", "target": "self", "value": 1}
+      {
+        "type": "enemy_gain_strength",
+        "target": "self",
+        "value": 1
+      }
     ]
   },
   {
@@ -375,19 +639,36 @@
     "faction_id": "helix_ward",
     "role": "boss",
     "tier": "boss",
-    "tags": ["summoner", "mutate", "harvest"],
+    "tags": [
+      "summoner",
+      "mutate",
+      "harvest"
+    ],
     "max_hp": 140,
     "bark_profile_id": "miremother_vexa",
-    "intent_pattern": ["field_trial", "serum_lance", "culture_harvest", "rupture_command"],
+    "intent_pattern": [
+      "field_trial",
+      "serum_lance",
+      "culture_harvest",
+      "rupture_command"
+    ],
     "moves": [
       {
         "id": "field_trial",
         "intent_text": "Summon two Sludge Whelps",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "sludge_whelp", "count": 2}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sludge_whelp",
+            "count": 2
+          }
+        ]
       },
       {
         "id": "serum_lance",
@@ -395,29 +676,52 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_apply_infect", "value": 2}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 2
+          }
         ]
       },
       {
         "id": "culture_harvest",
         "intent_text": "Heal 10 and gain 1 Strength",
         "target": "self",
-        "conditions": {"any_other_ally_present": true},
+        "conditions": {
+          "any_other_ally_present": true
+        },
         "effects": [
-          {"type": "enemy_heal_ally", "value": 10},
-          {"type": "enemy_gain_strength", "value": 1}
+          {
+            "type": "enemy_heal_ally",
+            "value": 10
+          },
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
         ]
       },
       {
         "id": "rupture_command",
         "intent_text": "Rupture for 8 and summon one Whelp",
         "target": "player",
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
         "effects": [
-          {"type": "enemy_damage", "value": 8},
-          {"type": "enemy_summon", "enemy_id": "sludge_whelp", "count": 1}
+          {
+            "type": "enemy_damage",
+            "value": 8
+          },
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sludge_whelp",
+            "count": 1
+          }
         ]
       },
       {
@@ -426,9 +730,19 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 14},
-          {"type": "enemy_apply_infect", "value": 2},
-          {"type": "enemy_summon", "enemy_id": "sludge_whelp", "count": 1}
+          {
+            "type": "enemy_damage",
+            "value": 14
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 2
+          },
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sludge_whelp",
+            "count": 1
+          }
         ]
       }
     ],
@@ -436,13 +750,26 @@
       {
         "threshold_ratio": 0.45,
         "name": "unstable_design",
-        "intent_pattern": ["stress_bloom", "field_trial", "culture_harvest", "stress_bloom"],
+        "intent_pattern": [
+          "stress_bloom",
+          "field_trial",
+          "culture_harvest",
+          "stress_bloom"
+        ],
         "bark_trigger": "phase_change"
       }
     ],
     "ally_death_effects": [
-      {"type": "enemy_heal_ally", "target": "self", "value": 4},
-      {"type": "enemy_gain_strength", "target": "self", "value": 1}
+      {
+        "type": "enemy_heal_ally",
+        "target": "self",
+        "value": 4
+      },
+      {
+        "type": "enemy_gain_strength",
+        "target": "self",
+        "value": 1
+      }
     ]
   },
   {
@@ -451,32 +778,58 @@
     "faction_id": "helix_ward",
     "role": "boss",
     "tier": "boss",
-    "tags": ["regenerate", "horror", "mutate"],
+    "tags": [
+      "regenerate",
+      "horror",
+      "mutate"
+    ],
     "max_hp": 155,
     "bark_profile_id": "graft_saint",
-    "intent_pattern": ["graft_wall", "devotional_crush", "sealing_flesh", "toxic_spasm"],
+    "intent_pattern": [
+      "graft_wall",
+      "devotional_crush",
+      "sealing_flesh",
+      "toxic_spasm"
+    ],
     "moves": [
       {
         "id": "graft_wall",
         "intent_text": "Gain 12 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "devotional_crush",
         "intent_text": "Crush for 14",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 14}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 14
+          }
+        ]
       },
       {
         "id": "sealing_flesh",
         "intent_text": "Regenerate 12",
         "target": "self",
         "cooldown": 2,
-        "conditions": {"self_hp_below_ratio": 0.9},
+        "conditions": {
+          "self_hp_below_ratio": 0.9
+        },
         "bark_trigger": "heal",
-        "effects": [{"type": "enemy_heal_ally", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_heal_ally",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "toxic_spasm",
@@ -484,8 +837,14 @@
         "target": "player",
         "bark_trigger": "infect",
         "effects": [
-          {"type": "enemy_damage", "value": 9},
-          {"type": "enemy_apply_burn", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 9
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 1
+          }
         ]
       },
       {
@@ -494,8 +853,15 @@
         "target": "player",
         "bark_trigger": "phase_change",
         "effects": [
-          {"type": "enemy_damage", "value": 18},
-          {"type": "enemy_gain_strength", "target": "self", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 18
+          },
+          {
+            "type": "enemy_gain_strength",
+            "target": "self",
+            "value": 1
+          }
         ]
       }
     ],
@@ -503,7 +869,12 @@
       {
         "threshold_ratio": 0.5,
         "name": "martyr_form",
-        "intent_pattern": ["violent_surge", "devotional_crush", "sealing_flesh", "toxic_spasm"],
+        "intent_pattern": [
+          "violent_surge",
+          "devotional_crush",
+          "sealing_flesh",
+          "toxic_spasm"
+        ],
         "bark_trigger": "phase_change"
       }
     ]
@@ -514,10 +885,16 @@
     "faction_id": "blackwire_directorate",
     "role": "utility",
     "tier": "normal",
-    "tags": ["mark", "summon"],
+    "tags": [
+      "mark",
+      "summon"
+    ],
     "max_hp": 22,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["tag_ping", "pulse"],
+    "intent_pattern": [
+      "tag_ping",
+      "pulse"
+    ],
     "moves": [
       {
         "id": "tag_ping",
@@ -525,8 +902,14 @@
         "target": "player",
         "bark_trigger": "mark",
         "effects": [
-          {"type": "enemy_damage", "value": 3},
-          {"type": "enemy_apply_marked", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 3
+          },
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
         ]
       },
       {
@@ -534,7 +917,12 @@
         "intent_text": "Pulse for 4",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 4}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          }
+        ]
       }
     ]
   },
@@ -544,16 +932,28 @@
     "faction_id": "blackwire_directorate",
     "role": "frontline",
     "tier": "normal",
-    "tags": ["shield", "guard"],
+    "tags": [
+      "shield",
+      "guard"
+    ],
     "max_hp": 46,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["shield_wall", "bash", "shield_wall"],
+    "intent_pattern": [
+      "shield_wall",
+      "bash",
+      "shield_wall"
+    ],
     "moves": [
       {
         "id": "shield_wall",
         "intent_text": "Gain 10 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 10}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 10
+          }
+        ]
       },
       {
         "id": "bash",
@@ -561,8 +961,14 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 7},
-          {"type": "enemy_apply_suppressed", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 7
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
         ]
       }
     ]
@@ -573,10 +979,17 @@
     "faction_id": "blackwire_directorate",
     "role": "specialist",
     "tier": "normal",
-    "tags": ["buff_strip", "suppress"],
+    "tags": [
+      "buff_strip",
+      "suppress"
+    ],
     "max_hp": 34,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["null_strike", "pressure_hit", "null_strike"],
+    "intent_pattern": [
+      "null_strike",
+      "pressure_hit",
+      "null_strike"
+    ],
     "moves": [
       {
         "id": "null_strike",
@@ -584,8 +997,14 @@
         "target": "player",
         "bark_trigger": "buff_strip",
         "effects": [
-          {"type": "enemy_damage", "value": 6},
-          {"type": "enemy_strip_buff", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 6
+          },
+          {
+            "type": "enemy_strip_buff",
+            "value": 1
+          }
         ]
       },
       {
@@ -594,8 +1013,14 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 7},
-          {"type": "enemy_apply_suppressed", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 7
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
         ]
       }
     ]
@@ -606,17 +1031,29 @@
     "faction_id": "blackwire_directorate",
     "role": "controller",
     "tier": "normal",
-    "tags": ["mark", "amplify"],
+    "tags": [
+      "mark",
+      "amplify"
+    ],
     "max_hp": 28,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["tracking_lock", "signal_burst", "suppress_route"],
+    "intent_pattern": [
+      "tracking_lock",
+      "signal_burst",
+      "suppress_route"
+    ],
     "moves": [
       {
         "id": "tracking_lock",
         "intent_text": "Apply 2 Marked",
         "target": "player",
         "bark_trigger": "mark",
-        "effects": [{"type": "enemy_apply_marked", "value": 2}]
+        "effects": [
+          {
+            "type": "enemy_apply_marked",
+            "value": 2
+          }
+        ]
       },
       {
         "id": "signal_burst",
@@ -624,8 +1061,14 @@
         "target": "player",
         "bark_trigger": "mark",
         "effects": [
-          {"type": "enemy_damage", "value": 4},
-          {"type": "enemy_apply_marked", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 4
+          },
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
         ]
       },
       {
@@ -633,7 +1076,12 @@
         "intent_text": "Apply Suppressed 1",
         "target": "player",
         "bark_trigger": "mark",
-        "effects": [{"type": "enemy_apply_suppressed", "value": 1}]
+        "effects": [
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
+        ]
       }
     ]
   },
@@ -643,24 +1091,46 @@
     "faction_id": "blackwire_directorate",
     "role": "ranged",
     "tier": "elite",
-    "tags": ["telegraph", "burst"],
+    "tags": [
+      "telegraph",
+      "burst"
+    ],
     "max_hp": 38,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["aim", "execution_round", "tag_shot"],
+    "intent_pattern": [
+      "aim",
+      "execution_round",
+      "tag_shot"
+    ],
     "moves": [
       {
         "id": "aim",
         "intent_text": "Gain 6 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 6}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 6
+          }
+        ]
       },
       {
         "id": "execution_round",
         "intent_text": "Fire for 16",
         "target": "player",
-        "conditions": {"player_status_at_least": {"status": "marked", "value": 1}},
+        "conditions": {
+          "player_status_at_least": {
+            "status": "marked",
+            "value": 1
+          }
+        },
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 16}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 16
+          }
+        ]
       },
       {
         "id": "tag_shot",
@@ -668,8 +1138,14 @@
         "target": "player",
         "bark_trigger": "mark",
         "effects": [
-          {"type": "enemy_damage", "value": 9},
-          {"type": "enemy_apply_marked", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 9
+          },
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
         ]
       }
     ]
@@ -680,32 +1156,57 @@
     "faction_id": "blackwire_directorate",
     "role": "deploy_support",
     "tier": "normal",
-    "tags": ["summon", "turret"],
+    "tags": [
+      "summon",
+      "turret"
+    ],
     "max_hp": 33,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["deploy_drone", "service_pistol", "reinforce"],
+    "intent_pattern": [
+      "deploy_drone",
+      "service_pistol",
+      "reinforce"
+    ],
     "moves": [
       {
         "id": "deploy_drone",
         "intent_text": "Deploy a Sentry Node",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "deploy",
-        "effects": [{"type": "enemy_summon", "enemy_id": "sentry_node", "count": 1}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sentry_node",
+            "count": 1
+          }
+        ]
       },
       {
         "id": "service_pistol",
         "intent_text": "Fire for 5",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 5}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 5
+          }
+        ]
       },
       {
         "id": "reinforce",
         "intent_text": "Gain 7 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 7}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 7
+          }
+        ]
       }
     ]
   },
@@ -715,10 +1216,17 @@
     "faction_id": "blackwire_directorate",
     "role": "elite",
     "tier": "elite",
-    "tags": ["anti_combo", "tracker"],
+    "tags": [
+      "anti_combo",
+      "tracker"
+    ],
     "max_hp": 64,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["trace_bite", "ledger_sweep", "compliance_leap"],
+    "intent_pattern": [
+      "trace_bite",
+      "ledger_sweep",
+      "compliance_leap"
+    ],
     "moves": [
       {
         "id": "trace_bite",
@@ -726,8 +1234,14 @@
         "target": "player",
         "bark_trigger": "mark",
         "effects": [
-          {"type": "enemy_damage", "value": 9},
-          {"type": "enemy_apply_marked", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 9
+          },
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
         ]
       },
       {
@@ -736,8 +1250,14 @@
         "target": "player",
         "bark_trigger": "buff_strip",
         "effects": [
-          {"type": "enemy_damage", "value": 8},
-          {"type": "enemy_strip_buff", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 8
+          },
+          {
+            "type": "enemy_strip_buff",
+            "value": 1
+          }
         ]
       },
       {
@@ -746,8 +1266,14 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_apply_suppressed", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
         ]
       }
     ]
@@ -758,23 +1284,40 @@
     "faction_id": "blackwire_directorate",
     "role": "summoned_support",
     "tier": "normal",
-    "tags": ["summon", "fortified", "machine"],
+    "tags": [
+      "summon",
+      "fortified",
+      "machine"
+    ],
     "max_hp": 12,
     "bark_profile_id": "blackwire_directorate",
-    "intent_pattern": ["laser_ping", "field_screen"],
+    "intent_pattern": [
+      "laser_ping",
+      "field_screen"
+    ],
     "moves": [
       {
         "id": "laser_ping",
         "intent_text": "Ping for 4",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 4}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          }
+        ]
       },
       {
         "id": "field_screen",
         "intent_text": "Grant 5 Block",
         "target": "lowest_hp_ally",
-        "effects": [{"type": "enemy_block", "value": 5}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 5
+          }
+        ]
       }
     ]
   },
@@ -784,17 +1327,31 @@
     "faction_id": "blackwire_directorate",
     "role": "boss",
     "tier": "boss",
-    "tags": ["suppression", "commander", "drone"],
+    "tags": [
+      "suppression",
+      "commander",
+      "drone"
+    ],
     "max_hp": 145,
     "bark_profile_id": "director_vale",
-    "intent_pattern": ["tracked", "revoke", "deploy_kill_asset", "lockdown"],
+    "intent_pattern": [
+      "tracked",
+      "revoke",
+      "deploy_kill_asset",
+      "lockdown"
+    ],
     "moves": [
       {
         "id": "tracked",
         "intent_text": "Apply 2 Marked",
         "target": "player",
         "bark_trigger": "mark",
-        "effects": [{"type": "enemy_apply_marked", "value": 2}]
+        "effects": [
+          {
+            "type": "enemy_apply_marked",
+            "value": 2
+          }
+        ]
       },
       {
         "id": "revoke",
@@ -802,8 +1359,14 @@
         "target": "player",
         "bark_trigger": "buff_strip",
         "effects": [
-          {"type": "enemy_damage", "value": 9},
-          {"type": "enemy_strip_buff", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 9
+          },
+          {
+            "type": "enemy_strip_buff",
+            "value": 1
+          }
         ]
       },
       {
@@ -811,9 +1374,17 @@
         "intent_text": "Deploy a Patrol Drone",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "patrol_drone", "count": 1}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "patrol_drone",
+            "count": 1
+          }
+        ]
       },
       {
         "id": "lockdown",
@@ -821,8 +1392,14 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 12},
-          {"type": "enemy_apply_suppressed", "value": 2}
+          {
+            "type": "enemy_damage",
+            "value": 12
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 2
+          }
         ]
       },
       {
@@ -831,8 +1408,14 @@
         "target": "player",
         "bark_trigger": "phase_change",
         "effects": [
-          {"type": "enemy_damage", "value": 16},
-          {"type": "enemy_strip_buff", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 16
+          },
+          {
+            "type": "enemy_strip_buff",
+            "value": 1
+          }
         ]
       }
     ],
@@ -840,7 +1423,12 @@
       {
         "threshold_ratio": 0.5,
         "name": "kill_authority",
-        "intent_pattern": ["kill_authority", "tracked", "deploy_kill_asset", "kill_authority"],
+        "intent_pattern": [
+          "kill_authority",
+          "tracked",
+          "deploy_kill_asset",
+          "kill_authority"
+        ],
         "bark_trigger": "phase_change"
       }
     ]
@@ -851,17 +1439,31 @@
     "faction_id": "blackwire_directorate",
     "role": "boss",
     "tier": "boss",
-    "tags": ["shield", "machine", "suppression"],
+    "tags": [
+      "shield",
+      "machine",
+      "suppression"
+    ],
     "max_hp": 165,
     "bark_profile_id": "compliance_engine_ax9",
-    "intent_pattern": ["barrier_cycle", "pacify_burst", "deploy_node", "null_wave"],
+    "intent_pattern": [
+      "barrier_cycle",
+      "pacify_burst",
+      "deploy_node",
+      "null_wave"
+    ],
     "moves": [
       {
         "id": "barrier_cycle",
         "intent_text": "Gain 16 Block",
         "target": "self",
         "bark_trigger": "shielded_phase",
-        "effects": [{"type": "enemy_block", "value": 16}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 16
+          }
+        ]
       },
       {
         "id": "pacify_burst",
@@ -869,8 +1471,14 @@
         "target": "player",
         "bark_trigger": "suppression",
         "effects": [
-          {"type": "enemy_damage", "value": 13},
-          {"type": "enemy_apply_suppressed", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 13
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
         ]
       },
       {
@@ -878,9 +1486,17 @@
         "intent_text": "Deploy a Sentry Node",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "deploy",
-        "effects": [{"type": "enemy_summon", "enemy_id": "sentry_node", "count": 1}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "sentry_node",
+            "count": 1
+          }
+        ]
       },
       {
         "id": "null_wave",
@@ -888,8 +1504,14 @@
         "target": "player",
         "bark_trigger": "suppression",
         "effects": [
-          {"type": "enemy_damage", "value": 8},
-          {"type": "enemy_strip_buff", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 8
+          },
+          {
+            "type": "enemy_strip_buff",
+            "value": 1
+          }
         ]
       },
       {
@@ -897,14 +1519,24 @@
         "intent_text": "Cannon for 18",
         "target": "player",
         "bark_trigger": "phase_change",
-        "effects": [{"type": "enemy_damage", "value": 18}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 18
+          }
+        ]
       }
     ],
     "phase_rules": [
       {
         "threshold_ratio": 0.5,
         "name": "overdrive",
-        "intent_pattern": ["overdrive_cannon", "barrier_cycle", "null_wave", "overdrive_cannon"],
+        "intent_pattern": [
+          "overdrive_cannon",
+          "barrier_cycle",
+          "null_wave",
+          "overdrive_cannon"
+        ],
         "bark_trigger": "phase_change"
       }
     ]
@@ -915,25 +1547,43 @@
     "faction_id": "cinder_jackals",
     "role": "fodder",
     "tier": "normal",
-    "tags": ["swarm", "momentum"],
+    "tags": [
+      "swarm",
+      "momentum"
+    ],
     "max_hp": 18,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["slash", "mob_rush"],
+    "intent_pattern": [
+      "slash",
+      "mob_rush"
+    ],
     "moves": [
       {
         "id": "slash",
         "intent_text": "Slash for 4",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 4}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          }
+        ]
       },
       {
         "id": "mob_rush",
         "intent_text": "Rush for 6",
         "target": "player",
-        "conditions": {"any_other_ally_present": true},
+        "conditions": {
+          "any_other_ally_present": true
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_damage", "value": 6}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 6
+          }
+        ]
       }
     ]
   },
@@ -943,24 +1593,42 @@
     "faction_id": "cinder_jackals",
     "role": "skirmisher",
     "tier": "normal",
-    "tags": ["fast", "bleed"],
+    "tags": [
+      "fast",
+      "bleed"
+    ],
     "max_hp": 24,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["flurry", "hook_cut", "flurry"],
+    "intent_pattern": [
+      "flurry",
+      "hook_cut",
+      "flurry"
+    ],
     "moves": [
       {
         "id": "flurry",
         "intent_text": "Cut twice for 3",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 3, "count": 2}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 3,
+            "count": 2
+          }
+        ]
       },
       {
         "id": "hook_cut",
         "intent_text": "Hook cut for 7",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 7}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 7
+          }
+        ]
       }
     ]
   },
@@ -970,10 +1638,16 @@
     "faction_id": "cinder_jackals",
     "role": "bomber",
     "tier": "normal",
-    "tags": ["burn", "volatile"],
+    "tags": [
+      "burn",
+      "volatile"
+    ],
     "max_hp": 22,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["ember_jar", "detonate"],
+    "intent_pattern": [
+      "ember_jar",
+      "detonate"
+    ],
     "moves": [
       {
         "id": "ember_jar",
@@ -981,8 +1655,14 @@
         "target": "player",
         "bark_trigger": "burn",
         "effects": [
-          {"type": "enemy_damage", "value": 5},
-          {"type": "enemy_apply_burn", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 5
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 1
+          }
         ]
       },
       {
@@ -991,8 +1671,14 @@
         "target": "player",
         "bark_trigger": "burn",
         "effects": [
-          {"type": "enemy_damage", "value": 8},
-          {"type": "enemy_apply_burn", "value": 2}
+          {
+            "type": "enemy_damage",
+            "value": 8
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 2
+          }
         ]
       }
     ]
@@ -1003,32 +1689,57 @@
     "faction_id": "cinder_jackals",
     "role": "summoner",
     "tier": "normal",
-    "tags": ["pack", "spawn"],
+    "tags": [
+      "pack",
+      "spawn"
+    ],
     "max_hp": 30,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["call_scavver", "pack_jab", "whip_up"],
+    "intent_pattern": [
+      "call_scavver",
+      "pack_jab",
+      "whip_up"
+    ],
     "moves": [
       {
         "id": "call_scavver",
         "intent_text": "Call a Scavver",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "scavver", "count": 1}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "scavver",
+            "count": 1
+          }
+        ]
       },
       {
         "id": "pack_jab",
         "intent_text": "Jab for 5",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 5}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 5
+          }
+        ]
       },
       {
         "id": "whip_up",
         "intent_text": "Gain 1 Strength",
         "target": "self",
-        "effects": [{"type": "enemy_gain_strength", "value": 1}]
+        "effects": [
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
+        ]
       }
     ]
   },
@@ -1038,31 +1749,55 @@
     "faction_id": "cinder_jackals",
     "role": "bruiser",
     "tier": "normal",
-    "tags": ["heavy", "momentum"],
+    "tags": [
+      "heavy",
+      "momentum"
+    ],
     "max_hp": 56,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["wind_up", "crush", "rush_crush"],
+    "intent_pattern": [
+      "wind_up",
+      "crush",
+      "rush_crush"
+    ],
     "moves": [
       {
         "id": "wind_up",
         "intent_text": "Gain 8 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 8}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 8
+          }
+        ]
       },
       {
         "id": "crush",
         "intent_text": "Crush for 12",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "rush_crush",
         "intent_text": "Rush crush for 15",
         "target": "player",
-        "conditions": {"any_other_ally_present": true},
+        "conditions": {
+          "any_other_ally_present": true
+        },
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 15}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 15
+          }
+        ]
       }
     ]
   },
@@ -1072,25 +1807,44 @@
     "faction_id": "cinder_jackals",
     "role": "beast",
     "tier": "normal",
-    "tags": ["pack", "fast"],
+    "tags": [
+      "pack",
+      "fast"
+    ],
     "max_hp": 28,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["bite", "feast", "bite"],
+    "intent_pattern": [
+      "bite",
+      "feast",
+      "bite"
+    ],
     "moves": [
       {
         "id": "bite",
         "intent_text": "Bite for 6",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 6}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 6
+          }
+        ]
       },
       {
         "id": "feast",
         "intent_text": "Feast for 9",
         "target": "player",
-        "conditions": {"player_hp_below_ratio": 0.5},
+        "conditions": {
+          "player_hp_below_ratio": 0.5
+        },
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 9}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 9
+          }
+        ]
       }
     ]
   },
@@ -1100,25 +1854,44 @@
     "faction_id": "cinder_jackals",
     "role": "elite",
     "tier": "elite",
-    "tags": ["ranged", "swingy"],
+    "tags": [
+      "ranged",
+      "swingy"
+    ],
     "max_hp": 52,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["snap_fire", "wild_burst", "cover_flame"],
+    "intent_pattern": [
+      "snap_fire",
+      "wild_burst",
+      "cover_flame"
+    ],
     "moves": [
       {
         "id": "snap_fire",
         "intent_text": "Fire for 11",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 11}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 11
+          }
+        ]
       },
       {
         "id": "wild_burst",
         "intent_text": "Burst for 14",
         "target": "player",
-        "conditions": {"any_other_ally_present": true},
+        "conditions": {
+          "any_other_ally_present": true
+        },
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 14}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 14
+          }
+        ]
       },
       {
         "id": "cover_flame",
@@ -1126,8 +1899,14 @@
         "target": "player",
         "bark_trigger": "burn",
         "effects": [
-          {"type": "enemy_damage", "value": 7},
-          {"type": "enemy_apply_burn", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 7
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 1
+          }
         ]
       }
     ]
@@ -1138,10 +1917,17 @@
     "faction_id": "cinder_jackals",
     "role": "summoned_fodder",
     "tier": "normal",
-    "tags": ["summon", "burn", "volatile"],
+    "tags": [
+      "summon",
+      "burn",
+      "volatile"
+    ],
     "max_hp": 10,
     "bark_profile_id": "cinder_jackals",
-    "intent_pattern": ["spark_bite", "flash_pop"],
+    "intent_pattern": [
+      "spark_bite",
+      "flash_pop"
+    ],
     "moves": [
       {
         "id": "spark_bite",
@@ -1149,8 +1935,14 @@
         "target": "player",
         "bark_trigger": "burn",
         "effects": [
-          {"type": "enemy_damage", "value": 4},
-          {"type": "enemy_apply_burn", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 4
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 1
+          }
         ]
       },
       {
@@ -1159,8 +1951,15 @@
         "target": "player",
         "bark_trigger": "burn",
         "effects": [
-          {"type": "enemy_damage", "value": 5},
-          {"type": "enemy_self_destruct", "target": "self", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 5
+          },
+          {
+            "type": "enemy_self_destruct",
+            "target": "self",
+            "value": 1
+          }
         ]
       }
     ]
@@ -1171,19 +1970,36 @@
     "faction_id": "cinder_jackals",
     "role": "boss",
     "tier": "boss",
-    "tags": ["momentum", "war_chief", "summon"],
+    "tags": [
+      "momentum",
+      "war_chief",
+      "summon"
+    ],
     "max_hp": 146,
     "bark_profile_id": "ashfang_rook",
-    "intent_pattern": ["pack_in", "blood_hot", "cleaver_rush", "crowd_surge"],
+    "intent_pattern": [
+      "pack_in",
+      "blood_hot",
+      "cleaver_rush",
+      "crowd_surge"
+    ],
     "moves": [
       {
         "id": "pack_in",
         "intent_text": "Call two Scavvers",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "scavver", "count": 2}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "scavver",
+            "count": 2
+          }
+        ]
       },
       {
         "id": "blood_hot",
@@ -1191,8 +2007,15 @@
         "target": "player",
         "bark_trigger": "attack",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_gain_strength", "target": "self", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_gain_strength",
+            "target": "self",
+            "value": 1
+          }
         ]
       },
       {
@@ -1200,29 +2023,51 @@
         "intent_text": "Rush for 12",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "crowd_surge",
         "intent_text": "Surge for 14",
         "target": "player",
-        "conditions": {"any_other_ally_present": true},
+        "conditions": {
+          "any_other_ally_present": true
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_damage", "value": 14}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 14
+          }
+        ]
       },
       {
         "id": "all_out",
         "intent_text": "All-out strike for 18",
         "target": "player",
         "bark_trigger": "phase_change",
-        "effects": [{"type": "enemy_damage", "value": 18}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 18
+          }
+        ]
       }
     ],
     "phase_rules": [
       {
         "threshold_ratio": 0.45,
         "name": "all_out",
-        "intent_pattern": ["all_out", "pack_in", "all_out", "blood_hot"],
+        "intent_pattern": [
+          "all_out",
+          "pack_in",
+          "all_out",
+          "blood_hot"
+        ],
         "bark_trigger": "phase_change"
       }
     ]
@@ -1233,19 +2078,36 @@
     "faction_id": "cinder_jackals",
     "role": "boss",
     "tier": "boss",
-    "tags": ["siege", "machine", "burn"],
+    "tags": [
+      "siege",
+      "machine",
+      "burn"
+    ],
     "max_hp": 170,
     "bark_profile_id": "furnace_hound",
-    "intent_pattern": ["loose_mites", "artillery_prep", "incinerate", "ram"],
+    "intent_pattern": [
+      "loose_mites",
+      "artillery_prep",
+      "incinerate",
+      "ram"
+    ],
     "moves": [
       {
         "id": "loose_mites",
         "intent_text": "Loose two Burner Mites",
         "target": "self",
         "cooldown": 1,
-        "conditions": {"living_enemies_below": 5},
+        "conditions": {
+          "living_enemies_below": 5
+        },
         "bark_trigger": "summon",
-        "effects": [{"type": "enemy_summon", "enemy_id": "burner_mite", "count": 2}]
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "enemy_id": "burner_mite",
+            "count": 2
+          }
+        ]
       },
       {
         "id": "artillery_prep",
@@ -1253,8 +2115,14 @@
         "target": "self",
         "bark_trigger": "charge",
         "effects": [
-          {"type": "enemy_block", "value": 10},
-          {"type": "enemy_gain_strength", "value": 1}
+          {
+            "type": "enemy_block",
+            "value": 10
+          },
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
         ]
       },
       {
@@ -1263,8 +2131,14 @@
         "target": "player",
         "bark_trigger": "burn",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_apply_burn", "value": 2}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 2
+          }
         ]
       },
       {
@@ -1272,21 +2146,36 @@
         "intent_text": "Ram for 15",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 15}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 15
+          }
+        ]
       },
       {
         "id": "overheat_ram",
         "intent_text": "Overheat ram for 19",
         "target": "player",
         "bark_trigger": "phase_change",
-        "effects": [{"type": "enemy_damage", "value": 19}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 19
+          }
+        ]
       }
     ],
     "phase_rules": [
       {
         "threshold_ratio": 0.5,
         "name": "overheat",
-        "intent_pattern": ["overheat_ram", "loose_mites", "incinerate", "overheat_ram"],
+        "intent_pattern": [
+          "overheat_ram",
+          "loose_mites",
+          "incinerate",
+          "overheat_ram"
+        ],
         "bark_trigger": "phase_change"
       }
     ]
@@ -1297,10 +2186,18 @@
     "faction_id": "grayspine_general",
     "role": "boss",
     "tier": "boss",
-    "tags": ["general", "tax", "disruption"],
+    "tags": [
+      "general",
+      "tax",
+      "disruption"
+    ],
     "max_hp": 132,
     "bark_profile_id": "toll_reeve",
-    "intent_pattern": ["gate_tax", "muscle_wall", "resource_cut"],
+    "intent_pattern": [
+      "gate_tax",
+      "muscle_wall",
+      "resource_cut"
+    ],
     "moves": [
       {
         "id": "gate_tax",
@@ -1308,15 +2205,26 @@
         "target": "player",
         "bark_trigger": "resource_tax",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_strip_buff", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_strip_buff",
+            "value": 1
+          }
         ]
       },
       {
         "id": "muscle_wall",
         "intent_text": "Gain 12 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 12}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 12
+          }
+        ]
       },
       {
         "id": "resource_cut",
@@ -1324,8 +2232,14 @@
         "target": "player",
         "bark_trigger": "resource_tax",
         "effects": [
-          {"type": "enemy_damage", "value": 9},
-          {"type": "enemy_apply_suppressed", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 9
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
         ]
       }
     ]
@@ -1336,31 +2250,55 @@
     "faction_id": "grayspine_general",
     "role": "boss",
     "tier": "boss",
-    "tags": ["general", "machine", "defense"],
+    "tags": [
+      "general",
+      "machine",
+      "defense"
+    ],
     "max_hp": 150,
     "bark_profile_id": "junction_9_sentinel",
-    "intent_pattern": ["defense_mode", "heavy_charge", "scan_burst"],
+    "intent_pattern": [
+      "defense_mode",
+      "heavy_charge",
+      "scan_burst"
+    ],
     "moves": [
       {
         "id": "defense_mode",
         "intent_text": "Gain 14 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 14}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 14
+          }
+        ]
       },
       {
         "id": "heavy_charge",
         "intent_text": "Charge for 16",
         "target": "player",
         "bark_trigger": "heavy_prep",
-        "effects": [{"type": "enemy_damage", "value": 16}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 16
+          }
+        ]
       },
       {
         "id": "scan_burst",
         "intent_text": "Burst for 8 and Mark 1",
         "target": "player",
         "effects": [
-          {"type": "enemy_damage", "value": 8},
-          {"type": "enemy_apply_marked", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 8
+          },
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
         ]
       }
     ]
@@ -1371,16 +2309,29 @@
     "faction_id": "grayspine_general",
     "role": "boss",
     "tier": "boss",
-    "tags": ["general", "adaptive", "guardian"],
+    "tags": [
+      "general",
+      "adaptive",
+      "guardian"
+    ],
     "max_hp": 160,
     "bark_profile_id": "spine_warden_null",
-    "intent_pattern": ["pattern_lock", "veto_wave", "null_barrage"],
+    "intent_pattern": [
+      "pattern_lock",
+      "veto_wave",
+      "null_barrage"
+    ],
     "moves": [
       {
         "id": "pattern_lock",
         "intent_text": "Gain 10 Block",
         "target": "self",
-        "effects": [{"type": "enemy_block", "value": 10}]
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 10
+          }
+        ]
       },
       {
         "id": "veto_wave",
@@ -1388,8 +2339,14 @@
         "target": "player",
         "bark_trigger": "phase_change",
         "effects": [
-          {"type": "enemy_damage", "value": 10},
-          {"type": "enemy_apply_suppressed", "value": 1}
+          {
+            "type": "enemy_damage",
+            "value": 10
+          },
+          {
+            "type": "enemy_apply_suppressed",
+            "value": 1
+          }
         ]
       },
       {
@@ -1397,7 +2354,755 @@
         "intent_text": "Barrage for 15",
         "target": "player",
         "bark_trigger": "attack",
-        "effects": [{"type": "enemy_damage", "value": 15}]
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dune_raider",
+    "name": "Dune Raider",
+    "faction_id": "red_wastes",
+    "role": "skirmisher",
+    "tier": "normal",
+    "tags": [
+      "fast",
+      "weak"
+    ],
+    "max_hp": 24,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "shiv",
+      "sand_throw"
+    ],
+    "moves": [
+      {
+        "id": "shiv",
+        "intent_text": "Slash for 5",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "sand_throw",
+        "intent_text": "Throw for 3 and Weak 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 3
+          },
+          {
+            "type": "enemy_apply_weak",
+            "value": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "carrion_hound",
+    "name": "Carrion Hound",
+    "faction_id": "red_wastes",
+    "role": "beast",
+    "tier": "normal",
+    "tags": [
+      "pack",
+      "bleed"
+    ],
+    "max_hp": 26,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "bite",
+      "hamstring"
+    ],
+    "moves": [
+      {
+        "id": "bite",
+        "intent_text": "Bite for 6",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 6
+          }
+        ]
+      },
+      {
+        "id": "hamstring",
+        "intent_text": "Hamstring for 4 and Bleed 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          },
+          {
+            "type": "enemy_apply_bleed",
+            "value": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "embersnout",
+    "name": "Embersnout",
+    "faction_id": "red_wastes",
+    "role": "bomber",
+    "tier": "normal",
+    "tags": [
+      "burn",
+      "volatile"
+    ],
+    "max_hp": 22,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "cinder_spit",
+      "flare_hide",
+      "fire_up"
+    ],
+    "moves": [
+      {
+        "id": "cinder_spit",
+        "intent_text": "Spit for 4 and Burn 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "flare_hide",
+        "intent_text": "Gain 4 Block",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 4
+          }
+        ]
+      },
+      {
+        "id": "fire_up",
+        "intent_text": "Gain 1 Strength",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scrap_ticker",
+    "name": "Scrap Ticker",
+    "faction_id": "red_wastes",
+    "role": "utility",
+    "tier": "normal",
+    "tags": [
+      "mark",
+      "machine"
+    ],
+    "max_hp": 18,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "target_ping",
+      "buzz_saw"
+    ],
+    "moves": [
+      {
+        "id": "target_ping",
+        "intent_text": "Ping for 2 and Mark 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 2
+          },
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "buzz_saw",
+        "intent_text": "Buzz for 4",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "waste_leech",
+    "name": "Waste Leech",
+    "faction_id": "red_wastes",
+    "role": "parasite",
+    "tier": "normal",
+    "tags": [
+      "infect",
+      "siphon"
+    ],
+    "max_hp": 24,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "sip",
+      "coil",
+      "gorge"
+    ],
+    "moves": [
+      {
+        "id": "sip",
+        "intent_text": "Sip for 4 and Infect 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 4
+          },
+          {
+            "type": "enemy_apply_infect",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "coil",
+        "intent_text": "Gain 5 Block",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "gorge",
+        "intent_text": "Heal 4",
+        "target": "self",
+        "conditions": {
+          "self_hp_below_ratio": 0.7
+        },
+        "effects": [
+          {
+            "type": "enemy_heal_ally",
+            "value": 4,
+            "target": "self"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dust_saboteur",
+    "name": "Dust Saboteur",
+    "faction_id": "red_wastes",
+    "role": "support",
+    "tier": "normal",
+    "tags": [
+      "clog",
+      "scavenger"
+    ],
+    "max_hp": 28,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "scrap_dump",
+      "cut_wire",
+      "duck_cover"
+    ],
+    "moves": [
+      {
+        "id": "scrap_dump",
+        "intent_text": "Dump for 3 and add Junk to discard",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 3
+          },
+          {
+            "type": "enemy_add_status_card",
+            "value": 1,
+            "card_id": "status_junk_01",
+            "count": 1,
+            "pile": "discard"
+          }
+        ]
+      },
+      {
+        "id": "cut_wire",
+        "intent_text": "Cut for 5",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "duck_cover",
+        "intent_text": "Gain 5 Block",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "relay_vulture",
+    "name": "Relay Vulture",
+    "faction_id": "red_wastes",
+    "role": "ranged",
+    "tier": "normal",
+    "tags": [
+      "mark",
+      "burst"
+    ],
+    "max_hp": 23,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "sightline",
+      "dive_fire",
+      "peck"
+    ],
+    "moves": [
+      {
+        "id": "sightline",
+        "intent_text": "Apply 1 Marked",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "dive_fire",
+        "intent_text": "Fire for 8",
+        "target": "player",
+        "conditions": {
+          "player_status_at_least": {
+            "status": "marked",
+            "value": 1
+          }
+        },
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 8
+          }
+        ]
+      },
+      {
+        "id": "peck",
+        "intent_text": "Peck for 5",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "salvage_bulwark",
+    "name": "Salvage Bulwark",
+    "faction_id": "red_wastes",
+    "role": "frontline",
+    "tier": "normal",
+    "tags": [
+      "guard",
+      "plated"
+    ],
+    "max_hp": 36,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "brace_plate",
+      "ram"
+    ],
+    "moves": [
+      {
+        "id": "brace_plate",
+        "intent_text": "Gain 8 Block",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 8
+          }
+        ]
+      },
+      {
+        "id": "ram",
+        "intent_text": "Ram for 7",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 7
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "caravan_reaver",
+    "name": "Caravan Reaver",
+    "faction_id": "red_wastes",
+    "role": "bruiser",
+    "tier": "elite",
+    "tags": [
+      "bleed",
+      "hunter"
+    ],
+    "max_hp": 50,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "chain_hook",
+      "maul",
+      "blood_scent"
+    ],
+    "moves": [
+      {
+        "id": "chain_hook",
+        "intent_text": "Hook for 7 and Bleed 2",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 7
+          },
+          {
+            "type": "enemy_apply_bleed",
+            "value": 2
+          }
+        ]
+      },
+      {
+        "id": "maul",
+        "intent_text": "Maul for 11",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 11
+          }
+        ]
+      },
+      {
+        "id": "blood_scent",
+        "intent_text": "Scent for 14",
+        "target": "player",
+        "conditions": {
+          "player_status_at_least": {
+            "status": "bleed",
+            "value": 1
+          }
+        },
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 14
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "signal_junker",
+    "name": "Signal Junker",
+    "faction_id": "red_wastes",
+    "role": "controller",
+    "tier": "elite",
+    "tags": [
+      "null",
+      "clog",
+      "tracker"
+    ],
+    "max_hp": 44,
+    "bark_profile_id": "red_wastes",
+    "intent_pattern": [
+      "dead_channel",
+      "lag_spike",
+      "paint_lock"
+    ],
+    "moves": [
+      {
+        "id": "dead_channel",
+        "intent_text": "Apply 1 Nullified",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_apply_nullified",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "lag_spike",
+        "intent_text": "Spike for 5 and add Lag to discard",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 5
+          },
+          {
+            "type": "enemy_add_status_card",
+            "value": 1,
+            "card_id": "status_lag_01",
+            "count": 1,
+            "pile": "discard"
+          }
+        ]
+      },
+      {
+        "id": "paint_lock",
+        "intent_text": "Apply 1 Marked",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_apply_marked",
+            "value": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "wastes_colossus",
+    "name": "Wastes Colossus",
+    "faction_id": "red_wastes",
+    "role": "boss",
+    "tier": "boss",
+    "tags": [
+      "machine",
+      "mark",
+      "burn",
+      "summon"
+    ],
+    "max_hp": 124,
+    "bark_profile_id": "wastes_colossus",
+    "intent_pattern": [
+      "sand_plating",
+      "searchlight",
+      "grinding_tread",
+      "flare_vent",
+      "loose_tickers"
+    ],
+    "moves": [
+      {
+        "id": "sand_plating",
+        "intent_text": "Gain 10 Block",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_block",
+            "value": 10
+          }
+        ]
+      },
+      {
+        "id": "searchlight",
+        "intent_text": "Apply 2 Marked",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_apply_marked",
+            "value": 2
+          }
+        ]
+      },
+      {
+        "id": "grinding_tread",
+        "intent_text": "Tread for 12",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 12
+          }
+        ]
+      },
+      {
+        "id": "flare_vent",
+        "intent_text": "Vent for 7 and Burn 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 7
+          },
+          {
+            "type": "enemy_apply_burn",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "loose_tickers",
+        "intent_text": "Loose a Scrap Ticker",
+        "target": "self",
+        "cooldown": 1,
+        "conditions": {
+          "living_enemies_below": 5
+        },
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "value": 0,
+            "enemy_id": "scrap_ticker",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "phase_rules": [
+      {
+        "threshold_ratio": 0.5,
+        "name": "overdrive",
+        "intent_pattern": [
+          "flare_vent",
+          "searchlight",
+          "grinding_tread",
+          "loose_tickers",
+          "grinding_tread"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sandpack_alpha",
+    "name": "Sandpack Alpha",
+    "faction_id": "red_wastes",
+    "role": "boss",
+    "tier": "boss",
+    "tags": [
+      "beast",
+      "pack",
+      "bleed",
+      "summon"
+    ],
+    "max_hp": 118,
+    "bark_profile_id": "sandpack_alpha",
+    "intent_pattern": [
+      "call_hound",
+      "rake",
+      "alpha_maul",
+      "blood_surge",
+      "feral_focus"
+    ],
+    "moves": [
+      {
+        "id": "call_hound",
+        "intent_text": "Call a Carrion Hound",
+        "target": "self",
+        "cooldown": 1,
+        "conditions": {
+          "living_enemies_below": 5
+        },
+        "effects": [
+          {
+            "type": "enemy_summon",
+            "value": 0,
+            "enemy_id": "carrion_hound",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "rake",
+        "intent_text": "Rake for 8 and Bleed 1",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 8
+          },
+          {
+            "type": "enemy_apply_bleed",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "alpha_maul",
+        "intent_text": "Maul for 13",
+        "target": "player",
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 13
+          }
+        ]
+      },
+      {
+        "id": "blood_surge",
+        "intent_text": "Surge for 16",
+        "target": "player",
+        "conditions": {
+          "any_other_ally_present": true
+        },
+        "effects": [
+          {
+            "type": "enemy_damage",
+            "value": 16
+          }
+        ]
+      },
+      {
+        "id": "feral_focus",
+        "intent_text": "Gain 1 Strength",
+        "target": "self",
+        "effects": [
+          {
+            "type": "enemy_gain_strength",
+            "value": 1
+          }
+        ]
+      }
+    ],
+    "phase_rules": [
+      {
+        "threshold_ratio": 0.45,
+        "name": "blood_moon",
+        "intent_pattern": [
+          "blood_surge",
+          "call_hound",
+          "alpha_maul",
+          "rake"
+        ]
       }
     ]
   }

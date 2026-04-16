@@ -12,28 +12,32 @@
       "elite": 0.6
     },
     "placeholder_enemy_ids": {
-      "combat": ["enemy_basic_01"],
-      "elite": ["enemy_elite_01"],
-      "boss": ["enemy_boss_01"]
+      "combat": [
+        "enemy_basic_01"
+      ],
+      "elite": [
+        "enemy_elite_01"
+      ],
+      "boss": [
+        "enemy_boss_01"
+      ]
     },
     "boss_pool": [
       {
-        "id": "outskirts_raider_lord",
-        "name": "Raider Warlord",
+        "id": "wastes_colossus",
+        "name": "Wastes Colossus",
         "branch_faction": null,
-        "enemy_ids": ["enemy_boss_01"]
+        "enemy_ids": [
+          "wastes_colossus"
+        ]
       },
       {
-        "id": "outskirts_brigand_commander",
-        "name": "Brigand Commander",
+        "id": "sandpack_alpha",
+        "name": "Sandpack Alpha",
         "branch_faction": null,
-        "enemy_ids": ["enemy_boss_01"]
-      },
-      {
-        "id": "outskirts_corp_patrol_captain",
-        "name": "Corp Patrol Captain",
-        "branch_faction": null,
-        "enemy_ids": ["enemy_boss_01"]
+        "enemy_ids": [
+          "sandpack_alpha"
+        ]
       }
     ],
     "next_map": {
@@ -54,28 +58,40 @@
       "elite": 0.8
     },
     "placeholder_enemy_ids": {
-      "combat": ["enemy_basic_01"],
-      "elite": ["enemy_elite_01"],
-      "boss": ["enemy_boss_01"]
+      "combat": [
+        "enemy_basic_01"
+      ],
+      "elite": [
+        "enemy_elite_01"
+      ],
+      "boss": [
+        "enemy_boss_01"
+      ]
     },
     "boss_pool": [
       {
         "id": "toll_reeve",
         "name": "The Toll Reeve",
         "branch_faction": "cinder_jackals",
-        "enemy_ids": ["toll_reeve"]
+        "enemy_ids": [
+          "toll_reeve"
+        ]
       },
       {
         "id": "junction_9_sentinel",
         "name": "Junction-9 Sentinel",
         "branch_faction": "blackwire_directorate",
-        "enemy_ids": ["junction_9_sentinel"]
+        "enemy_ids": [
+          "junction_9_sentinel"
+        ]
       },
       {
         "id": "spine_warden_null",
         "name": "Spine Warden Null",
         "branch_faction": "helix_ward",
-        "enemy_ids": ["spine_warden_null"]
+        "enemy_ids": [
+          "spine_warden_null"
+        ]
       }
     ],
     "next_map": {
@@ -100,9 +116,15 @@
       "elite": 1.1
     },
     "placeholder_enemy_ids": {
-      "combat": ["enemy_basic_01"],
-      "elite": ["enemy_elite_01"],
-      "boss": ["enemy_boss_01"]
+      "combat": [
+        "enemy_basic_01"
+      ],
+      "elite": [
+        "enemy_elite_01"
+      ],
+      "boss": [
+        "enemy_boss_01"
+      ]
     },
     "boss_pool": [
       {
@@ -131,9 +153,15 @@
       "elite": 1.1
     },
     "placeholder_enemy_ids": {
-      "combat": ["enemy_basic_01"],
-      "elite": ["enemy_elite_01"],
-      "boss": ["enemy_boss_01"]
+      "combat": [
+        "enemy_basic_01"
+      ],
+      "elite": [
+        "enemy_elite_01"
+      ],
+      "boss": [
+        "enemy_boss_01"
+      ]
     },
     "boss_pool": [
       {
@@ -162,9 +190,15 @@
       "elite": 1.0
     },
     "placeholder_enemy_ids": {
-      "combat": ["enemy_basic_01"],
-      "elite": ["enemy_elite_01"],
-      "boss": ["enemy_boss_01"]
+      "combat": [
+        "enemy_basic_01"
+      ],
+      "elite": [
+        "enemy_elite_01"
+      ],
+      "boss": [
+        "enemy_boss_01"
+      ]
     },
     "boss_pool": [
       {
