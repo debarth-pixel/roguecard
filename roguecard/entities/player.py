@@ -35,6 +35,13 @@ class Player:
     temporary_combat_cards: list[CardBase] = field(default_factory=list)
     first_card_played: bool = False
     first_attack_played: bool = False
+    infect: int = 0
+    burn: int = 0
+    bleed: int = 0
+    marked: int = 0
+    marked_turns: int = 0
+    suppressed: int = 0
+    nullified: bool = False
 
     def __post_init__(self) -> None:
         self.resources = self._normalized_additional_resources(self.resources)
@@ -54,6 +61,13 @@ class Player:
         self.temporary_combat_cards = []
         self.first_card_played = False
         self.first_attack_played = False
+        self.infect = 0
+        self.burn = 0
+        self.bleed = 0
+        self.marked = 0
+        self.marked_turns = 0
+        self.suppressed = 0
+        self.nullified = False
         if self.deck_manager is not None:
             self.deck_manager.reset_for_combat()
 
@@ -78,6 +92,13 @@ class Player:
         self.temporary_combat_cards = []
         self.first_card_played = False
         self.first_attack_played = False
+        self.infect = 0
+        self.burn = 0
+        self.bleed = 0
+        self.marked = 0
+        self.marked_turns = 0
+        self.suppressed = 0
+        self.nullified = False
 
     def spend_energy(self, amount: int) -> None:
         if amount < 0:
@@ -157,6 +178,90 @@ class Player:
             raise ValueError("Attack damage modifiers must be integers.")
         self.next_attack_bonus += amount
         return self.next_attack_bonus
+
+    def apply_infect(self, amount: int) -> int:
+        if amount < 0:
+            raise ValueError("Infect amount cannot be negative.")
+        self.infect += amount
+        return self.infect
+
+    def apply_burn(self, amount: int) -> int:
+        if amount < 0:
+            raise ValueError("Burn amount cannot be negative.")
+        self.burn += amount
+        return self.burn
+
+    def apply_bleed(self, amount: int) -> int:
+        if amount < 0:
+            raise ValueError("Bleed amount cannot be negative.")
+        self.bleed += amount
+        return self.bleed
+
+    def apply_marked(self, amount: int, duration_turns: int = 2) -> int:
+        if amount < 0:
+            raise ValueError("Marked amount cannot be negative.")
+        self.marked += amount
+        self.marked_turns = max(self.marked_turns, duration_turns)
+        return self.marked
+
+    def consume_marked_for_hit(self, amount: int = 1) -> int:
+        if amount <= 0 or self.marked <= 0:
+            return 0
+        consumed = min(self.marked, amount)
+        self.marked -= consumed
+        if self.marked == 0:
+            self.marked_turns = 0
+        return consumed
+
+    def tick_marked_turns(self) -> None:
+        if self.marked_turns > 0:
+            self.marked_turns -= 1
+            if self.marked_turns == 0:
+                self.marked = 0
+
+    def apply_suppressed(self, amount: int) -> int:
+        if amount < 0:
+            raise ValueError("Suppressed amount cannot be negative.")
+        self.suppressed = min(3, self.suppressed + amount)
+        return self.suppressed
+
+    def clear_suppressed(self) -> None:
+        self.suppressed = 0
+
+    def apply_nullified(self) -> None:
+        self.nullified = True
+
+    def consume_nullified(self) -> bool:
+        if not self.nullified:
+            return False
+        self.nullified = False
+        return True
+
+    def combat_status_snapshot(self) -> dict[str, int | bool]:
+        return {
+            "infect": self.infect,
+            "burn": self.burn,
+            "bleed": self.bleed,
+            "marked": self.marked,
+            "marked_turns": self.marked_turns,
+            "suppressed": self.suppressed,
+            "nullified": self.nullified,
+        }
+
+    def strip_enemy_buff(self) -> str:
+        if self.block > 0:
+            self.block = 0
+            return "block"
+        if self.next_attack_bonus > 0:
+            self.next_attack_bonus = 0
+            return "next_attack_bonus"
+        if self.next_card_cost_delta < 0:
+            self.next_card_cost_delta = 0
+            return "cost_discount"
+        if self.strength > 0:
+            self.strength = max(0, self.strength - 1)
+            return "strength"
+        return "none"
 
     def consume_next_card_cost_delta(self) -> int:
         amount = self.next_card_cost_delta
@@ -238,6 +343,7 @@ class Player:
             "next_attack_bonus": self.next_attack_bonus,
             "active_powers": [card.to_dict() for card in self.active_powers],
             "temporary_combat_cards": [card.to_dict() for card in self.temporary_combat_cards],
+            "combat_statuses": self.combat_status_snapshot(),
         }
         if self.deck_manager is not None:
             state.update(

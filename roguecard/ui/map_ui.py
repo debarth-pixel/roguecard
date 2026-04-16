@@ -11,6 +11,11 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 from config import MAP_NODE_HIT_RADIUS, MAP_NODE_RADIUS, MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text
 
+MAP_PANEL_BOUNDS = (104, 84, 1036, 620)
+MAP_HEADER_HEIGHT = 94
+MAP_VIEWPORT_PADDING = 26
+MAP_SCROLL_STEP = 120
+
 
 class MapUI:
     def __init__(self) -> None:
@@ -22,6 +27,7 @@ class MapUI:
         self._hovered_node_id: str | None = None
         self._pressed_node_id: str | None = None
         self._keyboard_selection_index = 0
+        self._scroll_offset = 0
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -44,21 +50,33 @@ class MapUI:
 
         available = map_state["available_node_ids"]
         self._clamp_keyboard_selection(available)
+        layout = self.build_layout(map_state)
+
+        if event.type == pygame.MOUSEWHEEL:
+            self._adjust_scroll(-event.y * MAP_SCROLL_STEP, layout["max_scroll"])
+            return None
 
         if event.type == pygame.MOUSEMOTION:
-            self._hovered_node_id = self._node_at_position(map_state, event.pos)
+            self._hovered_node_id = self._node_at_position(layout, event.pos)
             if self._hovered_node_id in available:
                 self._keyboard_selection_index = available.index(self._hovered_node_id)
             return None
 
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            self._pressed_node_id = self._node_at_position(map_state, event.pos)
-            if self._pressed_node_id in available:
-                self._keyboard_selection_index = available.index(self._pressed_node_id)
-            return None
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                self._pressed_node_id = self._node_at_position(layout, event.pos)
+                if self._pressed_node_id in available:
+                    self._keyboard_selection_index = available.index(self._pressed_node_id)
+                return None
+            if event.button == 4:
+                self._adjust_scroll(-MAP_SCROLL_STEP, layout["max_scroll"])
+                return None
+            if event.button == 5:
+                self._adjust_scroll(MAP_SCROLL_STEP, layout["max_scroll"])
+                return None
 
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            node_id = self._node_at_position(map_state, event.pos)
+            node_id = self._node_at_position(layout, event.pos)
             pressed_node_id = self._pressed_node_id
             self._pressed_node_id = None
             if node_id is None or node_id != pressed_node_id:
@@ -76,6 +94,18 @@ class MapUI:
                 self._keyboard_selection_index = selection_index
                 return {"type": "select_node", "node_id": available[selection_index]}
             return {"type": "notice", "message": "That route slot is empty.", "level": "error"}
+
+        if event.key in {pygame.K_PAGEUP, pygame.K_HOME}:
+            self._scroll_offset = 0 if event.key == pygame.K_HOME else max(0, self._scroll_offset - (MAP_SCROLL_STEP * 2))
+            return None
+
+        if event.key in {pygame.K_PAGEDOWN, pygame.K_END}:
+            self._scroll_offset = (
+                layout["max_scroll"]
+                if event.key == pygame.K_END
+                else min(layout["max_scroll"], self._scroll_offset + (MAP_SCROLL_STEP * 2))
+            )
+            return None
 
         if event.key in {pygame.K_LEFT, pygame.K_UP} and available:
             self._keyboard_selection_index = (self._keyboard_selection_index - 1) % len(available)
@@ -101,8 +131,16 @@ class MapUI:
         visited = set(map_state.get("visited_node_ids", []))
         selected = map_state.get("selected_node_id")
         focused_node_id = self._focused_node_id(map_state)
+        viewport_rect = self._viewport_rect()
+        canvas_height = max(viewport_rect[3], int(map_state.get("canvas_height", viewport_rect[3])))
+        max_scroll = max(0, canvas_height - viewport_rect[3])
+        if focused_node_id is not None and focused_node_id in nodes:
+            self._ensure_focus_visible(nodes[focused_node_id], viewport_rect[3], max_scroll)
+        else:
+            self._scroll_offset = max(0, min(self._scroll_offset, max_scroll))
 
         return {
+            "map_state": map_state,
             "status_message": map_state.get("status_message", ""),
             "node_statuses": {
                 node_id: self._node_status(node_id, available_set, visited, selected)
@@ -114,7 +152,17 @@ class MapUI:
             "selected_node_id": selected,
             "focused_node_label": self._focused_node_label(focused_node_id, nodes),
             "map_bounds": self._map_bounds(),
+            "viewport_rect": viewport_rect,
             "high_contrast": map_state.get("presentation", {}).get("high_contrast", False),
+            "map_name": map_state.get("map_name", "Map"),
+            "map_index": map_state.get("map_index", 0),
+            "branch_faction": map_state.get("branch_faction"),
+            "route_floor_count": map_state.get("route_floor_count", 0),
+            "selected_boss_id": map_state.get("selected_boss_id"),
+            "scroll_offset": self._scroll_offset,
+            "max_scroll": max_scroll,
+            "canvas_height": canvas_height,
+            "canvas_width": map_state.get("canvas_width", viewport_rect[2]),
         }
 
     def render(self, surface: Any, map_state: dict[str, Any]) -> None:
@@ -125,7 +173,7 @@ class MapUI:
         self._ensure_fonts(presentation.get("ui_scale", 1.0))
         layout = self.build_layout(map_state)
         nodes = map_state["nodes"]
-        positions = self._node_positions(nodes)
+        positions = self._screen_positions(nodes, layout)
         focus_node_id = layout["focused_node_id"]
         available_set = set(map_state["available_node_ids"])
         selected_node_id = layout["selected_node_id"]
@@ -133,6 +181,8 @@ class MapUI:
 
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         map_bounds = pygame.Rect(*layout["map_bounds"])
+        viewport_rect = pygame.Rect(*layout["viewport_rect"])
+        header_rect = pygame.Rect(map_bounds.x + 18, map_bounds.y + 16, map_bounds.width - 36, MAP_HEADER_HEIGHT - 24)
 
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=148)
@@ -140,10 +190,37 @@ class MapUI:
         map_panel.fill((12, 18, 28, 132))
         surface.blit(map_panel, map_bounds.topleft)
         pygame.draw.rect(surface, (104, 118, 146), map_bounds, 2, border_radius=28)
+        pygame.draw.rect(surface, (10, 16, 26, 220), header_rect, border_radius=18)
+        pygame.draw.rect(surface, (92, 198, 240), header_rect, 2, border_radius=18)
+
+        self._draw_text(surface, layout["map_name"], (header_rect.x + 20, header_rect.y + 14), self._font)
+        subtitle = f"Map {layout['map_index']} | {self._progress_label(layout, map_state)}"
+        if layout["branch_faction"]:
+            subtitle = f"{subtitle} | {str(layout['branch_faction']).title()} route"
+        self._draw_text(surface, subtitle, (header_rect.x + 20, header_rect.y + 48), self._small_font, width=620)
+        self._draw_text(
+            surface,
+            f"Scroll {int(layout['scroll_offset'])}/{int(layout['max_scroll'])}",
+            (header_rect.right - 168, header_rect.y + 18),
+            self._tiny_font,
+            width=146,
+        )
+
+        viewport_surface = pygame.Surface(viewport_rect.size, pygame.SRCALPHA)
+        viewport_surface.fill((8, 12, 20, 74))
+        surface.blit(viewport_surface, viewport_rect.topleft)
+        pygame.draw.rect(surface, (56, 70, 94), viewport_rect, 1, border_radius=22)
+
+        clip_previous = surface.get_clip()
+        surface.set_clip(viewport_rect)
 
         for node_id, node in nodes.items():
+            if node_id not in positions:
+                continue
             start = positions[node_id]
             for next_node_id in node["next_nodes"]:
+                if next_node_id not in positions:
+                    continue
                 line_color = (108, 114, 128)
                 width = 3
                 if next_node_id in available_set:
@@ -161,7 +238,9 @@ class MapUI:
                 pygame.draw.line(surface, line_color, start, positions[next_node_id], width)
 
         for node_id, node in nodes.items():
-            center = positions[node_id]
+            center = positions.get(node_id)
+            if center is None:
+                continue
             status = layout["node_statuses"][node_id]
             self._draw_node(
                 surface=surface,
@@ -177,13 +256,18 @@ class MapUI:
 
         if focus_node_id is not None and layout["focused_node_label"] and focus_node_id in positions:
             label = layout["focused_node_label"]
-            label_width = max(96, self._small_font.size(label)[0] + 22)
+            label_width = max(108, self._small_font.size(label)[0] + 22)
             center = positions[focus_node_id]
-            pill_y = max(map_bounds.y + 10, center[1] - 94)
+            pill_y = max(viewport_rect.y + 10, center[1] - 94)
             pill_rect = pygame.Rect(center[0] - (label_width // 2), pill_y, label_width, 26)
             pygame.draw.rect(surface, (14, 20, 32), pill_rect, border_radius=13)
             pygame.draw.rect(surface, (255, 214, 110), pill_rect, 2, border_radius=13)
             self._draw_text(surface, label, (pill_rect.x + 12, pill_rect.y + 6), self._tiny_font, width=pill_rect.width - 24)
+
+        surface.set_clip(clip_previous)
+
+        self._draw_scrollbar(surface, viewport_rect, layout["scroll_offset"], layout["max_scroll"])
+        self._draw_text(surface, layout["status_message"], (map_bounds.x + 28, map_bounds.bottom - 36), self._tiny_font, width=map_bounds.width - 56)
 
     def _draw_node(
         self,
@@ -253,60 +337,9 @@ class MapUI:
         if focused_node_id is None or focused_node_id not in nodes:
             return None
         node = nodes[focused_node_id]
-        return f"{node['node_type'].title()} F{node['floor'] + 1}"
-
-    def _focus_lines(
-        self,
-        focus_node: dict[str, Any] | None,
-        focused_node_id: str | None,
-        map_state: dict[str, Any],
-    ) -> list[str]:
-        if focus_node is None:
-            return [
-                "Hover or focus a route to inspect it.",
-                "Available routes are highlighted on the map.",
-            ]
-
-        available = set(map_state["available_node_ids"])
-        visited = set(map_state.get("visited_node_ids", []))
-        status = "Locked"
-        if focused_node_id in available:
-            status = "Available"
-        elif focused_node_id in visited:
-            status = "Visited"
-        elif focused_node_id == map_state.get("selected_node_id"):
-            status = "Current Position"
-
-        next_types = [
-            map_state["nodes"][node_id]["node_type"].title() for node_id in focus_node["next_nodes"]
-        ]
-        preview = ", ".join(next_types) if next_types else "No outgoing route"
-        return [
-            f"Node: {focus_node['node_type'].title()}",
-            f"Floor {focus_node['floor'] + 1} | Column {focus_node['column'] + 1}",
-            f"Status: {status}",
-            f"Leads to: {preview}",
-            "Press Enter or click to continue." if focused_node_id in available else "Hover a highlighted route to inspect it.",
-        ]
-
-    def _route_summary_lines(
-        self,
-        available: list[str],
-        nodes: dict[str, dict[str, Any]],
-    ) -> list[str]:
-        if not available:
-            return [
-                "Reachable now: 0",
-                f"Total nodes: {len(nodes)}",
-            ]
-        route_types = ", ".join(nodes[node_id]["node_type"].title() for node_id in available[:3])
-        if len(available) > 3:
-            route_types = f"{route_types}, +{len(available) - 3} more"
-        return [
-            f"Reachable now: {len(available)}",
-            f"Total nodes: {len(nodes)}",
-            f"Open routes: {route_types}",
-        ]
+        if node["node_type"] == "boss":
+            return "Boss"
+        return f"{node['node_type'].title()} F{node['route_floor']}"
 
     def _focused_node_id(self, map_state: dict[str, Any]) -> str | None:
         available = map_state["available_node_ids"]
@@ -338,44 +371,74 @@ class MapUI:
             return "visited"
         return "inactive"
 
-    def _node_positions(self, nodes: dict[str, dict[str, Any]]) -> dict[str, tuple[int, int]]:
-        bounds = self._map_bounds()
-        left = bounds[0] + 84
-        top = bounds[1] + 46
-        right = bounds[0] + bounds[2] - 84
-        bottom = bounds[1] + bounds[3] - 56
+    def _screen_positions(
+        self,
+        nodes: dict[str, dict[str, Any]],
+        layout: dict[str, Any],
+    ) -> dict[str, tuple[int, int]]:
+        viewport_rect = layout["viewport_rect"]
         positions: dict[str, tuple[int, int]] = {}
-        if not nodes:
-            return positions
-
-        max_floor = max(node["floor"] for node in nodes.values())
-        max_column = max(node["column"] for node in nodes.values())
-        lane_count = max(1, max_column + 1)
-        lane_spacing = 0 if lane_count == 1 else (right - left) / (lane_count - 1)
-        floor_spacing = 0 if max_floor == 0 else (bottom - top) / max_floor
-
-        floor_lookup: dict[int, list[tuple[str, dict[str, Any]]]] = {}
         for node_id, node in nodes.items():
-            floor_lookup.setdefault(node["floor"], []).append((node_id, node))
-
-        for floor, floor_nodes in floor_lookup.items():
-            row_y = int(top + (floor * floor_spacing))
-            if len(floor_nodes) == 1:
-                node_id, _node = floor_nodes[0]
-                positions[node_id] = (int((left + right) / 2), row_y)
-                continue
-
-            for node_id, node in sorted(floor_nodes, key=lambda item: item[1]["column"]):
-                row_x = int(left + (node["column"] * lane_spacing)) if lane_count > 1 else int((left + right) / 2)
-                positions[node_id] = (row_x, row_y)
+            positions[node_id] = (
+                viewport_rect[0] + int(node["render_x"]),
+                viewport_rect[1] + int(node["render_y"]) - int(layout["scroll_offset"]),
+            )
         return positions
 
     def _map_bounds(self) -> tuple[int, int, int, int]:
-        return (104, 92, 1036, 594)
+        return MAP_PANEL_BOUNDS
 
-    def _node_at_position(self, map_state: dict[str, Any], position: tuple[int, int]) -> str | None:
-        nodes = map_state["nodes"]
-        positions = self._node_positions(nodes)
+    def _viewport_rect(self) -> tuple[int, int, int, int]:
+        bounds = self._map_bounds()
+        return (
+            bounds[0] + MAP_VIEWPORT_PADDING,
+            bounds[1] + MAP_HEADER_HEIGHT,
+            bounds[2] - (MAP_VIEWPORT_PADDING * 2),
+            bounds[3] - MAP_HEADER_HEIGHT - 54,
+        )
+
+    def _ensure_focus_visible(self, node: dict[str, Any], viewport_height: int, max_scroll: int) -> None:
+        target_y = int(node["render_y"])
+        visible_top = self._scroll_offset + 72
+        visible_bottom = self._scroll_offset + viewport_height - 72
+        if target_y < visible_top:
+            self._scroll_offset = max(0, min(max_scroll, target_y - 72))
+        elif target_y > visible_bottom:
+            self._scroll_offset = max(0, min(max_scroll, target_y - (viewport_height - 72)))
+        else:
+            self._scroll_offset = max(0, min(max_scroll, self._scroll_offset))
+
+    def _adjust_scroll(self, delta: int, max_scroll: int) -> None:
+        self._scroll_offset = max(0, min(max_scroll, self._scroll_offset + delta))
+
+    def _progress_label(self, layout: dict[str, Any], map_state: dict[str, Any]) -> str:
+        nodes = map_state.get("nodes", {})
+        selected_node_id = map_state.get("selected_node_id")
+        selected_node = nodes.get(selected_node_id) if isinstance(nodes, dict) and selected_node_id is not None else None
+        if selected_node is None:
+            return f"Entrance | F0/{layout['route_floor_count']}"
+        if selected_node["node_type"] == "boss":
+            return f"Boss | F{layout['route_floor_count']}/{layout['route_floor_count']}"
+        return f"F{selected_node['route_floor']}/{layout['route_floor_count']} | {selected_node['node_type'].title()}"
+
+    def _draw_scrollbar(self, surface: Any, viewport_rect: pygame.Rect, scroll_offset: int, max_scroll: int) -> None:
+        if max_scroll <= 0:
+            return
+        track_rect = pygame.Rect(viewport_rect.right + 8, viewport_rect.y, 10, viewport_rect.height)
+        pygame.draw.rect(surface, (18, 26, 38), track_rect, border_radius=5)
+        pygame.draw.rect(surface, (72, 88, 112), track_rect, 1, border_radius=5)
+        thumb_height = max(48, int((viewport_rect.height / (viewport_rect.height + max_scroll)) * viewport_rect.height))
+        thumb_range = track_rect.height - thumb_height
+        thumb_y = track_rect.y + int((scroll_offset / max_scroll) * thumb_range)
+        thumb_rect = pygame.Rect(track_rect.x + 1, thumb_y, track_rect.width - 2, thumb_height)
+        pygame.draw.rect(surface, (92, 198, 240), thumb_rect, border_radius=5)
+
+    def _node_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:  # type: ignore[override]
+        viewport_rect = pygame.Rect(*layout["viewport_rect"])
+        if not viewport_rect.collidepoint(position):
+            return None
+        nodes = layout["map_state"]["nodes"]
+        positions = self._screen_positions(nodes, layout)
         for node_id, center in positions.items():
             if (position[0] - center[0]) ** 2 + (position[1] - center[1]) ** 2 <= MAP_NODE_HIT_RADIUS ** 2:
                 return node_id
@@ -431,28 +494,58 @@ class MapUI:
 
 def simulate_map_ui() -> dict[str, Any]:
     ui = MapUI()
-    return ui.build_layout(
-        {
-            "status_message": "Select the next node.",
-            "nodes": {
-                "floor_0_node_0": {
-                    "node_id": "floor_0_node_0",
-                    "node_type": "combat",
-                    "floor": 0,
-                    "column": 0,
-                    "next_nodes": ["floor_1_node_0"],
-                },
-                "floor_1_node_0": {
-                    "node_id": "floor_1_node_0",
-                    "node_type": "shop",
-                    "floor": 1,
-                    "column": 0,
-                    "next_nodes": [],
-                },
+    state = {
+        "status_message": "Select the next node.",
+        "map_id": "outskirts",
+        "map_name": "Outskirts",
+        "map_index": 1,
+        "branch_faction": None,
+        "route_floor_count": 15,
+        "canvas_width": 1036,
+        "canvas_height": 2400,
+        "nodes": {
+            "outskirts_floor_0_node_0": {
+                "node_id": "outskirts_floor_0_node_0",
+                "node_type": "combat",
+                "floor": 0,
+                "column": 0,
+                "map_id": "outskirts",
+                "route_floor": 1,
+                "campaign_floor": 0,
+                "node_tier": "normal",
+                "render_x": 220,
+                "render_y": 116,
+                "encounter_hook_id": "outskirts:combat:f1:c0",
+                "boss_slot_id": None,
+                "enemy_ids": ["enemy_basic_01"],
+                "next_nodes": ["outskirts_floor_1_node_0"],
             },
-            "available_node_ids": ["floor_0_node_0"],
-            "visited_node_ids": [],
-            "selected_node_id": None,
-            "presentation": {"ui_scale": 1.0, "high_contrast": False},
-        }
-    )
+            "outskirts_floor_1_node_0": {
+                "node_id": "outskirts_floor_1_node_0",
+                "node_type": "shop",
+                "floor": 1,
+                "column": 0,
+                "map_id": "outskirts",
+                "route_floor": 2,
+                "campaign_floor": 1,
+                "node_tier": "utility",
+                "render_x": 232,
+                "render_y": 258,
+                "encounter_hook_id": "outskirts:shop:f2:c0",
+                "boss_slot_id": None,
+                "enemy_ids": [],
+                "next_nodes": [],
+            },
+        },
+        "available_node_ids": ["outskirts_floor_0_node_0"],
+        "visited_node_ids": [],
+        "selected_node_id": None,
+        "presentation": {"ui_scale": 1.0, "high_contrast": False},
+    }
+    layout = ui.build_layout(state)
+    return {
+        "focused_node_label": layout["focused_node_label"],
+        "map_name": layout["map_name"],
+        "route_floor_count": layout["route_floor_count"],
+        "max_scroll": layout["max_scroll"],
+    }

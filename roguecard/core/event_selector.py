@@ -9,7 +9,6 @@ from config import (
     EVENT_RECENTLY_SEEN_PENALTY,
     EVENT_SAME_TAG_REPEAT_PENALTY,
     MAX_SEEN_EVENT_MEMORY,
-    MAP_FLOORS,
 )
 
 
@@ -149,15 +148,19 @@ class EventSelector:
         return EVENT_RARITY_WEIGHTS[rarity]
 
     def _phase_multiplier(self, rarity: str, context: dict[str, Any]) -> float:
-        phase = self._phase_name(context.get("current_floor", 0))
+        phase = self._phase_name(
+            context.get("current_floor", 0),
+            context.get("route_floor_count"),
+        )
         multiplier = EARLY_MID_LATE_RUN_WEIGHT_MODIFIERS[phase][rarity]
         if rarity == "special" and multiplier <= 0:
             return 1.0
         return multiplier
 
-    def _phase_name(self, floor: int) -> str:
-        early_max_floor = max(1, (MAP_FLOORS // 3) - 1)
-        late_min_floor = max(2, MAP_FLOORS - 2)
+    def _phase_name(self, floor: int, route_floor_count: Any) -> str:
+        total_route_floors = route_floor_count if isinstance(route_floor_count, int) and route_floor_count > 0 else 15
+        early_max_floor = max(1, (total_route_floors // 3) - 1)
+        late_min_floor = max(2, total_route_floors - 2)
         if floor <= early_max_floor:
             return "early"
         if floor >= late_min_floor:
@@ -213,6 +216,7 @@ def simulate_event_selector() -> dict[str, Any]:
     selector = EventSelector()
     context = {
         "current_floor": 2,
+        "route_floor_count": 15,
         "current_act": 1,
         "current_hp": 40,
         "max_hp": 70,

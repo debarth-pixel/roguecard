@@ -204,6 +204,11 @@ class TitleUI:
             character_name = summary.get("character_name")
             if character_name:
                 summary_lines.insert(1, f"Character: {character_name}")
+            map_name = summary.get("map_name")
+            map_index = summary.get("map_index")
+            if map_name:
+                map_label = map_name if not map_index else f"Map {map_index}: {map_name}"
+                summary_lines.insert(2 if character_name else 1, f"Route: {map_label}")
             modifier_label = summary.get("modifier_label")
             if modifier_label:
                 summary_lines.append(f"Active modifier: {modifier_label}")

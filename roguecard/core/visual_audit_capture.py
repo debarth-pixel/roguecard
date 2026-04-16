@@ -46,6 +46,11 @@ def capture_visual_audit(
         snapshot = _presentation_snapshot(manager.get_state_snapshot())
         _capture_screen(ui_manager, surface, snapshot, output_path, captured_paths)
 
+        if manager.current_state == "character_select":
+            manager.select_character("operator")
+            manager.confirm_character_selection()
+            continue
+
         if manager.current_state == "map":
             manager.select_map_node(_choose_map_node(snapshot, captured_paths))
             continue

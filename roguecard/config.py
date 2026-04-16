@@ -4,6 +4,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 ASSETS_ROOT = PROJECT_ROOT / "assets"
 DATA_ROOT = PROJECT_ROOT / "data"
+SPRITE_REFERENCE_PACK_ROOT = PROJECT_ROOT / "sprite_sheet_reference_pack"
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -52,10 +53,11 @@ STATUS_TOOLTIP_WIDTH = 300
 GAME_VERSION = "0.1.0"
 CARD_SCHEMA_VERSION = 2
 CHARACTER_SCHEMA_VERSION = 1
-ENEMY_SCHEMA_VERSION = 1
+CAMPAIGN_SCHEMA_VERSION = 1
+ENEMY_SCHEMA_VERSION = 2
 EVENT_SCHEMA_VERSION = 1
 RUN_MODIFIER_SCHEMA_VERSION = 1
-SAVE_FORMAT_VERSION = 10
+SAVE_FORMAT_VERSION = 12
 
 MAX_HAND_SIZE = 10
 PLAYER_STARTING_HP = 70
@@ -66,16 +68,34 @@ PLAYER_STARTING_CREDITS = 0
 DEFAULT_ENEMY_ATTACK_DAMAGE = 6
 DEFAULT_ENEMY_DEFEND_BLOCK = 5
 
-MAP_FLOORS = 6
+MAP_FLOOR_COUNT = 15
+MAP_TOTAL_ROWS = MAP_FLOOR_COUNT + 1
 MAP_BRANCHES = 3
+BOSS_CHECKPOINT_HEAL = 12
+BOSS_REWARD_CARD_CHOICE_COUNT = 4
+BARK_GENERIC_DURATION_SECONDS = 2.2
+BARK_BOSS_DURATION_SECONDS = 3.2
+BARK_COOLDOWN_ACTIONS = 2
+BARK_MAX_GENERIC_PER_SPEAKER = 2
+BARK_MAX_BOSS_PER_SPEAKER = 5
 
 CARDS_DATA_PATH = DATA_ROOT / "cards.json"
 CHARACTERS_DATA_PATH = DATA_ROOT / "characters.json"
+CAMPAIGN_MAPS_DATA_PATH = DATA_ROOT / "campaign_maps.json"
 ENEMIES_DATA_PATH = DATA_ROOT / "enemies.json"
 EVENTS_DATA_PATH = DATA_ROOT / "events.json"
 RUN_MODIFIERS_DATA_PATH = DATA_ROOT / "run_modifiers.json"
 SETTINGS_DATA_PATH = DATA_ROOT / "settings.json"
 RUN_SAVE_DATA_PATH = DATA_ROOT / "run_save.json"
+GRAYSPINE_LORE_DATA_PATH = DATA_ROOT / "grayspine_lore.json"
+FINAL_MAP_BOSSES_DATA_PATH = DATA_ROOT / "final_map_bosses.json"
+FINAL_MAP_ENCOUNTERS_DATA_PATH = DATA_ROOT / "final_map_encounters.json"
+FINAL_MAP_BARKS_DATA_PATH = DATA_ROOT / "final_map_barks.json"
+CARD_ART_ATLAS_PATH = SPRITE_REFERENCE_PACK_ROOT / "card_art_atlas.png"
+CARD_ART_ATLAS_COORDINATES_PATH = SPRITE_REFERENCE_PACK_ROOT / "card_art_atlas_coordinates.csv"
+RELIC_SPRITE_SHEET_PATH = SPRITE_REFERENCE_PACK_ROOT / "relic_sprite_sheet_reference.png"
+RELIC_SPRITE_COORDINATES_PATH = SPRITE_REFERENCE_PACK_ROOT / "relic_sprite_coordinates.csv"
+RELIC_CUTOUTS_ROOT = ASSETS_ROOT / "ui" / "relics"
 
 ENCOUNTER_ENEMY_IDS = {
     "combat": "enemy_basic_01",
@@ -188,5 +208,16 @@ STATUS_SOURCE_TYPES = (
     "combat_reward",
     "boss_reward",
 )
+FINAL_MAP_FACTION_IDS = (
+    "helix_ward",
+    "blackwire_directorate",
+    "cinder_jackals",
+)
+
+FINAL_MAP_ROUTE_IDS = {
+    "helix_ward": "helix_ward_depths",
+    "blackwire_directorate": "blackwire_lockdown_sector",
+    "cinder_jackals": "cinder_jackals_edgeworks",
+}
 def resolve_asset_path(*parts: str) -> Path:
     return ASSETS_ROOT.joinpath(*parts)

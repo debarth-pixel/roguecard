@@ -8,6 +8,8 @@ from cards.card_library import CardLibrary
 from cards.deck_manager import DeckManager
 from combat.combat_manager import CombatManager
 from config import (
+    BOSS_CHECKPOINT_HEAL,
+    BOSS_REWARD_CARD_CHOICE_COUNT,
     ELITE_COMBAT_CREDIT_REWARD,
     ENCOUNTER_ENEMY_IDS,
     MIN_STARTING_DECK_SIZE,
@@ -28,6 +30,7 @@ from config import (
     SHOP_REROLL_BASE_PRICE,
     SHOP_REROLL_PRICE_STEP,
 )
+from core.campaign_library import CampaignLibrary
 from core.character_library import CharacterLibrary
 from core.event_library import EventLibrary
 from core.event_selector import EventSelector
@@ -51,6 +54,8 @@ class StateManager:
     ) -> None:
         self.card_library = card_library or CardLibrary()
         self.character_library = CharacterLibrary(card_library=self.card_library)
+        self.campaign_library = CampaignLibrary()
+        self.grayspine_content = self.campaign_library.grayspine_content
         self.enemy_library = enemy_library or EnemyLibrary()
         self.run_modifier_library = modifier_library or RunModifierLibrary(card_library=self.card_library)
         self.run_modifier_engine = RunModifierEngine(self.run_modifier_library)
@@ -78,6 +83,7 @@ class StateManager:
         self.modifier_runtime_flags: dict[str, Any] = self._default_modifier_runtime_flags()
         self.event_history: list[dict[str, Any]] = []
         self.character_id: str | None = None
+        self.campaign_state: dict[str, Any] | None = None
 
     def start_new_run(self, seed: int | None = None) -> dict[str, Any]:
         self.run_seed = seed if seed is not None else random.randrange(1, 1_000_000)
@@ -98,6 +104,7 @@ class StateManager:
         self.event_history = []
         self.current_state = "character_select"
         self.status_message = "Choose a runner before drafting a modifier."
+        self.campaign_state = None
         return self.get_state_snapshot()
 
     def select_character(self, character_id: str) -> dict[str, Any]:
@@ -118,10 +125,7 @@ class StateManager:
         character = self.character_library.get_character(character_id)
         self.character_id = character_id
         self.player = self._create_player(character_id, self.run_seed)
-        self.map_graph = MapGenerator(rng=random.Random(self.run_seed)).generate_map()
-        self.available_node_ids = list(self.map_graph["start_nodes"])
-        self.visited_node_ids = []
-        self.selected_node_id = None
+        self._initialize_campaign()
         self.combat_manager = None
         self.active_reward = None
         self.active_shop = None
@@ -129,7 +133,7 @@ class StateManager:
         self.active_modifier_draft = self._generate_modifier_draft_state()
         self.active_character_select = None
         self.current_state = "modifier_draft"
-        self.status_message = f"{character['name']} ready. Choose a run modifier."
+        self.status_message = f"{character['name']} ready. Choose a relic."
         return self.get_state_snapshot()
 
     def select_run_modifier_offer(self, modifier_id: str) -> dict[str, Any]:
@@ -146,12 +150,12 @@ class StateManager:
         self._require_modifier_draft()
         modifier_id = self.active_modifier_draft.get("selected_offer_id")
         if modifier_id is None:
-            raise ValueError("Select a modifier before confirming it.")
+            raise ValueError("Select a relic before confirming it.")
 
         modifier = self.run_modifier_library.get_modifier(modifier_id)
         self._acquire_run_modifier(modifier_id, source="starter_draft")
         self.active_modifier_draft = None
-        self._enter_map_state(status_message=f"{modifier['name']} installed. Select the next node.")
+        self._enter_map_state(status_message=f"{modifier['name']} equipped. Select the next node.")
         return self.get_state_snapshot()
 
     def select_map_node(self, node_id: str) -> dict[str, Any]:
@@ -160,8 +164,11 @@ class StateManager:
             raise ValueError(f"Node {node_id} is not currently available.")
 
         node = self.map_graph["nodes"][node_id]
-        self._advance_floor_modifier_effects(node.floor)
+        self._advance_floor_modifier_effects(node.campaign_floor)
         self.selected_node_id = node_id
+        if self.campaign_state is not None:
+            self.campaign_state["route_floor_index"] = node.route_floor
+            self.campaign_state["global_route_floor_index"] = node.campaign_floor
         if node_id not in self.visited_node_ids:
             self.visited_node_ids.append(node_id)
         self.available_node_ids = list(node.next_nodes)
@@ -170,7 +177,7 @@ class StateManager:
         self.active_event = None
 
         if node.node_type in ENCOUNTER_ENEMY_IDS:
-            self._start_combat_for_node(node.node_type)
+            self._start_combat_for_node(node)
         elif node.node_type == "shop":
             self._start_shop_for_node()
         elif node.node_type == "event":
@@ -282,7 +289,11 @@ class StateManager:
         if not self._all_reward_sections_resolved():
             raise ValueError("Resolve or skip every reward section before continuing.")
 
+        transition_state = None if self.active_reward is None else copy.deepcopy(self.active_reward.get("transition"))
         self.active_reward = None
+        if transition_state is not None:
+            self._apply_campaign_transition(transition_state)
+            return self.get_state_snapshot()
         self._enter_map_state(status_message="Rewards resolved. Select the next node.")
         return self.get_state_snapshot()
 
@@ -475,6 +486,8 @@ class StateManager:
             "status_message": self.status_message,
             "run_seed": self.run_seed,
             "character": self._snapshot_character(),
+            "campaign": self._snapshot_campaign(),
+            "grayspine_intel": self._snapshot_grayspine_intel(),
             "character_select": self._snapshot_character_select(),
             "modifier_draft": self._snapshot_modifier_draft(),
             "run_modifiers": self.run_modifier_engine.snapshot(self.run_modifiers),
@@ -498,6 +511,7 @@ class StateManager:
                 "status_message": self.status_message,
                 "run_seed": self.run_seed,
                 "character": self.character_id,
+                "campaign": None,
                 "character_select": self._serialize_character_select(),
                 "player": None,
                 "deck": None,
@@ -522,6 +536,7 @@ class StateManager:
             "status_message": self.status_message,
             "run_seed": self.run_seed,
             "character": self._active_character_id(),
+            "campaign": self._serialize_campaign(),
             "character_select": None,
             "player": self._serialize_player(),
             "deck": self._serialize_deck(self.player.deck_manager),
@@ -549,6 +564,7 @@ class StateManager:
         current_state = save_data.get("current_state")
         status_message = save_data.get("status_message")
         character_id = save_data.get("character")
+        campaign_data = save_data.get("campaign")
         character_select_data = save_data.get("character_select")
         player_data = save_data.get("player")
         deck_data = save_data.get("deck")
@@ -596,6 +612,7 @@ class StateManager:
         self.modifier_runtime_flags = self._default_modifier_runtime_flags()
         self.event_history = []
         self.player = None
+        self.campaign_state = None
         self.map_graph = None
         self.available_node_ids = []
         self.visited_node_ids = []
@@ -606,6 +623,7 @@ class StateManager:
             return self.get_state_snapshot()
 
         self.player = self._restore_player(player_data, deck_data, run_seed)
+        self.campaign_state = self._restore_campaign(campaign_data)
         self.map_graph = self._restore_map(map_data)
         self.available_node_ids = list(map_data["available_node_ids"])
         self.visited_node_ids = list(map_data["visited_node_ids"])
@@ -627,20 +645,40 @@ class StateManager:
 
         return self.get_state_snapshot()
 
-    def _start_combat_for_node(self, node_type: str) -> None:
-        if node_type not in ENCOUNTER_ENEMY_IDS:
-            raise ValueError(f"Encounter node type is not mapped for combat: {node_type}")
-        enemy_id = ENCOUNTER_ENEMY_IDS[node_type]
-        enemy = self.enemy_library.create_enemy(enemy_id)
-        self.combat_manager = CombatManager(player=self.player, enemies=[enemy])
+    def _start_combat_for_node(self, node: Node) -> None:
+        if node.node_type not in ENCOUNTER_ENEMY_IDS:
+            raise ValueError(f"Encounter node type is not mapped for combat: {node.node_type}")
+        enemy_ids = list(node.enemy_ids) if node.enemy_ids else [ENCOUNTER_ENEMY_IDS[node.node_type]]
+        enemies = [self.enemy_library.create_enemy(enemy_id) for enemy_id in enemy_ids]
+        self.combat_manager = CombatManager(
+            player=self.player,
+            enemies=enemies,
+            rng=self._state_rng(f"combat:{node.node_id}"),
+            bark_source=self.grayspine_content,
+        )
         self.combat_manager.set_card_factory(self.card_library.create_card)
+        self.combat_manager.set_enemy_factory(self.enemy_library.create_enemy)
         self.combat_manager.start_combat()
         self._begin_combat_modifier_runtime()
         self._apply_combat_modifier_effects("combat_start")
         self._apply_combat_modifier_effects("on_turn_start")
         self._apply_combat_modifier_effects("turn_one")
         self.current_state = "combat"
-        self.status_message = f"Entered {node_type} encounter. Play cards or end your turn."
+        if node.node_type == "boss" and self.map_graph is not None:
+            boss_id = node.boss_slot_id or self.map_graph.get("selected_boss_id")
+            if isinstance(boss_id, str):
+                try:
+                    boss = self.grayspine_content.get_boss(boss_id)
+                except KeyError:
+                    boss = self.map_graph.get("selected_boss", {})
+                boss_name = boss.get("name", "Boss")
+                boss_summary = boss.get("summary")
+                if isinstance(boss_summary, str) and boss_summary:
+                    self.status_message = f"{boss_name}: {boss_summary}"
+                else:
+                    self.status_message = f"{boss_name} blocks the path through {self._current_map_name()}."
+                return
+        self.status_message = f"Entered {node.node_type} encounter on {self._current_map_name()}. Play cards or end your turn."
 
     def _start_shop_for_node(self) -> None:
         self._require_player()
@@ -673,9 +711,16 @@ class StateManager:
 
         self.player.deck_manager.normalize_overworld_deck()
         if encounter_type == "boss":
-            self.active_reward = None
-            self.current_state = "victory"
-            self.status_message = "Run completed."
+            if self._current_map_index() >= 3:
+                self.active_reward = None
+                self.current_state = "victory"
+                self.status_message = f"{self._current_map_name()} cleared. Run completed."
+                return
+
+            reward_state = self._generate_boss_transition_reward()
+            self.active_reward = reward_state
+            self.current_state = "reward"
+            self.status_message = reward_state["intro_message"]
             return
 
         credits_granted = self._credits_for_encounter(encounter_type)
@@ -704,6 +749,14 @@ class StateManager:
             return None
 
         return {
+            "map_id": self.map_graph["map_id"],
+            "map_name": self.map_graph["map_name"],
+            "map_index": self.map_graph["map_index"],
+            "branch_faction": self.map_graph.get("branch_faction"),
+            "route_floor_count": self.map_graph["route_floor_count"],
+            "selected_boss_id": self.map_graph["selected_boss_id"],
+            "canvas_width": self.map_graph["canvas_width"],
+            "canvas_height": self.map_graph["canvas_height"],
             "nodes": {node_id: node.to_dict() for node_id, node in self.map_graph["nodes"].items()},
             "start_nodes": list(self.map_graph["start_nodes"]),
             "boss_node_id": self.map_graph["boss_node_id"],
@@ -711,6 +764,11 @@ class StateManager:
             "visited_node_ids": list(self.visited_node_ids),
             "selected_node_id": self.selected_node_id,
         }
+
+    def _snapshot_campaign(self) -> dict[str, Any] | None:
+        if self.campaign_state is None:
+            return None
+        return copy.deepcopy(self.campaign_state)
 
     def _snapshot_character(self) -> dict[str, Any] | None:
         character_id = self._active_character_id()
@@ -824,6 +882,7 @@ class StateManager:
         return {
             "encounter_type": self.active_reward["encounter_type"],
             "credits_granted": self.active_reward["credits_granted"],
+            "transition": copy.deepcopy(self.active_reward.get("transition")),
             "sections": [
                 {
                     **copy.deepcopy(self.active_reward["sections"][section_id]),
@@ -1177,7 +1236,32 @@ class StateManager:
         if self.map_graph is None or self.selected_node_id is None:
             return 0
         node = self.map_graph["nodes"].get(self.selected_node_id)
-        return 0 if node is None else node.floor
+        return 0 if node is None else node.route_floor
+
+    def _current_global_floor(self) -> int:
+        if self.map_graph is None or self.selected_node_id is None:
+            return 0
+        node = self.map_graph["nodes"].get(self.selected_node_id)
+        return 0 if node is None else node.campaign_floor
+
+    def _current_map_index(self) -> int:
+        if self.campaign_state is None:
+            return 0
+        return int(self.campaign_state.get("map_index", 0))
+
+    def _current_map_id(self) -> str | None:
+        if self.campaign_state is None:
+            return None
+        map_id = self.campaign_state.get("map_id")
+        return map_id if isinstance(map_id, str) else None
+
+    def _current_map_name(self) -> str:
+        if self.campaign_state is None:
+            return "the city"
+        map_name = self.campaign_state.get("map_name")
+        if isinstance(map_name, str) and map_name:
+            return map_name
+        return "the city"
 
     def _active_character_id(self) -> str | None:
         if self.player is not None and self.player.character_id is not None:
@@ -1202,6 +1286,120 @@ class StateManager:
         player = Player(credits=PLAYER_STARTING_CREDITS, character_id=character_id)
         player.attach_deck(deck_manager)
         return player
+
+    def _initialize_campaign(self) -> None:
+        self.campaign_state = {
+            "map_index": 1,
+            "map_id": "outskirts",
+            "map_name": self.campaign_library.get_map_definition("outskirts")["name"],
+            "route_floor_index": 0,
+            "route_floor_count": 0,
+            "branch_faction": None,
+            "selected_boss_id": None,
+            "global_route_floor_index": 0,
+        }
+        self._generate_campaign_map("outskirts", map_index=1, branch_faction=None)
+
+    def _generate_campaign_map(
+        self,
+        map_id: str,
+        *,
+        map_index: int,
+        branch_faction: str | None,
+    ) -> None:
+        map_definition = self.campaign_library.get_map_definition(map_id)
+        global_floor_offset = (map_index - 1) * (map_definition["route_floor_count"] + 1)
+        boss_rng = self._state_rng(f"campaign_boss:{map_id}:{map_index}")
+        selected_boss = self.campaign_library.choose_boss(map_id, boss_rng)
+        map_rng = self._state_rng(f"campaign_map:{map_id}:{map_index}")
+        self.map_graph = MapGenerator(rng=map_rng).generate_map(
+            map_definition,
+            map_index=map_index,
+            global_floor_offset=global_floor_offset,
+            branch_faction=branch_faction,
+            selected_boss=selected_boss,
+        )
+        self._assign_grayspine_encounters(self.map_graph)
+        self.available_node_ids = list(self.map_graph["start_nodes"])
+        self.visited_node_ids = []
+        self.selected_node_id = None
+        if self.campaign_state is None:
+            self.campaign_state = {}
+        self.campaign_state.update(
+            {
+                "map_index": map_index,
+                "map_id": map_definition["id"],
+                "map_name": map_definition["name"],
+                "route_floor_index": 0,
+                "route_floor_count": map_definition["route_floor_count"],
+                "branch_faction": branch_faction,
+                "selected_boss_id": selected_boss["id"],
+                "global_route_floor_index": global_floor_offset,
+            }
+        )
+        self.modifier_runtime_flags["last_floor_status_tick"] = max(
+            self.modifier_runtime_flags.get("last_floor_status_tick", 0),
+            max(0, global_floor_offset - 1),
+        )
+
+    def _generate_boss_transition_reward(self) -> dict[str, Any]:
+        current_map_id = self._current_map_id()
+        if current_map_id is None or self.map_graph is None:
+            raise ValueError("Boss transition reward requires an active campaign map.")
+        selected_boss = copy.deepcopy(self.map_graph["selected_boss"])
+        next_map_id = self.campaign_library.next_map_id_for_boss(current_map_id, selected_boss)
+        if next_map_id is None:
+            raise ValueError("Final-map bosses should not generate checkpoint rewards.")
+
+        next_map_definition = self.campaign_library.get_map_definition(next_map_id)
+        checkpoint_transition = {
+            "from_map_id": current_map_id,
+            "from_map_name": self._current_map_name(),
+            "next_map_id": next_map_definition["id"],
+            "next_map_name": next_map_definition["name"],
+            "next_map_index": self._current_map_index() + 1,
+            "branch_faction": next_map_definition.get("branch_faction"),
+            "checkpoint_heal": BOSS_CHECKPOINT_HEAL,
+            "defeated_boss_id": selected_boss["id"],
+            "defeated_boss_name": selected_boss["name"],
+        }
+
+        sections = {
+            "card_offer": self._build_card_reward_section(choice_count=BOSS_REWARD_CARD_CHOICE_COUNT)
+        }
+        return {
+            "encounter_type": "boss",
+            "credits_granted": 0,
+            "section_order": ["card_offer"],
+            "sections": sections,
+            "intro_message": (
+                f"{selected_boss['name']} defeated. Claim a checkpoint reward before entering {next_map_definition['name']}."
+            ),
+            "transition": checkpoint_transition,
+        }
+
+    def _apply_campaign_transition(self, transition_state: dict[str, Any]) -> None:
+        next_map_id = transition_state["next_map_id"]
+        next_map_index = int(transition_state["next_map_index"])
+        branch_faction = transition_state.get("branch_faction")
+        checkpoint_heal = int(transition_state.get("checkpoint_heal", 0))
+        healed = 0 if checkpoint_heal <= 0 else self.player.heal(checkpoint_heal)
+        self._generate_campaign_map(
+            next_map_id,
+            map_index=next_map_index,
+            branch_faction=branch_faction,
+        )
+        heal_summary = f"Recovered {healed} HP at the checkpoint." if healed > 0 else "Checkpoint secured."
+        route_intro = ""
+        if next_map_index >= 3:
+            route_faction_id = self.grayspine_content.faction_for_map(next_map_id)
+            if route_faction_id is not None:
+                route_intro = f" {self.grayspine_content.route_intro_text(route_faction_id)}"
+        self._enter_map_state(
+            status_message=(
+                f"{heal_summary} Entering {self._current_map_name()}.{route_intro} Select the next node."
+            )
+        )
 
     def _generate_modifier_draft_state(self) -> dict[str, Any]:
         rng = self._state_rng("modifier_draft")
@@ -1610,9 +1808,14 @@ class StateManager:
         )
 
     def _event_selection_context(self) -> dict[str, Any]:
+        route_floor_count = 0 if self.map_graph is None else int(self.map_graph.get("route_floor_count", 0))
         return {
             "current_floor": self._current_node_floor(),
-            "current_act": 1,
+            "current_global_floor": self._current_global_floor(),
+            "current_map_index": self._current_map_index(),
+            "current_map_id": self._current_map_id(),
+            "route_floor_count": route_floor_count,
+            "current_act": self._current_map_index(),
             "current_hp": self.player.current_hp,
             "max_hp": self.player.max_hp,
             "credits": self.player.credits,
@@ -1635,7 +1838,7 @@ class StateManager:
             {
                 "event_id": event_definition["id"],
                 "primary_tag": event_definition["primary_tag"],
-                "floor": self._current_node_floor(),
+                "floor": self._current_global_floor(),
             }
         )
 
@@ -1684,13 +1887,18 @@ class StateManager:
         encounter_type: str | None,
         credits_granted: int,
     ) -> dict[str, Any] | None:
-        if encounter_type not in {"combat", "elite"}:
+        if encounter_type not in {"combat", "elite", "boss"}:
             return None
 
         sections: dict[str, Any] = {}
         section_order: list[str] = []
 
-        if encounter_type == "combat":
+        if encounter_type == "boss":
+            sections["card_offer"] = self._build_card_reward_section(
+                choice_count=BOSS_REWARD_CARD_CHOICE_COUNT
+            )
+            section_order.append("card_offer")
+        elif encounter_type == "combat":
             if not self._regular_reward_enabled():
                 return None
             reward_type = self._regular_reward_type()
@@ -1716,7 +1924,11 @@ class StateManager:
             "credits_granted": credits_granted,
             "section_order": section_order,
             "sections": sections,
-            "intro_message": f"Reward ready. +{credits_granted} credits earned.",
+            "intro_message": (
+                "Checkpoint reward ready."
+                if encounter_type == "boss"
+                else f"Reward ready. +{credits_granted} credits earned."
+            ),
         }
 
     def _regular_reward_enabled(self) -> bool:
@@ -1732,9 +1944,10 @@ class StateManager:
         roll = rng.randint(1, total_weight)
         return "card_offer" if roll <= REGULAR_REWARD_CARD_WEIGHT else "purge_offer"
 
-    def _build_card_reward_section(self) -> dict[str, Any]:
-        bonus_choices = self.run_modifier_engine.reward_card_choice_bonus(self.run_modifiers)
-        choice_count = REWARD_CARD_CHOICE_COUNT + bonus_choices
+    def _build_card_reward_section(self, choice_count: int | None = None) -> dict[str, Any]:
+        if choice_count is None:
+            bonus_choices = self.run_modifier_engine.reward_card_choice_bonus(self.run_modifiers)
+            choice_count = REWARD_CARD_CHOICE_COUNT + bonus_choices
         chosen_ids = self._select_offer_card_ids(
             slot_count=choice_count,
             label="card_reward",
@@ -2103,8 +2316,57 @@ class StateManager:
     def _state_rng(self, label: str) -> random.Random:
         if self.run_seed is None:
             raise ValueError("Run seed is not available for deterministic state generation.")
+        map_key = "root"
+        if self.campaign_state is not None:
+            map_key = f"{self.campaign_state.get('map_index', 0)}:{self.campaign_state.get('map_id', 'root')}"
         node_id = self.selected_node_id or "root"
-        return random.Random(f"{self.run_seed}:{node_id}:{label}")
+        return random.Random(f"{self.run_seed}:{map_key}:{node_id}:{label}")
+
+    def _assign_grayspine_encounters(self, map_graph: dict[str, Any] | None) -> None:
+        if map_graph is None:
+            return
+        faction_id = self.grayspine_content.faction_for_map(map_graph["map_id"])
+        if faction_id is None:
+            return
+        for node in map_graph["nodes"].values():
+            if node.node_type not in {"combat", "elite"}:
+                continue
+            encounter = self.grayspine_content.choose_encounter(
+                faction_id,
+                node_type=node.node_type,
+                route_floor=node.route_floor,
+                rng=self._state_rng(f"grayspine_encounter:{map_graph['map_id']}:{node.node_id}"),
+            )
+            node.encounter_hook_id = encounter["id"]
+            node.enemy_ids = list(encounter["enemy_ids"])
+
+    def _snapshot_grayspine_intel(self) -> dict[str, Any] | None:
+        campaign = self.campaign_state
+        if not isinstance(campaign, dict):
+            return None
+        if int(campaign.get("map_index", 0)) < 3:
+            return None
+        lore = self.grayspine_content.lore()
+        factions = self.grayspine_content.list_factions()
+        current_map_id = campaign.get("map_id")
+        current_faction_id = None
+        if isinstance(current_map_id, str):
+            current_faction_id = self.grayspine_content.faction_for_map(current_map_id)
+        unlocked = self.current_state == "victory" and int(campaign.get("map_index", 0)) >= 3
+        for faction in factions:
+            faction["bosses"] = self.grayspine_content.get_bosses_for_faction(faction["id"])
+        return {
+            "available": True,
+            "city": lore["city"],
+            "factions": factions,
+            "selected_faction_id": current_faction_id or campaign.get("branch_faction"),
+            "route_map_id": current_map_id,
+            "spine_core": {
+                **lore["spine_core"],
+                "unlocked": unlocked,
+                "display_summary": self.grayspine_content.spine_core_summary(unlocked=unlocked),
+            },
+        }
 
     def _serialize_player(self) -> dict[str, Any]:
         return {
@@ -2127,6 +2389,7 @@ class StateManager:
             "temporary_combat_cards": [card.id for card in self.player.temporary_combat_cards],
             "first_card_played": self.player.first_card_played,
             "first_attack_played": self.player.first_attack_played,
+            "combat_statuses": self.player.combat_status_snapshot(),
         }
 
     def _serialize_deck(self, deck_manager: DeckManager) -> dict[str, Any]:
@@ -2144,6 +2407,17 @@ class StateManager:
             raise ValueError("Cannot serialize a run without a map graph.")
 
         return {
+            "map_id": self.map_graph["map_id"],
+            "map_name": self.map_graph["map_name"],
+            "map_index": self.map_graph["map_index"],
+            "theme_tag": self.map_graph["theme_tag"],
+            "branch_faction": self.map_graph.get("branch_faction"),
+            "route_floor_count": self.map_graph["route_floor_count"],
+            "global_floor_offset": self.map_graph["global_floor_offset"],
+            "selected_boss_id": self.map_graph["selected_boss_id"],
+            "selected_boss": copy.deepcopy(self.map_graph["selected_boss"]),
+            "canvas_width": self.map_graph["canvas_width"],
+            "canvas_height": self.map_graph["canvas_height"],
             "nodes": {node_id: node.to_dict() for node_id, node in self.map_graph["nodes"].items()},
             "start_nodes": list(self.map_graph["start_nodes"]),
             "boss_node_id": self.map_graph["boss_node_id"],
@@ -2151,6 +2425,9 @@ class StateManager:
             "visited_node_ids": list(self.visited_node_ids),
             "selected_node_id": self.selected_node_id,
         }
+
+    def _serialize_campaign(self) -> dict[str, Any] | None:
+        return None if self.campaign_state is None else copy.deepcopy(self.campaign_state)
 
     def _serialize_combat(self) -> dict[str, Any] | None:
         if self.combat_manager is None:
@@ -2161,16 +2438,23 @@ class StateManager:
             "turn_number": self.combat_manager.turn_manager.turn_number,
             "turn_owner": self.combat_manager.turn_manager.turn_owner,
             "event_log": list(self.combat_manager.event_log),
+            "active_bark": None if self.combat_manager.active_bark is None else dict(self.combat_manager.active_bark),
+            "bark_runtime": {
+                "nonce": getattr(self.combat_manager, "_bark_nonce", 0),
+                "cooldown_remaining": getattr(self.combat_manager, "_bark_cooldown_remaining", 0),
+                "speaker_counts": dict(getattr(self.combat_manager, "_speaker_bark_counts", {})),
+                "defeated_enemy_ids": sorted(getattr(self.combat_manager, "_defeated_enemy_ids", set())),
+            },
             "enemies": [
                 {
                     "id": enemy.id,
                     "current_hp": enemy.current_hp,
                     "block": enemy.block,
                     "current_intent": enemy.current_intent,
-                    "intent_index": getattr(enemy, "_intent_index", 0),
                     "strength": enemy.strength,
                     "weak": enemy.weak,
                     "vulnerable": enemy.vulnerable,
+                    "runtime": enemy.snapshot_runtime(),
                 }
                 for enemy in self.combat_manager.enemies
             ],
@@ -2265,6 +2549,15 @@ class StateManager:
         player.temporary_combat_cards = self._cards_from_ids(player_data.get("temporary_combat_cards", []))
         player.first_card_played = bool(player_data.get("first_card_played", False))
         player.first_attack_played = bool(player_data.get("first_attack_played", False))
+        combat_statuses = player_data.get("combat_statuses", {})
+        if isinstance(combat_statuses, dict):
+            player.infect = max(0, int(combat_statuses.get("infect", 0)))
+            player.burn = max(0, int(combat_statuses.get("burn", 0)))
+            player.bleed = max(0, int(combat_statuses.get("bleed", 0)))
+            player.marked = max(0, int(combat_statuses.get("marked", 0)))
+            player.marked_turns = max(0, int(combat_statuses.get("marked_turns", 0)))
+            player.suppressed = max(0, min(3, int(combat_statuses.get("suppressed", 0))))
+            player.nullified = bool(combat_statuses.get("nullified", False))
         self.character_id = character_id
         return player
 
@@ -2320,6 +2613,17 @@ class StateManager:
             raise ValueError("Save data is missing map details.")
 
         required_keys = {
+            "map_id",
+            "map_name",
+            "map_index",
+            "theme_tag",
+            "branch_faction",
+            "route_floor_count",
+            "global_floor_offset",
+            "selected_boss_id",
+            "selected_boss",
+            "canvas_width",
+            "canvas_height",
             "nodes",
             "start_nodes",
             "boss_node_id",
@@ -2341,6 +2645,15 @@ class StateManager:
                 node_type=node_data["node_type"],
                 floor=node_data["floor"],
                 column=node_data["column"],
+                map_id=node_data["map_id"],
+                route_floor=node_data["route_floor"],
+                campaign_floor=node_data["campaign_floor"],
+                node_tier=node_data["node_tier"],
+                render_x=node_data["render_x"],
+                render_y=node_data["render_y"],
+                encounter_hook_id=node_data.get("encounter_hook_id"),
+                boss_slot_id=node_data.get("boss_slot_id"),
+                enemy_ids=list(node_data.get("enemy_ids", [])),
                 next_nodes=list(node_data["next_nodes"]),
             )
             nodes[node_id] = node
@@ -2359,9 +2672,77 @@ class StateManager:
             raise ValueError("Save data contains an unknown selected node id.")
 
         return {
+            "map_id": map_data["map_id"],
+            "map_name": map_data["map_name"],
+            "map_index": map_data["map_index"],
+            "theme_tag": map_data["theme_tag"],
+            "branch_faction": map_data.get("branch_faction"),
+            "route_floor_count": map_data["route_floor_count"],
+            "global_floor_offset": map_data["global_floor_offset"],
+            "selected_boss_id": map_data["selected_boss_id"],
+            "selected_boss": copy.deepcopy(map_data["selected_boss"]),
+            "canvas_width": map_data["canvas_width"],
+            "canvas_height": map_data["canvas_height"],
             "nodes": nodes,
             "start_nodes": list(map_data["start_nodes"]),
             "boss_node_id": map_data["boss_node_id"],
+        }
+
+    def _restore_campaign(self, campaign_data: Any) -> dict[str, Any]:
+        if not isinstance(campaign_data, dict):
+            raise ValueError("Save data is missing campaign details.")
+
+        required_keys = {
+            "map_index",
+            "map_id",
+            "map_name",
+            "route_floor_index",
+            "route_floor_count",
+            "branch_faction",
+            "selected_boss_id",
+            "global_route_floor_index",
+        }
+        if not required_keys.issubset(campaign_data):
+            raise ValueError("Campaign save data is incomplete.")
+
+        map_definition = self.campaign_library.get_map_definition(campaign_data["map_id"])
+        map_name = campaign_data["map_name"]
+        if not isinstance(map_name, str) or not map_name:
+            raise ValueError("Campaign save data map_name must be a non-empty string.")
+
+        map_index = campaign_data["map_index"]
+        route_floor_index = campaign_data["route_floor_index"]
+        route_floor_count = campaign_data["route_floor_count"]
+        global_route_floor_index = campaign_data["global_route_floor_index"]
+        selected_boss_id = campaign_data["selected_boss_id"]
+        branch_faction = campaign_data.get("branch_faction")
+
+        if not isinstance(map_index, int) or map_index < 1:
+            raise ValueError("Campaign save data map_index must be a positive integer.")
+        if not isinstance(route_floor_index, int) or route_floor_index < 0:
+            raise ValueError("Campaign save data route_floor_index must be non-negative.")
+        if not isinstance(route_floor_count, int) or route_floor_count < 1:
+            raise ValueError("Campaign save data route_floor_count must be positive.")
+        if not isinstance(global_route_floor_index, int) or global_route_floor_index < 0:
+            raise ValueError("Campaign save data global_route_floor_index must be non-negative.")
+        if not isinstance(selected_boss_id, str) or not selected_boss_id:
+            raise ValueError("Campaign save data selected_boss_id must be a non-empty string.")
+        if branch_faction is not None and (
+            not isinstance(branch_faction, str) or branch_faction != map_definition.get("branch_faction")
+        ):
+            if map_definition.get("branch_faction") is not None:
+                raise ValueError("Campaign save data branch_faction does not match the current map.")
+            branch_faction = None
+
+        return {
+            "map_index": map_index,
+            "map_id": map_definition["id"],
+            "map_name": map_name,
+            "route_floor_index": route_floor_index,
+            "route_floor_count": route_floor_count,
+            "branch_faction": branch_faction,
+            "selected_boss_id": selected_boss_id,
+            "global_route_floor_index": global_route_floor_index,
         }
 
     def _restore_combat(self, combat_data: dict[str, Any] | None) -> CombatManager:
@@ -2385,15 +2766,41 @@ class StateManager:
             enemy.strength = int(enemy_data.get("strength", 0))
             enemy.weak = int(enemy_data.get("weak", 0))
             enemy.vulnerable = int(enemy_data.get("vulnerable", 0))
-            setattr(enemy, "_intent_index", enemy_data.get("intent_index", 0))
+            enemy.restore_runtime(enemy_data.get("runtime", {}))
             enemies.append(enemy)
 
-        combat_manager = CombatManager(player=self.player, enemies=enemies)
+        combat_manager = CombatManager(
+            player=self.player,
+            enemies=enemies,
+            rng=self._state_rng(f"combat_restore:{self.selected_node_id or 'root'}"),
+            bark_source=self.grayspine_content,
+        )
         combat_manager.set_card_factory(self.card_library.create_card)
+        combat_manager.set_enemy_factory(self.enemy_library.create_enemy)
         combat_manager.combat_active = bool(combat_data["combat_active"])
         combat_manager.turn_manager.turn_number = combat_data["turn_number"]
         combat_manager.turn_manager.turn_owner = combat_data["turn_owner"]
         combat_manager.event_log = list(combat_data["event_log"])
+        active_bark = combat_data.get("active_bark")
+        combat_manager.active_bark = dict(active_bark) if isinstance(active_bark, dict) else None
+        bark_runtime = combat_data.get("bark_runtime", {})
+        if isinstance(bark_runtime, dict):
+            combat_manager._bark_nonce = int(bark_runtime.get("nonce", 0))
+            combat_manager._bark_cooldown_remaining = int(bark_runtime.get("cooldown_remaining", 0))
+            speaker_counts = bark_runtime.get("speaker_counts", {})
+            if isinstance(speaker_counts, dict):
+                combat_manager._speaker_bark_counts = {
+                    str(key): int(value)
+                    for key, value in speaker_counts.items()
+                    if isinstance(key, str) and isinstance(value, int)
+                }
+            defeated_ids = bark_runtime.get("defeated_enemy_ids", [])
+            if isinstance(defeated_ids, list):
+                combat_manager._defeated_enemy_ids = {
+                    str(enemy_id)
+                    for enemy_id in defeated_ids
+                    if isinstance(enemy_id, str)
+                }
         return combat_manager
 
     def _restore_event(self, event_data: dict[str, Any] | None) -> dict[str, Any]:

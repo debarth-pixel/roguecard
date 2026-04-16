@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,20 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
+from ui.relic_assets import relic_assets
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+
+DRAFT_OFFER_WIDTH = 240
+DRAFT_OFFER_HEIGHT = 296
+DRAFT_OFFER_Y = 214
+DRAFT_OFFER_SPACING = 360
+DRAFT_TOOLTIP_WIDTH = 300
+RARITY_OUTLINE_COLORS = {
+    "common": (154, 162, 176),
+    "uncommon": (94, 208, 124),
+    "rare": (154, 108, 255),
+    "special": (208, 160, 255),
+}
 
 
 class ModifierDraftUI:
@@ -26,6 +40,7 @@ class ModifierDraftUI:
     def preload_assets(self) -> None:
         if pygame is None:
             return
+        relic_assets.preload()
         for path in (
             resolve_asset_path("ui", "bg_map.png"),
             resolve_asset_path("ui", "panel.png"),
@@ -60,12 +75,12 @@ class ModifierDraftUI:
         if pygame.K_1 <= event.key <= pygame.K_3:
             offer_index = event.key - pygame.K_1
             if offer_index >= len(layout["offers"]):
-                return {"type": "notice", "message": "That modifier slot is empty.", "level": "error"}
+                return {"type": "notice", "message": "That relic slot is empty.", "level": "error"}
             return {"type": "select_run_modifier_offer", "modifier_id": layout["offers"][offer_index]["id"]}
 
         if event.key in {pygame.K_RETURN, pygame.K_SPACE}:
             if not layout["can_confirm"]:
-                return {"type": "notice", "message": "Select a modifier before confirming it.", "level": "error"}
+                return {"type": "notice", "message": "Select a relic before confirming it.", "level": "error"}
             return {"type": "confirm_run_modifier_selection"}
 
         return None
@@ -73,12 +88,18 @@ class ModifierDraftUI:
     def build_layout(self, draft_state: dict[str, Any]) -> dict[str, Any]:
         draft = draft_state["modifier_draft"]
         offers = []
+        total_width = ((len(draft["offers"]) - 1) * DRAFT_OFFER_SPACING) + DRAFT_OFFER_WIDTH
+        start_x = (1280 - total_width) // 2
         for index, offer in enumerate(draft["offers"]):
             offers.append(
                 {
                     **offer,
-                    "rect": (70 + (index * 392), 220, 356, 340),
-                    "shortcut": index + 1,
+                    "rect": (
+                        start_x + (index * DRAFT_OFFER_SPACING),
+                        DRAFT_OFFER_Y,
+                        DRAFT_OFFER_WIDTH,
+                        DRAFT_OFFER_HEIGHT,
+                    ),
                 }
             )
 
@@ -86,8 +107,9 @@ class ModifierDraftUI:
             "offers": offers,
             "selected_offer_id": draft["selected_offer_id"],
             "can_confirm": draft["can_confirm"],
-            "confirm_rect": (1036, 622, 188, 48),
+            "confirm_rect": (540, 614, 200, 50),
             "status_message": draft_state.get("status_message", ""),
+            "character_name": (draft_state.get("character") or {}).get("name", "Runner"),
         }
 
     def render(self, surface: Any, draft_state: dict[str, Any]) -> None:
@@ -95,58 +117,29 @@ class ModifierDraftUI:
             return
 
         self._ensure_fonts(draft_state.get("presentation", {}).get("ui_scale", 1.0))
-        high_contrast = draft_state.get("presentation", {}).get("high_contrast", False)
         layout = self.build_layout(draft_state)
-        character = draft_state.get("character") or {}
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         top_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 96))
-        offer_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (356, 340))
 
         surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=188)
-        surface.blit(top_panel, (24, 96))
+        draw_screen_scrim(surface, alpha=190)
+        surface.blit(top_panel, (24, 86))
 
-        self._draw_text(surface, "Choose Your Run Modifier", (44, 118), self._title_font)
-        self._draw_text(surface, layout["status_message"], (44, 156), self._small_font, width=880)
-        runner_label = character.get("name", "Runner")
-        self._draw_text(surface, runner_label, (844, 122), self._tiny_font, width=340)
-        self._draw_text(surface, "Controls: click or 1-3 to select, Enter / Space to confirm.", (844, 150), self._tiny_font, width=340)
+        self._draw_text(surface, "Choose Your Relic", (44, 108), self._title_font)
+        self._draw_text(surface, layout["status_message"], (44, 148), self._small_font, width=860)
+        self._draw_text(surface, layout["character_name"], (940, 118), self._small_font, width=240)
 
+        hovered_offer = None
         for offer in layout["offers"]:
-            rect = pygame.Rect(*offer["rect"])
-            surface.blit(offer_panel, rect.topleft)
-            selected = layout["selected_offer_id"] == offer["id"]
             hovered = self._hovered_action == f"offer:{offer['id']}"
+            selected = layout["selected_offer_id"] == offer["id"]
             pressed = self._pressed_action == f"offer:{offer['id']}"
-            border = (
-                (255, 214, 110)
-                if selected
-                else (255, 255, 255)
-                if hovered
-                else (190, 205, 230)
-                if high_contrast
-                else (104, 118, 146)
-            )
-            if pressed:
-                border = (255, 236, 140)
-            pygame.draw.rect(surface, border, rect, 3, border_radius=16)
+            if hovered:
+                hovered_offer = offer
+            self._draw_offer_sprite(surface, offer, hovered=hovered, selected=selected, pressed=pressed)
 
-            self._draw_kind_chip(surface, offer.get("type", offer["kind"]), (rect.x + 18, rect.y + 16), high_contrast)
-            badge_rect = pygame.Rect(rect.x + rect.width - 40, rect.y + 16, 24, 24)
-            pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=12)
-            pygame.draw.rect(surface, (255, 214, 110), badge_rect, 2, border_radius=12)
-            badge = self._tiny_font.render(str(offer["shortcut"]), True, (255, 214, 110))
-            surface.blit(badge, badge.get_rect(center=badge_rect.center))
-
-            self._draw_text(surface, offer["name"], (rect.x + 18, rect.y + 62), self._font, width=316)
-            self._draw_text(surface, offer["description"], (rect.x + 18, rect.y + 108), self._small_font, width=316)
-            self._draw_text(surface, "Upside", (rect.x + 18, rect.y + 198), self._tiny_font)
-            self._draw_text(surface, offer["description"], (rect.x + 18, rect.y + 220), self._tiny_font, width=316)
-
-            downside = offer.get("downside")
-            if downside:
-                self._draw_text(surface, "Tradeoff", (rect.x + 18, rect.y + 272), self._tiny_font)
-                self._draw_text(surface, downside, (rect.x + 18, rect.y + 292), self._tiny_font, width=316)
+        if hovered_offer is not None:
+            self._draw_hover_tooltip(surface, hovered_offer)
 
         self._draw_button(
             surface,
@@ -157,14 +150,137 @@ class ModifierDraftUI:
             enabled=layout["can_confirm"],
         )
 
+    def _draw_offer_sprite(
+        self,
+        surface: Any,
+        offer: dict[str, Any],
+        *,
+        hovered: bool,
+        selected: bool,
+        pressed: bool,
+    ) -> None:
+        rect = pygame.Rect(*offer["rect"])
+        rarity = str(offer.get("rarity", "common")).lower()
+        outline_color = RARITY_OUTLINE_COLORS.get(rarity, RARITY_OUTLINE_COLORS["common"])
+        target_size = 192 + (16 if hovered else 0) + (12 if selected else 0) - (6 if pressed else 0)
+        relic_art = relic_assets.get_relic_art(offer["id"], (target_size, target_size))
+        if relic_art is None:
+            fallback = self._small_font.render(offer["name"], True, (232, 240, 255))
+            fallback_rect = fallback.get_rect(center=(rect.centerx, rect.centery))
+            surface.blit(fallback, fallback_rect)
+            return
+
+        vertical_lift = 14 if hovered else 8 if selected else 0
+        art_rect = relic_art.get_rect(center=(rect.centerx, rect.centery - vertical_lift))
+
+        shadow = relic_art.copy()
+        shadow.fill((0, 0, 0, 105), special_flags=pygame.BLEND_RGBA_MULT)
+        surface.blit(shadow, (art_rect.x + 4, art_rect.y + 10))
+
+        pulse_strength = 1.0
+        if rarity in {"rare", "special"}:
+            pulse_strength = 0.9 + (0.1 * math.sin(pygame.time.get_ticks() * 0.0032))
+
+        self._draw_outline(
+            surface,
+            relic_art,
+            art_rect,
+            color=self._scaled_color(outline_color, pulse_strength),
+            thickness=4 if selected else 3 if hovered else 2,
+            glow_alpha=84 if selected else 44 if hovered else 22,
+            animated=rarity in {"rare", "special"},
+        )
+        if selected:
+            self._draw_outline(
+                surface,
+                relic_art,
+                art_rect,
+                color=(255, 244, 196),
+                thickness=2,
+                glow_alpha=36,
+                animated=False,
+            )
+
+        surface.blit(relic_art, art_rect)
+
+    def _draw_outline(
+        self,
+        surface: Any,
+        relic_art: Any,
+        art_rect: Any,
+        *,
+        color: tuple[int, int, int],
+        thickness: int,
+        glow_alpha: int,
+        animated: bool,
+    ) -> None:
+        mask = pygame.mask.from_surface(relic_art)
+        outline_points = mask.outline()
+        if len(outline_points) < 2:
+            return
+
+        drift_x = 0
+        drift_y = 0
+        if animated:
+            ticks = pygame.time.get_ticks()
+            drift_x = int(round(math.sin(ticks * 0.0018) * 1.2))
+            drift_y = int(round(math.cos(ticks * 0.0015) * 1.2))
+
+        padding = thickness + 8
+        outline_surface = pygame.Surface(
+            (art_rect.width + (padding * 2), art_rect.height + (padding * 2)),
+            pygame.SRCALPHA,
+        )
+        shifted_points = [
+            (point[0] + padding + drift_x, point[1] + padding + drift_y)
+            for point in outline_points
+        ]
+        if glow_alpha > 0:
+            pygame.draw.lines(
+                outline_surface,
+                (*color, glow_alpha),
+                True,
+                shifted_points,
+                thickness + 5,
+            )
+        pygame.draw.lines(
+            outline_surface,
+            (*color, 255),
+            True,
+            shifted_points,
+            thickness,
+        )
+        surface.blit(outline_surface, (art_rect.x - padding, art_rect.y - padding))
+
+    def _draw_hover_tooltip(self, surface: Any, offer: dict[str, Any]) -> None:
+        rect = pygame.Rect(*offer["rect"])
+        tooltip_height = 102
+        tooltip_x = rect.centerx + 56
+        if tooltip_x + DRAFT_TOOLTIP_WIDTH > 1248:
+            tooltip_x = rect.centerx - DRAFT_TOOLTIP_WIDTH - 56
+        tooltip_x = max(32, tooltip_x)
+        tooltip_y = max(164, rect.y + 20)
+        tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, DRAFT_TOOLTIP_WIDTH, tooltip_height)
+        pygame.draw.rect(surface, (8, 14, 24), tooltip_rect, border_radius=16)
+        pygame.draw.rect(surface, (230, 236, 248), tooltip_rect, 2, border_radius=16)
+        self._draw_text(surface, offer["name"], (tooltip_rect.x + 16, tooltip_rect.y + 14), self._small_font, width=tooltip_rect.width - 32)
+        self._draw_text(surface, offer["description"], (tooltip_rect.x + 16, tooltip_rect.y + 46), self._tiny_font, width=tooltip_rect.width - 32)
+
+    def _scaled_color(
+        self,
+        color: tuple[int, int, int],
+        multiplier: float,
+    ) -> tuple[int, int, int]:
+        return tuple(max(0, min(255, int(channel * multiplier))) for channel in color)
+
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "confirm":
             if not layout["can_confirm"]:
-                return {"type": "notice", "message": "Select a modifier before confirming it.", "level": "error"}
+                return {"type": "notice", "message": "Select a relic before confirming it.", "level": "error"}
             return {"type": "confirm_run_modifier_selection"}
         if action_id.startswith("offer:"):
             return {"type": "select_run_modifier_offer", "modifier_id": action_id.removeprefix("offer:")}
-        return {"type": "notice", "message": "Unknown modifier draft action.", "level": "error"}
+        return {"type": "notice", "message": "Unknown relic draft action.", "level": "error"}
 
     def _action_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:
         for offer in layout["offers"]:
@@ -173,27 +289,6 @@ class ModifierDraftUI:
         if point_in_rect(position, layout["confirm_rect"]):
             return "confirm"
         return None
-
-    def _draw_kind_chip(
-        self,
-        surface: Any,
-        kind: str,
-        position: tuple[int, int],
-        high_contrast: bool,
-    ) -> None:
-        colors = {
-            "relic": (90, 180, 240),
-            "blessing": (100, 210, 150),
-            "curse": (220, 110, 110),
-        }
-        accent = colors.get(kind, (140, 150, 170))
-        if high_contrast:
-            accent = tuple(min(255, channel + 20) for channel in accent)
-        rect = pygame.Rect(position[0], position[1], 108, 28)
-        pygame.draw.rect(surface, (18, 28, 42), rect, border_radius=12)
-        pygame.draw.rect(surface, accent, rect, 2, border_radius=12)
-        label = self._tiny_font.render(kind.title(), True, accent)
-        surface.blit(label, label.get_rect(center=rect.center))
 
     def _draw_button(
         self,
@@ -205,10 +300,10 @@ class ModifierDraftUI:
         enabled: bool,
     ) -> None:
         rect = pygame.Rect(*rect_tuple)
-        fill = (40, 78, 138) if enabled else (26, 34, 48)
+        fill = (36, 72, 122) if enabled else (26, 34, 48)
         border = (230, 240, 255) if enabled else (110, 118, 136)
         if hovered and enabled:
-            fill = (56, 100, 168)
+            fill = (54, 96, 158)
         if pressed and enabled:
             fill = (255, 214, 110)
             border = (255, 214, 110)
@@ -234,10 +329,10 @@ class ModifierDraftUI:
             return
 
         self._font_scale = scale
-        self._title_font = pygame.font.SysFont("consolas", max(26, int(34 * scale)))
+        self._title_font = pygame.font.SysFont("consolas", max(28, int(36 * scale)))
         self._font = pygame.font.SysFont("consolas", max(20, int(26 * scale)))
-        self._small_font = pygame.font.SysFont("consolas", max(16, int(19 * scale)))
-        self._tiny_font = pygame.font.SysFont("consolas", max(12, int(15 * scale)))
+        self._small_font = pygame.font.SysFont("consolas", max(18, int(20 * scale)))
+        self._tiny_font = pygame.font.SysFont("consolas", max(13, int(15 * scale)))
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         image = self._load_image(path)
@@ -266,41 +361,46 @@ def simulate_modifier_draft_ui() -> dict[str, Any]:
     layout = ui.build_layout(
         {
             "current_state": "modifier_draft",
-            "status_message": "Choose a run modifier before entering the city.",
+            "status_message": "The Enforcer ready. Choose a relic.",
             "modifier_draft": {
                 "offers": [
                     {
-                        "id": "carbon_weave",
-                        "name": "Carbon Weave",
+                        "id": "plated_grip",
+                        "name": "Plated Grip",
                         "kind": "relic",
-                        "description": "Start each combat with 5 Block.",
-                        "downside": None,
+                        "type": "relic",
+                        "rarity": "common",
+                        "description": "Add Firewall to the starting deck.",
                         "selected": True,
                     },
                     {
                         "id": "market_key",
                         "name": "Market Key",
                         "kind": "relic",
+                        "type": "relic",
+                        "rarity": "uncommon",
                         "description": "Shop card prices cost 15% less.",
-                        "downside": None,
                         "selected": False,
                     },
                     {
-                        "id": "glass_engine",
-                        "name": "Glass Engine",
-                        "kind": "curse",
-                        "description": "Gain 1 extra Energy on turn 1.",
-                        "downside": "Lose 12 max HP.",
+                        "id": "signal_router",
+                        "name": "Signal Router",
+                        "kind": "relic",
+                        "type": "relic",
+                        "rarity": "rare",
+                        "description": "Card rewards show 1 extra choice.",
                         "selected": False,
                     },
                 ],
-                "selected_offer_id": "carbon_weave",
+                "selected_offer_id": "plated_grip",
                 "can_confirm": True,
             },
+            "character": {"name": "The Enforcer"},
             "presentation": {"ui_scale": 1.0},
         }
     )
     return {
         "offer_count": len(layout["offers"]),
         "can_confirm": layout["can_confirm"],
+        "first_offer_x": layout["offers"][0]["rect"][0],
     }

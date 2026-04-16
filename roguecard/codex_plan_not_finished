@@ -1,0 +1,152 @@
+# Grayspine Final-Map Content Pack
+
+## Summary
+Replace the current placeholder final-map branches with a real Grayspine content layer while keeping the existing 3-map campaign structure intact. This pass should make map 3 branch into three canonical factions, ship those routes as playable v1 content, and add the authored lore, bosses, normal units, encounter pools, and combat barks.
+
+Locked decisions:
+- The 3-map campaign stays as-is: `Outskirts -> City Streets -> faction-specific final map`.
+- The 3 general bosses are implemented as canonical boss catalog data, but are **not** inserted into live campaign routing yet.
+- The 6 faction bosses are the live map-3 boss pools: 2 per faction route, 1 chosen per run.
+- Final-map enemies are playable now using a consistent role/tier baseline system and simple faction-appropriate move scripts.
+- Save format bumps to `v12`; enemy schema bumps to `v2`.
+
+## Key Changes
+### Content model and campaign integration
+- Add four data sources as the authoritative content layer:
+  - `grayspine_lore.json` for city, Spine Core, faction summaries, flavor lines, and intro text
+  - `final_map_bosses.json` for all 9 bosses and their faction/general categorization
+  - `final_map_encounters.json` for faction unit rosters, encounter pools, and encounter-generation rules
+  - `final_map_barks.json` for reusable bark lines by faction, unit, boss, and trigger
+- Replace placeholder branch faction ids with canonical ids throughout campaign data:
+  - `helix_ward`
+  - `blackwire_directorate`
+  - `cinder_jackals`
+- Replace the current placeholder map-3 branch maps with canonical Grayspine routes:
+  - `helix_ward_depths`
+  - `blackwire_lockdown_sector`
+  - `cinder_jackals_edgeworks`
+- Keep map 1 and map 2 structure intact.
+- Keep current map-2 placeholder bosses if needed, but retag their `branch_faction` values to the canonical faction ids so they route cleanly into the new map-3 branches.
+- Map-3 boss pools become:
+  - Helix Ward: `miremother_vexa`, `graft_saint`
+  - Blackwire Directorate: `director_vale`, `compliance_engine_ax9`
+  - Cinder Jackals: `ashfang_rook`, `furnace_hound`
+- Add the 3 general bosses to the boss catalog only:
+  - `toll_reeve`
+  - `junction_9_sentinel`
+  - `spine_warden_null`
+
+### Enemy runtime and encounter system
+- Extend `enemies.json` to enemy schema `v2` with:
+  - `id`, `name`, `faction_id`, `role`, `tier`, `tags`, `max_hp`
+  - `moves`: named enemy actions with intent text, effect list, targeting, conditions, and optional cooldown
+  - `bark_profile_id`
+  - optional `summon_ids`
+  - optional `phase_rules` / threshold switch rules for mutate or boss phase changes
+- Keep `Enemy.choose_intent()` and `Enemy.execute_intent()` public names intact, but switch them to data-driven move selection instead of the current flat `attack/defend` loop.
+- Add a dedicated encounter-selection layer used only for map-3 combat/elite/boss nodes:
+  - faction-pure pools only
+  - no mixed-faction encounters
+  - hard cap of 5 enemies
+  - supports easy / medium / hard / elite / boss encounter groups
+  - stamps concrete `enemy_ids` into node state at map generation time for deterministic save/load
+- Use the authored encounter pools from part 3 as the live source for map-3 non-boss fights.
+- Summons use existing faction fodder in v1:
+  - Helix spawns `sludge_whelp`
+  - Blackwire deploys `patrol_drone`
+  - Cinder summons `scavver`
+- Add all faction units and bosses as live enemy records, with one bark profile each.
+- Use explicit role baselines for v1 enemy tuning:
+  - fodder: low HP / low damage / simple one-effect turns
+  - support/controller: medium HP / low damage / clear support actions
+  - bruiser/frontline: high HP / heavy telegraphed hits
+  - elite: high HP / 2-3 move loops with one faction-defining mechanic
+  - bosses: boss-only phase rules plus 3-4 move loops
+- Keep boss numbers and timings derived from one checked-in tier table so the whole faction pack is internally consistent.
+
+### Combat mechanics and status support
+- Add combat-local faction mechanics with fixed baseline meanings:
+  - `infect`: player loses damage equal to stacks at end of turn
+  - `marked`: next Blackwire attack against the player gets bonus damage per stack, then clears one stack
+  - `suppressed`: player’s next `Attack` card deals reduced damage, then the debuff clears
+  - `burn`: player loses fixed chip damage per stack at end of turn
+  - `buff_strip`: remove one removable player combat boon in this order: `block`, `next_attack_bonus`, cost discount, then `1 strength`
+  - `mutate`: enemy switches to its threshold move set at or below 50% HP
+  - `harvest`: scripted ally-death trigger that grants heal or strength, per unit definition
+- Add enemy-facing effects needed by the authored factions:
+  - `enemy_damage`
+  - `enemy_block`
+  - `enemy_heal_ally`
+  - `enemy_apply_infect`
+  - `enemy_apply_marked`
+  - `enemy_apply_suppressed`
+  - `enemy_apply_burn`
+  - `enemy_strip_buff`
+  - `enemy_cleanse_ally`
+  - `enemy_summon`
+  - `enemy_gain_strength`
+- Keep all of these in the shared combat/action pipeline so UI previews, save/restore, and event logs still work.
+- Extend combat state serialization so mid-combat restores preserve:
+  - enemy-specific status stacks
+  - move cooldowns / phase flags
+  - bark cooldown counters
+  - summoned adds
+
+### UI, lore, and bark presentation
+- Add a lightweight Grayspine intel page driven by `grayspine_lore.json`.
+- Make it available from the final-map header and pause flow once the player reaches map 3.
+- Intel page should include:
+  - city overview
+  - faction selector with accent color and short slogan
+  - faction details for territory, doctrine, combat style, and boss roster
+  - Spine Core entry that is locked before map 3 and fully revealed after the map-3 boss
+- Add map-3 entry presentation:
+  - branch intro banner using faction name, flavor line, and route title
+  - boss intro text pulled from the boss catalog
+- Add a dedicated bark channel in combat instead of overloading the existing `Recent:` summary:
+  - one bark visible at a time
+  - anchored near the speaking enemy/boss
+  - short fade-out popup, not a permanent panel
+- Bark trigger rules:
+  - generic start bark once per encounter
+  - attack / summon / status-apply / low-HP / ally-death hooks for normal units
+  - boss-only hooks for start, summon, phase change, low HP, and defeat
+- Bark frequency rules:
+  - non-boss enemy max 2 ambient lines per combat
+  - boss max 5 bark lines per combat
+  - encounter-wide cooldown so barks do not fire back-to-back
+  - boss intro and phase lines get longer on-screen duration than generic unit barks
+
+## Test Plan
+- Content validation:
+  - all lore, boss, encounter, bark, and enemy ids resolve cleanly
+  - all map-3 encounters are faction-pure
+  - no encounter exceeds 5 enemies
+  - all boss pools contain the intended bosses only
+- Campaign integration:
+  - city-streets branch values route into the correct canonical final-map ids
+  - map 3 branch uses the new faction encounter pools and faction boss pools
+  - the 3 general bosses are present in catalog data but are not selected by current campaign progression
+- Combat/runtime:
+  - Helix, Blackwire, and Cinder normal fights all run with multiple enemies
+  - summon units respect the 5-enemy cap
+  - infect, marked, suppressed, burn, mutate, harvest, and buff-strip resolve and serialize correctly
+  - boss phase changes trigger the correct move-set switch and bark
+- UI:
+  - final-map entry banners show the correct faction identity
+  - bark popups appear briefly and do not spam
+  - lore/intel page reads from the lore file and updates Spine Core unlock state correctly
+- Save/restore:
+  - restore mid-final-map route
+  - restore mid-combat with multi-enemy state and active faction statuses
+  - restore during a boss fight after a phase switch
+- Regression:
+  - earlier maps remain playable
+  - reward/shop/event systems still behave the same outside the new final-map content
+  - current public interfaces keep their names
+
+## Assumptions and Defaults
+- This pack targets the **final map only**. Outskirts and City Streets keep their existing authored content unless later content packs replace them.
+- The 3 general bosses are implemented now as content/catalog assets and lore anchors, but not inserted into live route progression until a later boss-routing pass.
+- Final-map summons use existing faction fodder in v1 instead of adding separate summon-only units.
+- Existing placeholder final-map saves should not be migrated; `v11` saves are treated as incompatible once `v12` lands because enemy schema and branch-map ids change materially.

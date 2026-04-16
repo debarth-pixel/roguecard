@@ -1,0 +1,120 @@
+{
+  "generation": {
+    "max_enemies": 5,
+    "combat_bands": [
+      {
+        "max_floor": 5,
+        "difficulty_weights": {
+          "easy": 1.0,
+          "medium": 0.35
+        }
+      },
+      {
+        "max_floor": 10,
+        "difficulty_weights": {
+          "medium": 1.0,
+          "hard": 0.45
+        }
+      },
+      {
+        "max_floor": 15,
+        "difficulty_weights": {
+          "medium": 0.55,
+          "hard": 1.0
+        }
+      }
+    ],
+    "elite_bands": [
+      {
+        "max_floor": 7,
+        "difficulty_weights": {
+          "medium": 1.0,
+          "hard": 0.45
+        }
+      },
+      {
+        "max_floor": 15,
+        "difficulty_weights": {
+          "hard": 1.0,
+          "medium": 0.25
+        }
+      }
+    ]
+  },
+  "factions": [
+    {
+      "id": "helix_ward",
+      "route_map_id": "helix_ward_depths",
+      "units": [
+        {"id": "sludge_whelp", "role": "fodder", "tier": "normal", "tags": ["summon", "toxic"]},
+        {"id": "serum_acolyte", "role": "support", "tier": "normal", "tags": ["heal", "buff"]},
+        {"id": "scalpel_runner", "role": "skirmisher", "tier": "normal", "tags": ["fast", "infect"]},
+        {"id": "culture_shepherd", "role": "summoner", "tier": "normal", "tags": ["spawn", "harvest"]},
+        {"id": "gland_brute", "role": "bruiser", "tier": "normal", "tags": ["frontline", "mutate"]},
+        {"id": "leech_nurse", "role": "drain_support", "tier": "elite", "tags": ["siphon", "cleanse"]},
+        {"id": "failed_saint", "role": "elite", "tier": "elite", "tags": ["mutate", "horror"]}
+      ],
+      "encounters": [
+        {"id": "helix_lab_spill", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["sludge_whelp", "sludge_whelp", "serum_acolyte"]},
+        {"id": "helix_cut_team", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["scalpel_runner", "scalpel_runner", "serum_acolyte"]},
+        {"id": "helix_waste_feeders", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["sludge_whelp", "sludge_whelp", "sludge_whelp"]},
+        {"id": "helix_culture_line", "difficulty": "medium", "node_types": ["combat", "elite"], "enemy_ids": ["culture_shepherd", "sludge_whelp", "sludge_whelp", "scalpel_runner"]},
+        {"id": "helix_injection_crew", "difficulty": "medium", "node_types": ["combat", "elite"], "enemy_ids": ["leech_nurse", "gland_brute", "scalpel_runner"]},
+        {"id": "helix_failed_trial", "difficulty": "medium", "node_types": ["elite"], "enemy_ids": ["failed_saint", "serum_acolyte"]},
+        {"id": "helix_live_harvest", "difficulty": "hard", "node_types": ["combat", "elite"], "enemy_ids": ["culture_shepherd", "leech_nurse", "sludge_whelp", "sludge_whelp"]},
+        {"id": "helix_growth_pit", "difficulty": "hard", "node_types": ["combat", "elite"], "enemy_ids": ["gland_brute", "failed_saint"]},
+        {"id": "helix_rot_choir", "difficulty": "hard", "node_types": ["elite"], "enemy_ids": ["failed_saint", "serum_acolyte", "scalpel_runner", "sludge_whelp"]}
+      ]
+    },
+    {
+      "id": "blackwire_directorate",
+      "route_map_id": "blackwire_lockdown_sector",
+      "units": [
+        {"id": "patrol_drone", "role": "utility", "tier": "normal", "tags": ["mark", "summon"]},
+        {"id": "sentry_node", "role": "summoned_support", "tier": "normal", "tags": ["summon", "fortified"]},
+        {"id": "riot_guard", "role": "frontline", "tier": "normal", "tags": ["shield", "guard"]},
+        {"id": "null_baton_officer", "role": "specialist", "tier": "normal", "tags": ["buff_strip", "suppress"]},
+        {"id": "signal_analyst", "role": "controller", "tier": "normal", "tags": ["mark", "amplify"]},
+        {"id": "suppression_sniper", "role": "ranged", "tier": "elite", "tags": ["telegraph", "burst"]},
+        {"id": "turret_handler", "role": "deploy_support", "tier": "normal", "tags": ["summon", "turret"]},
+        {"id": "audit_hound", "role": "elite", "tier": "elite", "tags": ["anti_combo", "tracker"]}
+      ],
+      "encounters": [
+        {"id": "blackwire_corridor_patrol", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["riot_guard", "patrol_drone", "signal_analyst"]},
+        {"id": "blackwire_compliance_sweep", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["patrol_drone", "patrol_drone", "null_baton_officer"]},
+        {"id": "blackwire_basic_checkpoint", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["riot_guard", "riot_guard"]},
+        {"id": "blackwire_controlled_response", "difficulty": "medium", "node_types": ["combat", "elite"], "enemy_ids": ["riot_guard", "null_baton_officer", "signal_analyst"]},
+        {"id": "blackwire_overwatch_cell", "difficulty": "medium", "node_types": ["combat", "elite"], "enemy_ids": ["suppression_sniper", "riot_guard", "patrol_drone"]},
+        {"id": "blackwire_drone_nest", "difficulty": "medium", "node_types": ["elite"], "enemy_ids": ["turret_handler", "patrol_drone", "patrol_drone"]},
+        {"id": "blackwire_sanction_team", "difficulty": "hard", "node_types": ["combat", "elite"], "enemy_ids": ["null_baton_officer", "suppression_sniper", "riot_guard"]},
+        {"id": "blackwire_security_escalation", "difficulty": "hard", "node_types": ["combat", "elite"], "enemy_ids": ["audit_hound", "signal_analyst", "patrol_drone"]},
+        {"id": "blackwire_lockdown_wing", "difficulty": "hard", "node_types": ["elite"], "enemy_ids": ["turret_handler", "riot_guard", "null_baton_officer", "patrol_drone"]}
+      ]
+    },
+    {
+      "id": "cinder_jackals",
+      "route_map_id": "cinder_jackals_edgeworks",
+      "units": [
+        {"id": "scavver", "role": "fodder", "tier": "normal", "tags": ["swarm", "momentum"]},
+        {"id": "burner_mite", "role": "summoned_fodder", "tier": "normal", "tags": ["summon", "burn", "volatile"]},
+        {"id": "dust_knife", "role": "skirmisher", "tier": "normal", "tags": ["fast", "bleed"]},
+        {"id": "burner", "role": "bomber", "tier": "normal", "tags": ["burn", "volatile"]},
+        {"id": "scrap_caller", "role": "summoner", "tier": "normal", "tags": ["pack", "spawn"]},
+        {"id": "chain_brute", "role": "bruiser", "tier": "normal", "tags": ["heavy", "momentum"]},
+        {"id": "road_hyena", "role": "beast", "tier": "normal", "tags": ["pack", "fast"]},
+        {"id": "scrap_gunner", "role": "elite", "tier": "elite", "tags": ["ranged", "swingy"]}
+      ],
+      "encounters": [
+        {"id": "cinder_canyon_trash", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["scavver", "scavver", "scavver"]},
+        {"id": "cinder_knife_pack", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["dust_knife", "dust_knife", "scavver"]},
+        {"id": "cinder_roadside_fire", "difficulty": "easy", "node_types": ["combat"], "enemy_ids": ["burner", "scavver", "scavver"]},
+        {"id": "cinder_pack_leader", "difficulty": "medium", "node_types": ["combat", "elite"], "enemy_ids": ["scrap_caller", "scavver", "scavver", "road_hyena"]},
+        {"id": "cinder_rush_line", "difficulty": "medium", "node_types": ["combat", "elite"], "enemy_ids": ["chain_brute", "dust_knife", "dust_knife"]},
+        {"id": "cinder_dust_ambush", "difficulty": "medium", "node_types": ["elite"], "enemy_ids": ["scrap_gunner", "scavver", "road_hyena"]},
+        {"id": "cinder_stampede_crew", "difficulty": "hard", "node_types": ["combat", "elite"], "enemy_ids": ["scrap_caller", "chain_brute", "scavver", "scavver"]},
+        {"id": "cinder_burn_convoy", "difficulty": "hard", "node_types": ["combat", "elite"], "enemy_ids": ["burner", "burner", "road_hyena", "scavver"]},
+        {"id": "cinder_jackal_killbox", "difficulty": "hard", "node_types": ["elite"], "enemy_ids": ["scrap_gunner", "chain_brute", "dust_knife"]}
+      ]
+    }
+  ]
+}
