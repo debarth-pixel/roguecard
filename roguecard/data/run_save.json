@@ -1,28 +1,28 @@
 {
   "save_format_version": 12,
-  "current_state": "shop",
-  "status_message": "Recovered 14 HP for 18 credits.",
-  "run_seed": 669747,
+  "current_state": "reward",
+  "status_message": "Reward ready. +20 credits earned.",
+  "run_seed": 841708,
   "character": "enforcer",
   "campaign": {
-    "map_index": 2,
-    "map_id": "city_streets",
-    "map_name": "City Streets",
-    "route_floor_index": 2,
+    "map_index": 1,
+    "map_id": "outskirts",
+    "map_name": "Outskirts",
+    "route_floor_index": 1,
     "route_floor_count": 15,
     "branch_faction": null,
-    "selected_boss_id": "junction_9_sentinel",
-    "global_route_floor_index": 17
+    "selected_boss_id": "sandpack_alpha",
+    "global_route_floor_index": 0
   },
   "character_select": null,
   "player": {
     "max_hp": 70,
-    "current_hp": 57,
+    "current_hp": 52,
     "max_energy": 3,
     "energy": 3,
     "block": 0,
     "draw_per_turn": 5,
-    "credits": 51,
+    "credits": 20,
     "healing_multiplier": 1.0,
     "resources": {
       "energy": {
@@ -62,12 +62,7 @@
       "enforcer_guard_stance_01",
       "enforcer_battle_roar_01",
       "enforcer_double_tap_01",
-      "enforcer_war_engine_01",
-      "enforcer_chain_assault_01",
-      "enforcer_gouge_01",
-      "enforcer_breaker_line_01",
-      "enforcer_redline_core_01",
-      "enforcer_open_wound_01"
+      "enforcer_war_engine_01"
     ],
     "draw_pile": [
       "enforcer_bash_protocol_01",
@@ -79,1177 +74,1111 @@
       "enforcer_guard_stance_01",
       "enforcer_battle_roar_01",
       "enforcer_double_tap_01",
-      "enforcer_war_engine_01",
-      "enforcer_chain_assault_01",
-      "enforcer_gouge_01",
-      "enforcer_breaker_line_01",
-      "enforcer_redline_core_01",
-      "enforcer_open_wound_01"
+      "enforcer_war_engine_01"
     ],
     "hand": [],
     "discard_pile": [],
     "exhaust_pile": []
   },
   "map": {
-    "map_id": "city_streets",
-    "map_name": "City Streets",
-    "map_index": 2,
-    "theme_tag": "city",
+    "map_id": "outskirts",
+    "map_name": "Outskirts",
+    "map_index": 1,
+    "theme_tag": "outskirts",
     "branch_faction": null,
     "route_floor_count": 15,
-    "global_floor_offset": 16,
-    "selected_boss_id": "junction_9_sentinel",
+    "global_floor_offset": 0,
+    "selected_boss_id": "sandpack_alpha",
     "selected_boss": {
-      "id": "junction_9_sentinel",
-      "name": "Junction-9 Sentinel",
-      "branch_faction": "blackwire_directorate",
+      "id": "sandpack_alpha",
+      "name": "Sandpack Alpha",
+      "branch_faction": null,
       "enemy_ids": [
-        "junction_9_sentinel"
+        "sandpack_alpha"
       ],
       "base_weight": 1.0
     },
     "canvas_width": 1036,
     "canvas_height": 2386,
     "nodes": {
-      "city_streets_floor_0_node_0": {
-        "node_id": "city_streets_floor_0_node_0",
+      "outskirts_floor_0_node_0": {
+        "node_id": "outskirts_floor_0_node_0",
         "node_type": "combat",
         "floor": 0,
         "column": 0,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 1,
-        "campaign_floor": 16,
+        "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 116,
+        "render_x": 96,
         "render_y": 116,
-        "encounter_hook_id": "city_streets:combat:f1:c0",
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
-          "city_streets_floor_1_node_0",
-          "city_streets_floor_1_node_1"
+          "outskirts_floor_1_node_0"
         ]
       },
-      "city_streets_floor_0_node_1": {
-        "node_id": "city_streets_floor_0_node_1",
+      "outskirts_floor_0_node_1": {
+        "node_id": "outskirts_floor_0_node_1",
         "node_type": "combat",
         "floor": 0,
         "column": 1,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 1,
-        "campaign_floor": 16,
+        "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 517,
+        "render_x": 524,
         "render_y": 116,
-        "encounter_hook_id": "city_streets:combat:f1:c1",
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dune_raider",
+          "carrion_hound"
         ],
         "next_nodes": [
-          "city_streets_floor_1_node_1"
+          "outskirts_floor_1_node_1"
         ]
       },
-      "city_streets_floor_0_node_2": {
-        "node_id": "city_streets_floor_0_node_2",
+      "outskirts_floor_0_node_2": {
+        "node_id": "outskirts_floor_0_node_2",
         "node_type": "combat",
         "floor": 0,
         "column": 2,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 1,
-        "campaign_floor": 16,
+        "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 919,
+        "render_x": 931,
         "render_y": 116,
-        "encounter_hook_id": "city_streets:combat:f1:c2",
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dune_raider",
+          "carrion_hound"
         ],
         "next_nodes": [
-          "city_streets_floor_1_node_2"
+          "outskirts_floor_1_node_2"
         ]
       },
-      "city_streets_floor_1_node_0": {
-        "node_id": "city_streets_floor_1_node_0",
+      "outskirts_floor_1_node_0": {
+        "node_id": "outskirts_floor_1_node_0",
         "node_type": "combat",
         "floor": 1,
         "column": 0,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 2,
-        "campaign_floor": 17,
+        "campaign_floor": 1,
         "node_tier": "normal",
-        "render_x": 114,
-        "render_y": 264,
-        "encounter_hook_id": "city_streets:combat:f2:c0",
+        "render_x": 120,
+        "render_y": 254,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
-          "city_streets_floor_2_node_0"
+          "outskirts_floor_2_node_0"
         ]
       },
-      "city_streets_floor_1_node_1": {
-        "node_id": "city_streets_floor_1_node_1",
-        "node_type": "shop",
+      "outskirts_floor_1_node_1": {
+        "node_id": "outskirts_floor_1_node_1",
+        "node_type": "combat",
         "floor": 1,
         "column": 1,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 2,
-        "campaign_floor": 17,
-        "node_tier": "utility",
-        "render_x": 509,
-        "render_y": 275,
-        "encounter_hook_id": "city_streets:shop:f2:c1",
+        "campaign_floor": 1,
+        "node_tier": "normal",
+        "render_x": 530,
+        "render_y": 246,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dune_raider",
+          "carrion_hound"
+        ],
         "next_nodes": [
-          "city_streets_floor_2_node_1",
-          "city_streets_floor_2_node_2"
+          "outskirts_floor_2_node_1",
+          "outskirts_floor_2_node_2"
         ]
       },
-      "city_streets_floor_1_node_2": {
-        "node_id": "city_streets_floor_1_node_2",
+      "outskirts_floor_1_node_2": {
+        "node_id": "outskirts_floor_1_node_2",
         "node_type": "combat",
         "floor": 1,
         "column": 2,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 2,
-        "campaign_floor": 17,
+        "campaign_floor": 1,
         "node_tier": "normal",
-        "render_x": 928,
-        "render_y": 256,
-        "encounter_hook_id": "city_streets:combat:f2:c2",
+        "render_x": 940,
+        "render_y": 258,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
-          "city_streets_floor_2_node_2"
+          "outskirts_floor_2_node_2"
         ]
       },
-      "city_streets_floor_2_node_0": {
-        "node_id": "city_streets_floor_2_node_0",
+      "outskirts_floor_2_node_0": {
+        "node_id": "outskirts_floor_2_node_0",
         "node_type": "combat",
         "floor": 2,
         "column": 0,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 3,
-        "campaign_floor": 18,
+        "campaign_floor": 2,
         "node_tier": "normal",
-        "render_x": 102,
-        "render_y": 399,
-        "encounter_hook_id": "city_streets:combat:f3:c0",
+        "render_x": 115,
+        "render_y": 405,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dune_raider",
+          "carrion_hound"
         ],
         "next_nodes": [
-          "city_streets_floor_3_node_0"
+          "outskirts_floor_3_node_0"
         ]
       },
-      "city_streets_floor_2_node_1": {
-        "node_id": "city_streets_floor_2_node_1",
-        "node_type": "shop",
-        "floor": 2,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 3,
-        "campaign_floor": 18,
-        "node_tier": "utility",
-        "render_x": 516,
-        "render_y": 393,
-        "encounter_hook_id": "city_streets:shop:f3:c1",
-        "boss_slot_id": null,
-        "enemy_ids": [],
-        "next_nodes": [
-          "city_streets_floor_3_node_1"
-        ]
-      },
-      "city_streets_floor_2_node_2": {
-        "node_id": "city_streets_floor_2_node_2",
-        "node_type": "combat",
-        "floor": 2,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 3,
-        "campaign_floor": 18,
-        "node_tier": "normal",
-        "render_x": 926,
-        "render_y": 403,
-        "encounter_hook_id": "city_streets:combat:f3:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_3_node_2",
-          "city_streets_floor_3_node_1"
-        ]
-      },
-      "city_streets_floor_3_node_0": {
-        "node_id": "city_streets_floor_3_node_0",
-        "node_type": "combat",
-        "floor": 3,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 4,
-        "campaign_floor": 19,
-        "node_tier": "normal",
-        "render_x": 122,
-        "render_y": 533,
-        "encounter_hook_id": "city_streets:combat:f4:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_4_node_0",
-          "city_streets_floor_4_node_1"
-        ]
-      },
-      "city_streets_floor_3_node_1": {
-        "node_id": "city_streets_floor_3_node_1",
+      "outskirts_floor_2_node_1": {
+        "node_id": "outskirts_floor_2_node_1",
         "node_type": "event",
-        "floor": 3,
+        "floor": 2,
         "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 4,
-        "campaign_floor": 19,
+        "map_id": "outskirts",
+        "route_floor": 3,
+        "campaign_floor": 2,
         "node_tier": "utility",
-        "render_x": 507,
-        "render_y": 550,
-        "encounter_hook_id": "city_streets:event:f4:c1",
+        "render_x": 521,
+        "render_y": 418,
+        "encounter_hook_id": "outskirts:event:f3:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
-          "city_streets_floor_4_node_1"
+          "outskirts_floor_3_node_1"
         ]
       },
-      "city_streets_floor_3_node_2": {
-        "node_id": "city_streets_floor_3_node_2",
-        "node_type": "combat",
-        "floor": 3,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 4,
-        "campaign_floor": 19,
-        "node_tier": "normal",
-        "render_x": 924,
-        "render_y": 527,
-        "encounter_hook_id": "city_streets:combat:f4:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_4_node_2"
-        ]
-      },
-      "city_streets_floor_4_node_0": {
-        "node_id": "city_streets_floor_4_node_0",
-        "node_type": "combat",
-        "floor": 4,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 5,
-        "campaign_floor": 20,
-        "node_tier": "normal",
-        "render_x": 105,
-        "render_y": 680,
-        "encounter_hook_id": "city_streets:combat:f5:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_5_node_0"
-        ]
-      },
-      "city_streets_floor_4_node_1": {
-        "node_id": "city_streets_floor_4_node_1",
-        "node_type": "elite",
-        "floor": 4,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 5,
-        "campaign_floor": 20,
-        "node_tier": "elite",
-        "render_x": 509,
-        "render_y": 677,
-        "encounter_hook_id": "city_streets:elite:f5:c1",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_elite_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_5_node_1",
-          "city_streets_floor_5_node_2"
-        ]
-      },
-      "city_streets_floor_4_node_2": {
-        "node_id": "city_streets_floor_4_node_2",
+      "outskirts_floor_2_node_2": {
+        "node_id": "outskirts_floor_2_node_2",
         "node_type": "shop",
-        "floor": 4,
+        "floor": 2,
         "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 5,
-        "campaign_floor": 20,
+        "map_id": "outskirts",
+        "route_floor": 3,
+        "campaign_floor": 2,
         "node_tier": "utility",
-        "render_x": 919,
-        "render_y": 677,
-        "encounter_hook_id": "city_streets:shop:f5:c2",
+        "render_x": 938,
+        "render_y": 383,
+        "encounter_hook_id": "outskirts:shop:f3:c2",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
-          "city_streets_floor_5_node_2"
+          "outskirts_floor_3_node_2",
+          "outskirts_floor_3_node_1"
         ]
       },
-      "city_streets_floor_5_node_0": {
-        "node_id": "city_streets_floor_5_node_0",
+      "outskirts_floor_3_node_0": {
+        "node_id": "outskirts_floor_3_node_0",
         "node_type": "combat",
-        "floor": 5,
+        "floor": 3,
         "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 6,
-        "campaign_floor": 21,
+        "map_id": "outskirts",
+        "route_floor": 4,
+        "campaign_floor": 3,
         "node_tier": "normal",
         "render_x": 97,
-        "render_y": 841,
-        "encounter_hook_id": "city_streets:combat:f6:c0",
+        "render_y": 549,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
-          "city_streets_floor_6_node_0"
+          "outskirts_floor_4_node_0"
         ]
       },
-      "city_streets_floor_5_node_1": {
-        "node_id": "city_streets_floor_5_node_1",
-        "node_type": "event",
-        "floor": 5,
+      "outskirts_floor_3_node_1": {
+        "node_id": "outskirts_floor_3_node_1",
+        "node_type": "combat",
+        "floor": 3,
         "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 6,
-        "campaign_floor": 21,
-        "node_tier": "utility",
+        "map_id": "outskirts",
+        "route_floor": 4,
+        "campaign_floor": 3,
+        "node_tier": "normal",
         "render_x": 530,
-        "render_y": 819,
-        "encounter_hook_id": "city_streets:event:f6:c1",
+        "render_y": 533,
+        "encounter_hook_id": "outskirts_embersnout_ticker",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "embersnout",
+          "scrap_ticker"
+        ],
+        "next_nodes": [
+          "outskirts_floor_4_node_1",
+          "outskirts_floor_4_node_0"
+        ]
+      },
+      "outskirts_floor_3_node_2": {
+        "node_id": "outskirts_floor_3_node_2",
+        "node_type": "combat",
+        "floor": 3,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 4,
+        "campaign_floor": 3,
+        "node_tier": "normal",
+        "render_x": 931,
+        "render_y": 527,
+        "encounter_hook_id": "outskirts_leech_bulwark",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "waste_leech",
+          "salvage_bulwark"
+        ],
+        "next_nodes": [
+          "outskirts_floor_4_node_2"
+        ]
+      },
+      "outskirts_floor_4_node_0": {
+        "node_id": "outskirts_floor_4_node_0",
+        "node_type": "combat",
+        "floor": 4,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 5,
+        "campaign_floor": 4,
+        "node_tier": "normal",
+        "render_x": 109,
+        "render_y": 678,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "dune_raider",
+          "carrion_hound"
+        ],
+        "next_nodes": [
+          "outskirts_floor_5_node_0"
+        ]
+      },
+      "outskirts_floor_4_node_1": {
+        "node_id": "outskirts_floor_4_node_1",
+        "node_type": "event",
+        "floor": 4,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 5,
+        "campaign_floor": 4,
+        "node_tier": "utility",
+        "render_x": 522,
+        "render_y": 693,
+        "encounter_hook_id": "outskirts:event:f5:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
-          "city_streets_floor_6_node_1"
+          "outskirts_floor_5_node_1",
+          "outskirts_floor_5_node_0"
         ]
       },
-      "city_streets_floor_5_node_2": {
-        "node_id": "city_streets_floor_5_node_2",
+      "outskirts_floor_4_node_2": {
+        "node_id": "outskirts_floor_4_node_2",
+        "node_type": "event",
+        "floor": 4,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 5,
+        "campaign_floor": 4,
+        "node_tier": "utility",
+        "render_x": 928,
+        "render_y": 695,
+        "encounter_hook_id": "outskirts:event:f5:c2",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_5_node_2"
+        ]
+      },
+      "outskirts_floor_5_node_0": {
+        "node_id": "outskirts_floor_5_node_0",
+        "node_type": "elite",
+        "floor": 5,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 6,
+        "campaign_floor": 5,
+        "node_tier": "elite",
+        "render_x": 108,
+        "render_y": 844,
+        "encounter_hook_id": "outskirts_junker_raider",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "signal_junker",
+          "dune_raider"
+        ],
+        "next_nodes": [
+          "outskirts_floor_6_node_0"
+        ]
+      },
+      "outskirts_floor_5_node_1": {
+        "node_id": "outskirts_floor_5_node_1",
         "node_type": "combat",
         "floor": 5,
-        "column": 2,
-        "map_id": "city_streets",
+        "column": 1,
+        "map_id": "outskirts",
         "route_floor": 6,
-        "campaign_floor": 21,
+        "campaign_floor": 5,
         "node_tier": "normal",
-        "render_x": 927,
-        "render_y": 821,
-        "encounter_hook_id": "city_streets:combat:f6:c2",
+        "render_x": 512,
+        "render_y": 811,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
         ],
         "next_nodes": [
-          "city_streets_floor_6_node_2"
+          "outskirts_floor_6_node_1"
         ]
       },
-      "city_streets_floor_6_node_0": {
-        "node_id": "city_streets_floor_6_node_0",
-        "node_type": "combat",
-        "floor": 6,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 7,
-        "campaign_floor": 22,
-        "node_tier": "normal",
-        "render_x": 103,
-        "render_y": 973,
-        "encounter_hook_id": "city_streets:combat:f7:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_7_node_0"
-        ]
-      },
-      "city_streets_floor_6_node_1": {
-        "node_id": "city_streets_floor_6_node_1",
-        "node_type": "combat",
-        "floor": 6,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 7,
-        "campaign_floor": 22,
-        "node_tier": "normal",
-        "render_x": 504,
-        "render_y": 973,
-        "encounter_hook_id": "city_streets:combat:f7:c1",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_7_node_1",
-          "city_streets_floor_7_node_0"
-        ]
-      },
-      "city_streets_floor_6_node_2": {
-        "node_id": "city_streets_floor_6_node_2",
-        "node_type": "combat",
-        "floor": 6,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 7,
-        "campaign_floor": 22,
-        "node_tier": "normal",
-        "render_x": 916,
-        "render_y": 972,
-        "encounter_hook_id": "city_streets:combat:f7:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_7_node_2"
-        ]
-      },
-      "city_streets_floor_7_node_0": {
-        "node_id": "city_streets_floor_7_node_0",
-        "node_type": "elite",
-        "floor": 7,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 8,
-        "campaign_floor": 23,
-        "node_tier": "elite",
-        "render_x": 103,
-        "render_y": 1126,
-        "encounter_hook_id": "city_streets:elite:f8:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_elite_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_8_node_0"
-        ]
-      },
-      "city_streets_floor_7_node_1": {
-        "node_id": "city_streets_floor_7_node_1",
-        "node_type": "combat",
-        "floor": 7,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 8,
-        "campaign_floor": 23,
-        "node_tier": "normal",
-        "render_x": 527,
-        "render_y": 1095,
-        "encounter_hook_id": "city_streets:combat:f8:c1",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_8_node_1"
-        ]
-      },
-      "city_streets_floor_7_node_2": {
-        "node_id": "city_streets_floor_7_node_2",
-        "node_type": "combat",
-        "floor": 7,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 8,
-        "campaign_floor": 23,
-        "node_tier": "normal",
-        "render_x": 916,
-        "render_y": 1104,
-        "encounter_hook_id": "city_streets:combat:f8:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_8_node_2",
-          "city_streets_floor_8_node_1"
-        ]
-      },
-      "city_streets_floor_8_node_0": {
-        "node_id": "city_streets_floor_8_node_0",
-        "node_type": "combat",
-        "floor": 8,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 9,
-        "campaign_floor": 24,
-        "node_tier": "normal",
-        "render_x": 106,
-        "render_y": 1253,
-        "encounter_hook_id": "city_streets:combat:f9:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_9_node_0"
-        ]
-      },
-      "city_streets_floor_8_node_1": {
-        "node_id": "city_streets_floor_8_node_1",
+      "outskirts_floor_5_node_2": {
+        "node_id": "outskirts_floor_5_node_2",
         "node_type": "event",
-        "floor": 8,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 9,
-        "campaign_floor": 24,
+        "floor": 5,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 6,
+        "campaign_floor": 5,
         "node_tier": "utility",
-        "render_x": 523,
-        "render_y": 1263,
-        "encounter_hook_id": "city_streets:event:f9:c1",
+        "render_x": 914,
+        "render_y": 833,
+        "encounter_hook_id": "outskirts:event:f6:c2",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
-          "city_streets_floor_9_node_1"
+          "outskirts_floor_6_node_2",
+          "outskirts_floor_6_node_1"
         ]
       },
-      "city_streets_floor_8_node_2": {
-        "node_id": "city_streets_floor_8_node_2",
+      "outskirts_floor_6_node_0": {
+        "node_id": "outskirts_floor_6_node_0",
         "node_type": "combat",
-        "floor": 8,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 9,
-        "campaign_floor": 24,
-        "node_tier": "normal",
-        "render_x": 920,
-        "render_y": 1263,
-        "encounter_hook_id": "city_streets:combat:f9:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_9_node_2"
-        ]
-      },
-      "city_streets_floor_9_node_0": {
-        "node_id": "city_streets_floor_9_node_0",
-        "node_type": "combat",
-        "floor": 9,
+        "floor": 6,
         "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 10,
-        "campaign_floor": 25,
+        "map_id": "outskirts",
+        "route_floor": 7,
+        "campaign_floor": 6,
         "node_tier": "normal",
-        "render_x": 106,
-        "render_y": 1386,
-        "encounter_hook_id": "city_streets:combat:f10:c0",
+        "render_x": 100,
+        "render_y": 984,
+        "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dune_raider",
+          "dust_saboteur",
+          "carrion_hound"
         ],
         "next_nodes": [
-          "city_streets_floor_10_node_0"
+          "outskirts_floor_7_node_0"
         ]
       },
-      "city_streets_floor_9_node_1": {
-        "node_id": "city_streets_floor_9_node_1",
+      "outskirts_floor_6_node_1": {
+        "node_id": "outskirts_floor_6_node_1",
         "node_type": "combat",
-        "floor": 9,
+        "floor": 6,
         "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 10,
-        "campaign_floor": 25,
+        "map_id": "outskirts",
+        "route_floor": 7,
+        "campaign_floor": 6,
         "node_tier": "normal",
         "render_x": 507,
-        "render_y": 1376,
-        "encounter_hook_id": "city_streets:combat:f10:c1",
+        "render_y": 971,
+        "encounter_hook_id": "outskirts_embersnout_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "embersnout",
+          "scrap_ticker"
         ],
         "next_nodes": [
-          "city_streets_floor_10_node_1",
-          "city_streets_floor_10_node_0"
+          "outskirts_floor_7_node_1"
         ]
       },
-      "city_streets_floor_9_node_2": {
-        "node_id": "city_streets_floor_9_node_2",
+      "outskirts_floor_6_node_2": {
+        "node_id": "outskirts_floor_6_node_2",
+        "node_type": "elite",
+        "floor": 6,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 7,
+        "campaign_floor": 6,
+        "node_tier": "elite",
+        "render_x": 928,
+        "render_y": 959,
+        "encounter_hook_id": "outskirts_reaver_ticker",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "caravan_reaver",
+          "scrap_ticker"
+        ],
+        "next_nodes": [
+          "outskirts_floor_7_node_2",
+          "outskirts_floor_7_node_1"
+        ]
+      },
+      "outskirts_floor_7_node_0": {
+        "node_id": "outskirts_floor_7_node_0",
+        "node_type": "combat",
+        "floor": 7,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 8,
+        "campaign_floor": 7,
+        "node_tier": "normal",
+        "render_x": 109,
+        "render_y": 1103,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "dune_raider",
+          "carrion_hound"
+        ],
+        "next_nodes": [
+          "outskirts_floor_8_node_0"
+        ]
+      },
+      "outskirts_floor_7_node_1": {
+        "node_id": "outskirts_floor_7_node_1",
+        "node_type": "combat",
+        "floor": 7,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 8,
+        "campaign_floor": 7,
+        "node_tier": "normal",
+        "render_x": 510,
+        "render_y": 1095,
+        "encounter_hook_id": "outskirts_leech_bulwark",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "waste_leech",
+          "salvage_bulwark"
+        ],
+        "next_nodes": [
+          "outskirts_floor_8_node_1",
+          "outskirts_floor_8_node_2"
+        ]
+      },
+      "outskirts_floor_7_node_2": {
+        "node_id": "outskirts_floor_7_node_2",
+        "node_type": "shop",
+        "floor": 7,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 8,
+        "campaign_floor": 7,
+        "node_tier": "utility",
+        "render_x": 918,
+        "render_y": 1099,
+        "encounter_hook_id": "outskirts:shop:f8:c2",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_8_node_2"
+        ]
+      },
+      "outskirts_floor_8_node_0": {
+        "node_id": "outskirts_floor_8_node_0",
+        "node_type": "event",
+        "floor": 8,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 9,
+        "campaign_floor": 8,
+        "node_tier": "utility",
+        "render_x": 114,
+        "render_y": 1237,
+        "encounter_hook_id": "outskirts:event:f9:c0",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_9_node_0"
+        ]
+      },
+      "outskirts_floor_8_node_1": {
+        "node_id": "outskirts_floor_8_node_1",
+        "node_type": "event",
+        "floor": 8,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 9,
+        "campaign_floor": 8,
+        "node_tier": "utility",
+        "render_x": 512,
+        "render_y": 1244,
+        "encounter_hook_id": "outskirts:event:f9:c1",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_9_node_1",
+          "outskirts_floor_9_node_2"
+        ]
+      },
+      "outskirts_floor_8_node_2": {
+        "node_id": "outskirts_floor_8_node_2",
+        "node_type": "combat",
+        "floor": 8,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 9,
+        "campaign_floor": 8,
+        "node_tier": "normal",
+        "render_x": 937,
+        "render_y": 1245,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "dune_raider",
+          "carrion_hound"
+        ],
+        "next_nodes": [
+          "outskirts_floor_9_node_2"
+        ]
+      },
+      "outskirts_floor_9_node_0": {
+        "node_id": "outskirts_floor_9_node_0",
+        "node_type": "shop",
+        "floor": 9,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 10,
+        "campaign_floor": 9,
+        "node_tier": "utility",
+        "render_x": 98,
+        "render_y": 1408,
+        "encounter_hook_id": "outskirts:shop:f10:c0",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_10_node_0"
+        ]
+      },
+      "outskirts_floor_9_node_1": {
+        "node_id": "outskirts_floor_9_node_1",
         "node_type": "combat",
         "floor": 9,
-        "column": 2,
-        "map_id": "city_streets",
+        "column": 1,
+        "map_id": "outskirts",
         "route_floor": 10,
-        "campaign_floor": 25,
+        "campaign_floor": 9,
         "node_tier": "normal",
-        "render_x": 918,
-        "render_y": 1394,
-        "encounter_hook_id": "city_streets:combat:f10:c2",
+        "render_x": 524,
+        "render_y": 1381,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
         ],
         "next_nodes": [
-          "city_streets_floor_10_node_2"
+          "outskirts_floor_10_node_1"
         ]
       },
-      "city_streets_floor_10_node_0": {
-        "node_id": "city_streets_floor_10_node_0",
-        "node_type": "event",
-        "floor": 10,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 11,
-        "campaign_floor": 26,
+      "outskirts_floor_9_node_2": {
+        "node_id": "outskirts_floor_9_node_2",
+        "node_type": "shop",
+        "floor": 9,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 10,
+        "campaign_floor": 9,
         "node_tier": "utility",
-        "render_x": 117,
-        "render_y": 1549,
-        "encounter_hook_id": "city_streets:event:f11:c0",
+        "render_x": 932,
+        "render_y": 1377,
+        "encounter_hook_id": "outskirts:shop:f10:c2",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
-          "city_streets_floor_11_node_0"
+          "outskirts_floor_10_node_2",
+          "outskirts_floor_10_node_1"
         ]
       },
-      "city_streets_floor_10_node_1": {
-        "node_id": "city_streets_floor_10_node_1",
-        "node_type": "elite",
+      "outskirts_floor_10_node_0": {
+        "node_id": "outskirts_floor_10_node_0",
+        "node_type": "combat",
         "floor": 10,
-        "column": 1,
-        "map_id": "city_streets",
+        "column": 0,
+        "map_id": "outskirts",
         "route_floor": 11,
-        "campaign_floor": 26,
-        "node_tier": "elite",
-        "render_x": 506,
-        "render_y": 1530,
-        "encounter_hook_id": "city_streets:elite:f11:c1",
+        "campaign_floor": 10,
+        "node_tier": "normal",
+        "render_x": 116,
+        "render_y": 1545,
+        "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_elite_01"
+          "dune_raider",
+          "dust_saboteur",
+          "carrion_hound"
         ],
         "next_nodes": [
-          "city_streets_floor_11_node_1"
+          "outskirts_floor_11_node_0"
         ]
       },
-      "city_streets_floor_10_node_2": {
-        "node_id": "city_streets_floor_10_node_2",
+      "outskirts_floor_10_node_1": {
+        "node_id": "outskirts_floor_10_node_1",
+        "node_type": "combat",
+        "floor": 10,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 11,
+        "campaign_floor": 10,
+        "node_tier": "normal",
+        "render_x": 512,
+        "render_y": 1518,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
+        ],
+        "next_nodes": [
+          "outskirts_floor_11_node_1"
+        ]
+      },
+      "outskirts_floor_10_node_2": {
+        "node_id": "outskirts_floor_10_node_2",
         "node_type": "combat",
         "floor": 10,
         "column": 2,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 11,
-        "campaign_floor": 26,
+        "campaign_floor": 10,
+        "node_tier": "normal",
+        "render_x": 930,
+        "render_y": 1554,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
+        ],
+        "next_nodes": [
+          "outskirts_floor_11_node_2"
+        ]
+      },
+      "outskirts_floor_11_node_0": {
+        "node_id": "outskirts_floor_11_node_0",
+        "node_type": "elite",
+        "floor": 11,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 12,
+        "campaign_floor": 11,
+        "node_tier": "elite",
+        "render_x": 118,
+        "render_y": 1670,
+        "encounter_hook_id": "outskirts_junker_raider",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "signal_junker",
+          "dune_raider"
+        ],
+        "next_nodes": [
+          "outskirts_floor_12_node_0"
+        ]
+      },
+      "outskirts_floor_11_node_1": {
+        "node_id": "outskirts_floor_11_node_1",
+        "node_type": "combat",
+        "floor": 11,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 12,
+        "campaign_floor": 11,
+        "node_tier": "normal",
+        "render_x": 527,
+        "render_y": 1674,
+        "encounter_hook_id": "outskirts_raider_saboteur_pack",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "dune_raider",
+          "dust_saboteur",
+          "carrion_hound"
+        ],
+        "next_nodes": [
+          "outskirts_floor_12_node_1"
+        ]
+      },
+      "outskirts_floor_11_node_2": {
+        "node_id": "outskirts_floor_11_node_2",
+        "node_type": "combat",
+        "floor": 11,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 12,
+        "campaign_floor": 11,
         "node_tier": "normal",
         "render_x": 936,
-        "render_y": 1549,
-        "encounter_hook_id": "city_streets:combat:f11:c2",
+        "render_y": 1689,
+        "encounter_hook_id": "outskirts_embersnout_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "embersnout",
+          "scrap_ticker"
         ],
         "next_nodes": [
-          "city_streets_floor_11_node_2"
+          "outskirts_floor_12_node_2"
         ]
       },
-      "city_streets_floor_11_node_0": {
-        "node_id": "city_streets_floor_11_node_0",
-        "node_type": "combat",
-        "floor": 11,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 12,
-        "campaign_floor": 27,
-        "node_tier": "normal",
-        "render_x": 104,
-        "render_y": 1679,
-        "encounter_hook_id": "city_streets:combat:f12:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_12_node_0",
-          "city_streets_floor_12_node_1"
-        ]
-      },
-      "city_streets_floor_11_node_1": {
-        "node_id": "city_streets_floor_11_node_1",
-        "node_type": "combat",
-        "floor": 11,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 12,
-        "campaign_floor": 27,
-        "node_tier": "normal",
-        "render_x": 517,
-        "render_y": 1660,
-        "encounter_hook_id": "city_streets:combat:f12:c1",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_12_node_1"
-        ]
-      },
-      "city_streets_floor_11_node_2": {
-        "node_id": "city_streets_floor_11_node_2",
-        "node_type": "event",
-        "floor": 11,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 12,
-        "campaign_floor": 27,
-        "node_tier": "utility",
-        "render_x": 933,
-        "render_y": 1664,
-        "encounter_hook_id": "city_streets:event:f12:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [],
-        "next_nodes": [
-          "city_streets_floor_12_node_2"
-        ]
-      },
-      "city_streets_floor_12_node_0": {
-        "node_id": "city_streets_floor_12_node_0",
+      "outskirts_floor_12_node_0": {
+        "node_id": "outskirts_floor_12_node_0",
         "node_type": "combat",
         "floor": 12,
         "column": 0,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 13,
-        "campaign_floor": 28,
+        "campaign_floor": 12,
         "node_tier": "normal",
-        "render_x": 105,
+        "render_x": 107,
         "render_y": 1835,
-        "encounter_hook_id": "city_streets:combat:f13:c0",
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
-          "city_streets_floor_13_node_0"
+          "outskirts_floor_13_node_0",
+          "outskirts_floor_13_node_1"
         ]
       },
-      "city_streets_floor_12_node_1": {
-        "node_id": "city_streets_floor_12_node_1",
-        "node_type": "event",
+      "outskirts_floor_12_node_1": {
+        "node_id": "outskirts_floor_12_node_1",
+        "node_type": "combat",
         "floor": 12,
         "column": 1,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 13,
-        "campaign_floor": 28,
-        "node_tier": "utility",
-        "render_x": 517,
-        "render_y": 1813,
-        "encounter_hook_id": "city_streets:event:f13:c1",
+        "campaign_floor": 12,
+        "node_tier": "normal",
+        "render_x": 520,
+        "render_y": 1817,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
+        ],
         "next_nodes": [
-          "city_streets_floor_13_node_1",
-          "city_streets_floor_13_node_2"
+          "outskirts_floor_13_node_1"
         ]
       },
-      "city_streets_floor_12_node_2": {
-        "node_id": "city_streets_floor_12_node_2",
-        "node_type": "event",
+      "outskirts_floor_12_node_2": {
+        "node_id": "outskirts_floor_12_node_2",
+        "node_type": "combat",
         "floor": 12,
         "column": 2,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 13,
-        "campaign_floor": 28,
-        "node_tier": "utility",
-        "render_x": 935,
-        "render_y": 1825,
-        "encounter_hook_id": "city_streets:event:f13:c2",
+        "campaign_floor": 12,
+        "node_tier": "normal",
+        "render_x": 933,
+        "render_y": 1832,
+        "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dune_raider",
+          "dust_saboteur",
+          "carrion_hound"
+        ],
         "next_nodes": [
-          "city_streets_floor_13_node_2"
+          "outskirts_floor_13_node_2"
         ]
       },
-      "city_streets_floor_13_node_0": {
-        "node_id": "city_streets_floor_13_node_0",
+      "outskirts_floor_13_node_0": {
+        "node_id": "outskirts_floor_13_node_0",
         "node_type": "elite",
         "floor": 13,
         "column": 0,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 14,
-        "campaign_floor": 29,
+        "campaign_floor": 13,
         "node_tier": "elite",
-        "render_x": 99,
-        "render_y": 1946,
-        "encounter_hook_id": "city_streets:elite:f14:c0",
+        "render_x": 105,
+        "render_y": 1961,
+        "encounter_hook_id": "outskirts_reaver_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_elite_01"
+          "caravan_reaver",
+          "scrap_ticker"
         ],
         "next_nodes": [
-          "city_streets_floor_14_node_0"
+          "outskirts_floor_14_node_0"
         ]
       },
-      "city_streets_floor_13_node_1": {
-        "node_id": "city_streets_floor_13_node_1",
-        "node_type": "elite",
+      "outskirts_floor_13_node_1": {
+        "node_id": "outskirts_floor_13_node_1",
+        "node_type": "combat",
         "floor": 13,
         "column": 1,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 14,
-        "campaign_floor": 29,
-        "node_tier": "elite",
+        "campaign_floor": 13,
+        "node_tier": "normal",
+        "render_x": 510,
+        "render_y": 1954,
+        "encounter_hook_id": "outskirts_dust_vulture",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "dust_saboteur",
+          "relay_vulture"
+        ],
+        "next_nodes": [
+          "outskirts_floor_14_node_1"
+        ]
+      },
+      "outskirts_floor_13_node_2": {
+        "node_id": "outskirts_floor_13_node_2",
+        "node_type": "shop",
+        "floor": 13,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 14,
+        "campaign_floor": 13,
+        "node_tier": "utility",
+        "render_x": 925,
+        "render_y": 1959,
+        "encounter_hook_id": "outskirts:shop:f14:c2",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_14_node_2"
+        ]
+      },
+      "outskirts_floor_14_node_0": {
+        "node_id": "outskirts_floor_14_node_0",
+        "node_type": "shop",
+        "floor": 14,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 15,
+        "campaign_floor": 14,
+        "node_tier": "utility",
+        "render_x": 114,
+        "render_y": 2114,
+        "encounter_hook_id": "outskirts:shop:f15:c0",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_boss"
+        ]
+      },
+      "outskirts_floor_14_node_1": {
+        "node_id": "outskirts_floor_14_node_1",
+        "node_type": "event",
+        "floor": 14,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 15,
+        "campaign_floor": 14,
+        "node_tier": "utility",
         "render_x": 529,
-        "render_y": 1977,
-        "encounter_hook_id": "city_streets:elite:f14:c1",
+        "render_y": 2102,
+        "encounter_hook_id": "outskirts:event:f15:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_elite_01"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "city_streets_floor_14_node_1"
+          "outskirts_boss"
         ]
       },
-      "city_streets_floor_13_node_2": {
-        "node_id": "city_streets_floor_13_node_2",
-        "node_type": "combat",
-        "floor": 13,
-        "column": 2,
-        "map_id": "city_streets",
-        "route_floor": 14,
-        "campaign_floor": 29,
-        "node_tier": "normal",
-        "render_x": 922,
-        "render_y": 1945,
-        "encounter_hook_id": "city_streets:combat:f14:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_floor_14_node_2"
-        ]
-      },
-      "city_streets_floor_14_node_0": {
-        "node_id": "city_streets_floor_14_node_0",
-        "node_type": "combat",
-        "floor": 14,
-        "column": 0,
-        "map_id": "city_streets",
-        "route_floor": 15,
-        "campaign_floor": 30,
-        "node_tier": "normal",
-        "render_x": 103,
-        "render_y": 2121,
-        "encounter_hook_id": "city_streets:combat:f15:c0",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_boss"
-        ]
-      },
-      "city_streets_floor_14_node_1": {
-        "node_id": "city_streets_floor_14_node_1",
-        "node_type": "combat",
-        "floor": 14,
-        "column": 1,
-        "map_id": "city_streets",
-        "route_floor": 15,
-        "campaign_floor": 30,
-        "node_tier": "normal",
-        "render_x": 526,
-        "render_y": 2098,
-        "encounter_hook_id": "city_streets:combat:f15:c1",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "enemy_basic_01"
-        ],
-        "next_nodes": [
-          "city_streets_boss"
-        ]
-      },
-      "city_streets_floor_14_node_2": {
-        "node_id": "city_streets_floor_14_node_2",
+      "outskirts_floor_14_node_2": {
+        "node_id": "outskirts_floor_14_node_2",
         "node_type": "combat",
         "floor": 14,
         "column": 2,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 15,
-        "campaign_floor": 30,
+        "campaign_floor": 14,
         "node_tier": "normal",
-        "render_x": 924,
-        "render_y": 2106,
-        "encounter_hook_id": "city_streets:combat:f15:c2",
+        "render_x": 938,
+        "render_y": 2117,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "enemy_basic_01"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
-          "city_streets_boss"
+          "outskirts_boss"
         ]
       },
-      "city_streets_boss": {
-        "node_id": "city_streets_boss",
+      "outskirts_boss": {
+        "node_id": "outskirts_boss",
         "node_type": "boss",
         "floor": 15,
         "column": 0,
-        "map_id": "city_streets",
+        "map_id": "outskirts",
         "route_floor": 15,
-        "campaign_floor": 31,
+        "campaign_floor": 15,
         "node_tier": "boss",
         "render_x": 518,
         "render_y": 2246,
-        "encounter_hook_id": "junction_9_sentinel",
-        "boss_slot_id": "junction_9_sentinel",
+        "encounter_hook_id": "sandpack_alpha",
+        "boss_slot_id": "sandpack_alpha",
         "enemy_ids": [
-          "junction_9_sentinel"
+          "sandpack_alpha"
         ],
         "next_nodes": []
       }
     },
     "start_nodes": [
-      "city_streets_floor_0_node_0",
-      "city_streets_floor_0_node_1",
-      "city_streets_floor_0_node_2"
+      "outskirts_floor_0_node_0",
+      "outskirts_floor_0_node_1",
+      "outskirts_floor_0_node_2"
     ],
-    "boss_node_id": "city_streets_boss",
+    "boss_node_id": "outskirts_boss",
     "available_node_ids": [
-      "city_streets_floor_2_node_1",
-      "city_streets_floor_2_node_2"
+      "outskirts_floor_1_node_1"
     ],
     "visited_node_ids": [
-      "city_streets_floor_0_node_1",
-      "city_streets_floor_1_node_1"
+      "outskirts_floor_0_node_1"
     ],
-    "selected_node_id": "city_streets_floor_1_node_1"
+    "selected_node_id": "outskirts_floor_0_node_1"
   },
   "combat": null,
   "event": null,
-  "reward": null,
-  "shop": {
-    "shop_node_id": "city_streets_floor_1_node_1",
-    "inventory": [
-      {
-        "offer_id": "card:enforcer_gouge_01",
-        "type": "card",
-        "card_id": "enforcer_gouge_01",
-        "card": {
-          "id": "enforcer_gouge_01",
-          "name": "Gouge",
-          "cost": 1,
-          "type": "attack",
-          "effects": [
-            {
-              "type": "damage",
-              "value": 5
-            },
-            {
-              "type": "apply_bleed",
-              "value": 2
-            }
-          ],
-          "owners": [
-            "enforcer"
-          ],
-          "shop_price": 48,
-          "theme": {
-            "faction": "enforcer",
-            "palette": "enforcer_crimson",
-            "art_style": "patch_grid"
-          }
-        },
-        "label": "Gouge",
-        "price": 48,
-        "sold_out": false
-      },
-      {
-        "offer_id": "card:enforcer_blood_rush_01",
-        "type": "card",
-        "card_id": "enforcer_blood_rush_01",
-        "card": {
-          "id": "enforcer_blood_rush_01",
-          "name": "Blood Rush",
-          "cost": 1,
-          "type": "attack",
-          "effects": [
-            {
-              "type": "self_damage",
-              "value": 3
-            },
-            {
-              "type": "damage",
-              "value": 12
-            }
-          ],
-          "owners": [
-            "enforcer"
-          ],
-          "shop_price": 50,
-          "theme": {
-            "faction": "enforcer",
-            "palette": "enforcer_crimson",
-            "art_style": "patch_grid"
-          }
-        },
-        "label": "Blood Rush",
-        "price": 50,
-        "sold_out": false
-      },
-      {
-        "offer_id": "card:enforcer_crackdown_01",
-        "type": "card",
-        "card_id": "enforcer_crackdown_01",
-        "card": {
-          "id": "enforcer_crackdown_01",
-          "name": "Crackdown",
-          "cost": 1,
-          "type": "attack",
-          "effects": [
-            {
-              "type": "damage",
-              "value": 6
-            },
-            {
-              "type": "apply_vulnerable",
-              "value": 2
-            }
-          ],
-          "owners": [
-            "enforcer"
-          ],
-          "shop_price": 48,
-          "theme": {
-            "faction": "enforcer",
-            "palette": "enforcer_crimson",
-            "art_style": "signal_mesh"
-          }
-        },
-        "label": "Crackdown",
-        "price": 48,
-        "sold_out": false
-      },
-      {
-        "offer_id": "relic:jam_cycler",
-        "type": "relic",
-        "relic_id": "jam_cycler",
-        "relic": {
-          "id": "jam_cycler",
-          "name": "Jam Cycler",
-          "type": "relic",
-          "kind": "relic",
-          "draft_eligible": true,
-          "description": "Whenever a status card is exhausted, deal 3 damage to a random enemy.",
-          "downside": null,
-          "rarity": "uncommon",
-          "base_weight": 5.0,
-          "tags": [
-            "status",
-            "offense"
-          ],
-          "primary_tag": "status",
-          "source_types": [
-            "elite_reward",
-            "shop"
-          ],
-          "duration": {
-            "type": "permanent",
-            "value": null
-          },
-          "duration_type": "permanent",
-          "stack_behavior": "no_duplicate",
-          "hooks": {
-            "on_card_exhausted": [
-              {
-                "type": "damage_random_enemy",
-                "value": 3,
-                "card_type": "status"
+  "reward": {
+    "encounter_type": "combat",
+    "credits_granted": 20,
+    "section_order": [
+      "card_offer"
+    ],
+    "sections": {
+      "card_offer": {
+        "type": "card_offer",
+        "title": "Card Reward",
+        "description": "Choose a card to add to the deck, or skip it.",
+        "options": [
+          {
+            "option_id": "enforcer_bash_protocol_01",
+            "card_id": "enforcer_bash_protocol_01",
+            "card": {
+              "id": "enforcer_bash_protocol_01",
+              "name": "Bash Protocol",
+              "cost": 1,
+              "type": "attack",
+              "effects": [
+                {
+                  "type": "damage",
+                  "value": 7
+                },
+                {
+                  "type": "apply_bleed",
+                  "value": 1
+                }
+              ],
+              "owners": [
+                "enforcer"
+              ],
+              "shop_price": 43,
+              "theme": {
+                "faction": "enforcer",
+                "palette": "enforcer_crimson",
+                "art_style": "circuit_burst"
               }
-            ]
+            },
+            "label": "Take Bash Protocol"
+          },
+          {
+            "option_id": "enforcer_ram_guard_01",
+            "card_id": "enforcer_ram_guard_01",
+            "card": {
+              "id": "enforcer_ram_guard_01",
+              "name": "Ram Guard",
+              "cost": 1,
+              "type": "skill",
+              "effects": [
+                {
+                  "type": "block",
+                  "value": 6
+                },
+                {
+                  "type": "draw",
+                  "value": 1
+                }
+              ],
+              "owners": [
+                "enforcer"
+              ],
+              "shop_price": 44,
+              "theme": {
+                "faction": "enforcer",
+                "palette": "enforcer_crimson",
+                "art_style": "signal_mesh"
+              }
+            },
+            "label": "Take Ram Guard"
+          },
+          {
+            "option_id": "enforcer_gouge_01",
+            "card_id": "enforcer_gouge_01",
+            "card": {
+              "id": "enforcer_gouge_01",
+              "name": "Gouge",
+              "cost": 1,
+              "type": "attack",
+              "effects": [
+                {
+                  "type": "damage",
+                  "value": 5
+                },
+                {
+                  "type": "apply_bleed",
+                  "value": 2
+                }
+              ],
+              "owners": [
+                "enforcer"
+              ],
+              "shop_price": 48,
+              "theme": {
+                "faction": "enforcer",
+                "palette": "enforcer_crimson",
+                "art_style": "patch_grid"
+              }
+            },
+            "label": "Take Gouge"
           }
-        },
-        "label": "Jam Cycler",
-        "price": 120,
-        "sold_out": false
-      },
-      {
-        "offer_id": "heal_service",
-        "type": "heal",
-        "label": "Clinic Patch",
-        "description": "Recover 14 HP now.",
-        "price": 18,
-        "heal_amount": 14,
-        "sold_out": false
-      },
-      {
-        "offer_id": "purge_service",
-        "type": "purge",
-        "label": "Purge Service",
-        "description": "Remove one card from the deck.",
-        "price": 40,
-        "sold_out": false
+        ],
+        "selected_option_id": null,
+        "resolved": false,
+        "resolution": null,
+        "can_skip": true
       }
-    ],
-    "selected_offer_id": null,
-    "selected_purge_index": null,
-    "reroll_count": 0,
-    "seen_card_ids": [
-      "enforcer_gouge_01",
-      "enforcer_blood_rush_01",
-      "enforcer_crackdown_01"
-    ],
-    "seen_relic_ids": [
-      "jam_cycler"
-    ]
+    },
+    "intro_message": "Reward ready. +20 credits earned."
   },
+  "shop": null,
   "modifier_draft": null,
   "run_modifiers": [
     {
-      "id": "flash_cache",
+      "id": "overclock_relay",
       "source": "starter_draft",
       "source_detail": null,
-      "duration_type": "permanent",
-      "remaining": null,
-      "active_in_current_combat": false,
-      "stack_count": 1,
-      "stack_intensity": 1
-    },
-    {
-      "id": "field_dampener",
-      "source": "shop",
-      "source_detail": "outskirts_floor_12_node_1",
-      "duration_type": "permanent",
-      "remaining": null,
-      "active_in_current_combat": false,
-      "stack_count": 1,
-      "stack_intensity": 1
-    },
-    {
-      "id": "butcher_hooks",
-      "source": "elite_reward",
-      "source_detail": "outskirts_floor_14_node_2",
-      "duration_type": "permanent",
-      "remaining": null,
-      "active_in_current_combat": false,
-      "stack_count": 1,
-      "stack_intensity": 1
-    },
-    {
-      "id": "grave_lantern",
-      "source": "boss_reward",
-      "source_detail": "outskirts_boss",
       "duration_type": "permanent",
       "remaining": null,
       "active_in_current_combat": false,
@@ -1261,7 +1190,7 @@
     "clean_slate_used": false,
     "ghost_warranty_used_shops": [],
     "debt_spike_used_shops": [],
-    "last_floor_status_tick": 17,
+    "last_floor_status_tick": 0,
     "combat": {
       "active_modifier_ids": [],
       "cards_played_this_combat": 0,
@@ -1275,32 +1204,6 @@
       "runtime_event_index": 0
     }
   },
-  "event_history": [
-    {
-      "event_id": "glitch_lottery_01",
-      "primary_tag": "gamble",
-      "floor": 2
-    },
-    {
-      "event_id": "dead_drop_01",
-      "primary_tag": "economy",
-      "floor": 6
-    },
-    {
-      "event_id": "stim_lab_01",
-      "primary_tag": "combat_prep",
-      "floor": 10
-    },
-    {
-      "event_id": "black_ice_cache_01",
-      "primary_tag": "deck_edit",
-      "floor": 13
-    }
-  ],
-  "seen_event_ids": [
-    "glitch_lottery_01",
-    "dead_drop_01",
-    "stim_lab_01",
-    "black_ice_cache_01"
-  ]
+  "event_history": [],
+  "seen_event_ids": []
 }

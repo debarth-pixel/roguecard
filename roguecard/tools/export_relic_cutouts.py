@@ -20,7 +20,6 @@ from config import (
 )
 
 YELLOW_BORDER_MIN = (180, 140, 0)
-SLOT_COMPONENT_MIN_AREA = 1000
 SEARCH_TOP_MARGIN = 88
 SEARCH_BOTTOM_MARGIN = 28
 SEARCH_SIDE_MARGIN = 10
@@ -97,31 +96,6 @@ def _connected_components(mask: list[list[bool]]) -> list[dict[str, object]]:
     return components
 
 
-def _load_slot_rects(sheet: Image.Image) -> list[tuple[int, int, int, int]]:
-    width, height = sheet.size
-    pixels = sheet.load()
-    border_mask = [[False] * width for _ in range(height)]
-    for y_pos in range(height):
-        for x_pos in range(width):
-            border_mask[y_pos][x_pos] = _is_yellow_border(pixels[x_pos, y_pos])
-
-    slot_components = [
-        component
-        for component in _connected_components(border_mask)
-        if int(component["area"]) >= SLOT_COMPONENT_MIN_AREA
-    ]
-    slot_rects = [
-        tuple(int(value) for value in component["bbox"])
-        for component in sorted(
-            slot_components,
-            key=lambda component: (int(component["bbox"][1]), int(component["bbox"][0])),
-        )
-    ]
-    if len(slot_rects) != 9:
-        raise ValueError(f"Expected 9 relic slot frames, found {len(slot_rects)}.")
-    return slot_rects
-
-
 def _load_sorted_relic_entries() -> list[dict[str, str]]:
     if not RELIC_SPRITE_COORDINATES_PATH.exists():
         raise ValueError(f"Missing relic coordinates CSV: {RELIC_SPRITE_COORDINATES_PATH}")
@@ -130,11 +104,11 @@ def _load_sorted_relic_entries() -> list[dict[str, str]]:
         reader = csv.DictReader(handle)
         entries = [dict(row) for row in reader]
 
-    required = {"name", "row_index", "column_index"}
+    required = {"name", "x", "y", "width", "height"}
     if not entries or not required.issubset(entries[0].keys()):
         raise ValueError("Relic coordinates CSV is missing required columns.")
 
-    return sorted(entries, key=lambda entry: (int(entry["row_index"]), int(entry["column_index"])))
+    return sorted(entries, key=lambda entry: (int(float(entry["y"])), int(float(entry["x"]))))
 
 
 def _load_relic_id_by_name() -> dict[str, str]:
@@ -258,22 +232,22 @@ def _extract_cutout(sheet: Image.Image, slot_rect: tuple[int, int, int, int]) ->
 
 def export_relic_cutouts() -> list[Path]:
     sheet = Image.open(RELIC_SPRITE_SHEET_PATH).convert("RGBA")
-    slot_rects = _load_slot_rects(sheet)
     relic_entries = _load_sorted_relic_entries()
     relic_ids_by_name = _load_relic_id_by_name()
 
-    if len(slot_rects) != len(relic_entries):
-        raise ValueError(
-            f"Slot count ({len(slot_rects)}) does not match relic CSV entry count ({len(relic_entries)})."
-        )
-
     RELIC_CUTOUTS_ROOT.mkdir(parents=True, exist_ok=True)
     written_paths: list[Path] = []
-    for slot_rect, entry in zip(slot_rects, relic_entries):
+    for entry in relic_entries:
         relic_name = entry["name"]
         modifier_id = relic_ids_by_name.get(relic_name)
         if modifier_id is None:
             raise ValueError(f"No relic id found for sheet entry: {relic_name}")
+        slot_rect = (
+            int(float(entry["x"])),
+            int(float(entry["y"])),
+            int(float(entry["x"])) + int(float(entry["width"])) - 1,
+            int(float(entry["y"])) + int(float(entry["height"])) - 1,
+        )
         cutout = _extract_cutout(sheet, slot_rect)
         output_path = RELIC_CUTOUTS_ROOT / f"{modifier_id}.png"
         cutout.save(output_path)
