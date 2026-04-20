@@ -26,39 +26,39 @@ card_art_atlas,23,The Enforcer,1,11,Ram Guard,skill,1.0,1770,130,152,112
 card_art_atlas,24,The Enforcer,1,12,Chain Assault,power,1.0,1930,130,152,112
 card_art_atlas,25,The Enforcer,1,13,War Engine,power,1.0,2090,130,152,112
 card_art_atlas,26,The Enforcer,1,14,Redline Core,power,2.0,2250,130,152,112
-card_art_atlas,27,The Enforcer,1,15,Gouge,attack,1.0,2410,130,152,112
-card_art_atlas,28,The Enforcer,1,16,Spiked Harness,power,1.0,2570,130,152,112
-card_art_atlas,29,The Operator,2,0,Quiet Cut,attack,0.0,10,250,152,112
-card_art_atlas,30,The Operator,2,1,Backdoor,attack,1.0,170,250,152,112
-card_art_atlas,31,The Operator,2,2,Needle Ping,attack,1.0,330,250,152,112
-card_art_atlas,32,The Operator,2,3,Packet Storm,attack,1.0,490,250,152,112
-card_art_atlas,33,The Operator,2,4,Relay Shot,attack,1.0,650,250,152,112
-card_art_atlas,34,The Operator,2,5,Recompile Shot,attack,2.0,810,250,152,112
-card_art_atlas,35,The Operator,2,6,Priority Queue,skill,0.0,970,250,152,112
-card_art_atlas,36,The Operator,2,7,Cache Cycle,skill,1.0,1130,250,152,112
-card_art_atlas,37,The Operator,2,8,Cold Read,skill,1.0,1290,250,152,112
-card_art_atlas,38,The Operator,2,9,Deflect Mesh,skill,1.0,1450,250,152,112
-card_art_atlas,39,The Operator,2,10,Lock In,skill,1.0,1610,250,152,112
-card_art_atlas,40,The Operator,2,11,Reroute,skill,1.0,1770,250,152,112
-card_art_atlas,41,The Operator,2,12,Auto-Tuner,power,1.0,1930,250,152,112
-card_art_atlas,42,The Operator,2,13,Control Tower,power,1.0,2090,250,152,112
-card_art_atlas,43,The Operator,2,14,Deep Cache,power,1.0,2250,250,152,112
-card_art_atlas,44,The Operator,2,15,Static Haze,skill,1.0,2410,250,152,112
-card_art_atlas,45,The Operator,2,16,Zero-Day Burst,attack,1.0,2570,250,152,112
-card_art_atlas,46,The Bio-Hacker,3,0,Pain Probe,attack,0.0,10,370,152,112
-card_art_atlas,47,The Bio-Hacker,3,1,Hemorrhage,attack,1.0,170,370,152,112
-card_art_atlas,48,The Bio-Hacker,3,2,Leech Jab,attack,1.0,330,370,152,112
-card_art_atlas,49,The Bio-Hacker,3,3,Rot Slash,attack,1.0,490,370,152,112
-card_art_atlas,50,The Bio-Hacker,3,4,Harvest Bite,attack,2.0,650,370,152,112
-card_art_atlas,51,The Bio-Hacker,3,5,Parasite Fang,attack,2.0,810,370,152,112
-card_art_atlas,52,The Bio-Hacker,3,6,Reclaimer,skill,0.0,970,370,152,112
-card_art_atlas,53,The Bio-Hacker,3,7,Spare Organs,skill,0.0,1130,370,152,112
-card_art_atlas,54,The Bio-Hacker,3,8,Blood Buffer,skill,1.0,1290,370,152,112
-card_art_atlas,55,The Bio-Hacker,3,9,Coagulate,skill,1.0,1450,370,152,112
-card_art_atlas,56,The Bio-Hacker,3,10,Scar Tissue,skill,1.0,1610,370,152,112
-card_art_atlas,57,The Bio-Hacker,3,11,Triage Loop,skill,1.0,1770,370,152,112
-card_art_atlas,58,The Bio-Hacker,3,12,Pain Circuit,power,1.0,1930,370,152,112
-card_art_atlas,59,The Bio-Hacker,3,13,Rot Harvest,power,1.0,2090,370,152,112
-card_art_atlas,60,The Bio-Hacker,3,14,Symbiote Mesh,power,1.0,2250,370,152,112
+card_art_atlas,27,The Operator,2,0,Quiet Cut,attack,0.0,10,250,152,112
+card_art_atlas,28,The Operator,2,1,Backdoor,attack,1.0,170,250,152,112
+card_art_atlas,29,The Operator,2,2,Needle Ping,attack,1.0,330,250,152,112
+card_art_atlas,30,The Operator,2,3,Packet Storm,attack,1.0,490,250,152,112
+card_art_atlas,31,The Operator,2,4,Relay Shot,attack,1.0,650,250,152,112
+card_art_atlas,32,The Operator,2,5,Recompile Shot,attack,2.0,810,250,152,112
+card_art_atlas,33,The Operator,2,6,Priority Queue,skill,0.0,970,250,152,112
+card_art_atlas,34,The Operator,2,7,Cache Cycle,skill,1.0,1130,250,152,112
+card_art_atlas,35,The Operator,2,8,Cold Read,skill,1.0,1290,250,152,112
+card_art_atlas,36,The Operator,2,9,Deflect Mesh,skill,1.0,1450,250,152,112
+card_art_atlas,37,The Operator,2,10,Lock In,skill,1.0,1610,250,152,112
+card_art_atlas,38,The Operator,2,11,Reroute,skill,1.0,1770,250,152,112
+card_art_atlas,39,The Operator,2,12,Auto-Tuner,power,1.0,1930,250,152,112
+card_art_atlas,40,The Operator,2,13,Control Tower,power,1.0,2090,250,152,112
+card_art_atlas,41,The Operator,2,14,Deep Cache,power,1.0,2250,250,152,112
+card_art_atlas,42,The Bio-Hacker,3,0,Pain Probe,attack,0.0,10,370,152,112
+card_art_atlas,43,The Bio-Hacker,3,1,Hemorrhage,attack,1.0,170,370,152,112
+card_art_atlas,44,The Bio-Hacker,3,2,Leech Jab,attack,1.0,330,370,152,112
+card_art_atlas,45,The Bio-Hacker,3,3,Rot Slash,attack,1.0,490,370,152,112
+card_art_atlas,46,The Bio-Hacker,3,4,Harvest Bite,attack,2.0,650,370,152,112
+card_art_atlas,47,The Bio-Hacker,3,5,Parasite Fang,attack,2.0,810,370,152,112
+card_art_atlas,48,The Bio-Hacker,3,6,Reclaimer,skill,0.0,970,370,152,112
+card_art_atlas,49,The Bio-Hacker,3,7,Spare Organs,skill,0.0,1130,370,152,112
+card_art_atlas,50,The Bio-Hacker,3,8,Blood Buffer,skill,1.0,1290,370,152,112
+card_art_atlas,51,The Bio-Hacker,3,9,Coagulate,skill,1.0,1450,370,152,112
+card_art_atlas,52,The Bio-Hacker,3,10,Scar Tissue,skill,1.0,1610,370,152,112
+card_art_atlas,53,The Bio-Hacker,3,11,Triage Loop,skill,1.0,1770,370,152,112
+card_art_atlas,54,The Bio-Hacker,3,12,Pain Circuit,power,1.0,1930,370,152,112
+card_art_atlas,55,The Bio-Hacker,3,13,Rot Harvest,power,1.0,2090,370,152,112
+card_art_atlas,56,The Bio-Hacker,3,14,Symbiote Mesh,power,1.0,2250,370,152,112
+card_art_atlas,57,The Enforcer,1,15,Gouge,attack,1.0,2410,130,152,112
+card_art_atlas,58,The Enforcer,1,16,Spiked Harness,power,1.0,2570,130,152,112
+card_art_atlas,59,The Operator,2,15,Static Haze,skill,1.0,2410,250,152,112
+card_art_atlas,60,The Operator,2,16,Zero-Day Burst,attack,1.0,2570,250,152,112
 card_art_atlas,61,The Bio-Hacker,3,15,Septic Round,attack,1.0,2410,370,152,112
 card_art_atlas,62,The Bio-Hacker,3,16,Waste Recycler,skill,0.0,2570,370,152,112

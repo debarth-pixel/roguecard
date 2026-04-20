@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageOps
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+
+import pygame
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -21,7 +24,7 @@ from config import (  # noqa: E402
     RUN_MODIFIERS_DATA_PATH,
 )
 
-BACKGROUND_COLOR = "#081321"
+BACKGROUND_COLOR = (8, 19, 33, 255)
 CARD_SOURCE_ROOT = ASSETS_ROOT / "generated" / "card_panels"
 RELIC_SOURCE_ROOT = ASSETS_ROOT / "generated" / "relic_slots"
 
@@ -39,25 +42,43 @@ def _load_json_list(path: Path) -> list[dict[str, object]]:
     return [entry for entry in payload if isinstance(entry, dict)]
 
 
-def _fit_cover(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
-    return ImageOps.fit(
-        image.convert("RGBA"),
-        target_size,
-        method=Image.Resampling.LANCZOS,
-        centering=(0.5, 0.5),
-    )
+def _load_surface(path: Path) -> pygame.Surface:
+    return pygame.image.load(str(path))
 
 
-def _fit_contain(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
-    canvas = Image.new("RGBA", target_size, BACKGROUND_COLOR)
-    contained = ImageOps.contain(
-        image.convert("RGBA"),
-        target_size,
-        method=Image.Resampling.LANCZOS,
+def _new_canvas(size: tuple[int, int]) -> pygame.Surface:
+    canvas = pygame.Surface(size, pygame.SRCALPHA)
+    canvas.fill(BACKGROUND_COLOR)
+    return canvas
+
+
+def _fit_cover(image: pygame.Surface, target_size: tuple[int, int]) -> pygame.Surface:
+    src_width, src_height = image.get_size()
+    target_width, target_height = target_size
+    scale = max(target_width / src_width, target_height / src_height)
+    scaled_width = max(1, round(src_width * scale))
+    scaled_height = max(1, round(src_height * scale))
+    scaled = pygame.transform.smoothscale(image, (scaled_width, scaled_height))
+    canvas = pygame.Surface(target_size, pygame.SRCALPHA)
+    canvas.blit(
+        scaled,
+        ((target_width - scaled_width) // 2, (target_height - scaled_height) // 2),
     )
-    offset_x = (target_size[0] - contained.width) // 2
-    offset_y = (target_size[1] - contained.height) // 2
-    canvas.alpha_composite(contained, (offset_x, offset_y))
+    return canvas
+
+
+def _fit_contain(image: pygame.Surface, target_size: tuple[int, int]) -> pygame.Surface:
+    src_width, src_height = image.get_size()
+    target_width, target_height = target_size
+    scale = min(target_width / src_width, target_height / src_height)
+    scaled_width = max(1, round(src_width * scale))
+    scaled_height = max(1, round(src_height * scale))
+    scaled = pygame.transform.smoothscale(image, (scaled_width, scaled_height))
+    canvas = _new_canvas(target_size)
+    canvas.blit(
+        scaled,
+        ((target_width - scaled_width) // 2, (target_height - scaled_height) // 2),
+    )
     return canvas
 
 
@@ -91,9 +112,9 @@ def _load_relic_ids_by_name() -> dict[str, str]:
 
 def _build_card_atlas() -> list[str]:
     entries = _load_csv_rows(CARD_ART_ATLAS_COORDINATES_PATH)
-    current_atlas = Image.open(CARD_ART_ATLAS_PATH).convert("RGBA") if CARD_ART_ATLAS_PATH.exists() else None
+    current_atlas = _load_surface(CARD_ART_ATLAS_PATH) if CARD_ART_ATLAS_PATH.exists() else None
     card_ids_by_name = _load_card_ids_by_name()
-    output = Image.new("RGBA", _calc_canvas_size(entries), BACKGROUND_COLOR)
+    output = _new_canvas(_calc_canvas_size(entries))
     missing: list[str] = []
 
     for entry in entries:
@@ -107,27 +128,27 @@ def _build_card_atlas() -> list[str]:
         width = int(float(entry["width"]))
         height = int(float(entry["height"]))
         source_path = CARD_SOURCE_ROOT / f"{card_id}.png"
-        panel: Image.Image | None = None
+        panel: pygame.Surface | None = None
         if source_path.exists():
-            panel = _fit_cover(Image.open(source_path), (width, height))
+            panel = _fit_cover(_load_surface(source_path), (width, height))
         elif current_atlas is not None:
-            current_box = (x_pos, y_pos, x_pos + width, y_pos + height)
-            if current_box[2] <= current_atlas.width and current_box[3] <= current_atlas.height:
-                panel = current_atlas.crop(current_box)
+            current_box = pygame.Rect(x_pos, y_pos, width, height)
+            if current_box.right <= current_atlas.get_width() and current_box.bottom <= current_atlas.get_height():
+                panel = current_atlas.subsurface(current_box).copy()
         if panel is None:
             missing.append(card_id)
             continue
-        output.alpha_composite(panel.convert("RGBA"), (x_pos, y_pos))
+        output.blit(panel, (x_pos, y_pos))
 
-    output.save(CARD_ART_ATLAS_PATH)
+    pygame.image.save(output, str(CARD_ART_ATLAS_PATH))
     return missing
 
 
 def _build_relic_sheet() -> list[str]:
     entries = _load_csv_rows(RELIC_SPRITE_COORDINATES_PATH)
-    current_sheet = Image.open(RELIC_SPRITE_SHEET_PATH).convert("RGBA") if RELIC_SPRITE_SHEET_PATH.exists() else None
+    current_sheet = _load_surface(RELIC_SPRITE_SHEET_PATH) if RELIC_SPRITE_SHEET_PATH.exists() else None
     relic_ids_by_name = _load_relic_ids_by_name()
-    output = Image.new("RGBA", _calc_canvas_size(entries), BACKGROUND_COLOR)
+    output = _new_canvas(_calc_canvas_size(entries))
     missing: list[str] = []
 
     for entry in entries:
@@ -141,19 +162,19 @@ def _build_relic_sheet() -> list[str]:
         width = int(float(entry["width"]))
         height = int(float(entry["height"]))
         source_path = RELIC_SOURCE_ROOT / f"{relic_id}.png"
-        panel: Image.Image | None = None
+        panel: pygame.Surface | None = None
         if source_path.exists():
-            panel = _fit_contain(Image.open(source_path), (width, height))
+            panel = _fit_contain(_load_surface(source_path), (width, height))
         elif current_sheet is not None:
-            current_box = (x_pos, y_pos, x_pos + width, y_pos + height)
-            if current_box[2] <= current_sheet.width and current_box[3] <= current_sheet.height:
-                panel = current_sheet.crop(current_box)
+            current_box = pygame.Rect(x_pos, y_pos, width, height)
+            if current_box.right <= current_sheet.get_width() and current_box.bottom <= current_sheet.get_height():
+                panel = current_sheet.subsurface(current_box).copy()
         if panel is None:
             missing.append(relic_id)
             continue
-        output.alpha_composite(panel.convert("RGBA"), (x_pos, y_pos))
+        output.blit(panel, (x_pos, y_pos))
 
-    output.save(RELIC_SPRITE_SHEET_PATH)
+    pygame.image.save(output, str(RELIC_SPRITE_SHEET_PATH))
     return missing
 
 

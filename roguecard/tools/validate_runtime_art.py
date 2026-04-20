@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
-from PIL import Image
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+
+import pygame
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -35,12 +38,12 @@ def _load_json_list(path: Path) -> list[dict[str, object]]:
     return [entry for entry in payload if isinstance(entry, dict)]
 
 
-def _assert_in_bounds(image: Image.Image, entry: dict[str, str]) -> None:
+def _assert_in_bounds(image: pygame.Surface, entry: dict[str, str]) -> None:
     x_pos = int(float(entry["x"]))
     y_pos = int(float(entry["y"]))
     width = int(float(entry["width"]))
     height = int(float(entry["height"]))
-    if x_pos < 0 or y_pos < 0 or x_pos + width > image.width or y_pos + height > image.height:
+    if x_pos < 0 or y_pos < 0 or x_pos + width > image.get_width() or y_pos + height > image.get_height():
         raise ValueError(f"Out-of-bounds atlas entry: {entry['name']}")
 
 
@@ -53,8 +56,8 @@ def validate() -> None:
     ]
     card_entries = _load_csv_rows(CARD_ART_ATLAS_COORDINATES_PATH)
     relic_entries = _load_csv_rows(RELIC_SPRITE_COORDINATES_PATH)
-    card_atlas = Image.open(CARD_ART_ATLAS_PATH).convert("RGBA")
-    relic_sheet = Image.open(RELIC_SPRITE_SHEET_PATH).convert("RGBA")
+    card_atlas = pygame.image.load(str(CARD_ART_ATLAS_PATH))
+    relic_sheet = pygame.image.load(str(RELIC_SPRITE_SHEET_PATH))
 
     card_names = {str(entry.get("name", "")).strip() for entry in cards}
     relic_names = {str(entry.get("name", "")).strip() for entry in relics}

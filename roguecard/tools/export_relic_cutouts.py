@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import argparse
 import csv
 import json
+import os
 import sys
 from collections import deque
 from pathlib import Path
 
-from PIL import Image
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+
+import pygame
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -29,6 +33,11 @@ INCLUSION_PADDING = 42
 OUTPUT_PADDING = 6
 TEXT_COMPONENT_MAX_AREA = 650
 BACKGROUND_COLOR = (13, 20, 33)
+
+
+def _get_pixel(surface: pygame.Surface, x_pos: int, y_pos: int) -> tuple[int, int, int, int]:
+    color = surface.get_at((x_pos, y_pos))
+    return (int(color.r), int(color.g), int(color.b), int(color.a))
 
 
 def _is_yellow_border(pixel: tuple[int, int, int, int]) -> bool:
@@ -126,16 +135,23 @@ def _load_relic_id_by_name() -> dict[str, str]:
     return mapping
 
 
-def _extract_cutout(sheet: Image.Image, slot_rect: tuple[int, int, int, int]) -> Image.Image:
+def _crop_surface(sheet: pygame.Surface, slot_rect: tuple[int, int, int, int]) -> pygame.Surface:
     slot_left, slot_top, slot_right, slot_bottom = slot_rect
-    crop = sheet.crop((slot_left, slot_top, slot_right + 1, slot_bottom + 1)).convert("RGBA")
-    crop_width, crop_height = crop.size
-    crop_pixels = crop.load()
+    width = slot_right - slot_left + 1
+    height = slot_bottom - slot_top + 1
+    crop = pygame.Surface((width, height), pygame.SRCALPHA)
+    crop.blit(sheet, (0, 0), pygame.Rect(slot_left, slot_top, width, height))
+    return crop
+
+
+def _extract_cutout(sheet: pygame.Surface, slot_rect: tuple[int, int, int, int]) -> pygame.Surface:
+    crop = _crop_surface(sheet, slot_rect)
+    crop_width, crop_height = crop.get_size()
 
     foreground_mask = [[False] * crop_width for _ in range(crop_height)]
     for y_pos in range(SEARCH_TOP_MARGIN, crop_height - SEARCH_BOTTOM_MARGIN):
         for x_pos in range(SEARCH_SIDE_MARGIN, crop_width - SEARCH_SIDE_MARGIN):
-            pixel = crop_pixels[x_pos, y_pos]
+            pixel = _get_pixel(crop, x_pos, y_pos)
             if _is_yellow_border(pixel):
                 continue
             if _distance_from_background(pixel) > FOREGROUND_THRESHOLD:
@@ -186,8 +202,7 @@ def _extract_cutout(sheet: Image.Image, slot_rect: tuple[int, int, int, int]) ->
         ):
             included_components.append(component)
 
-    alpha_mask = Image.new("L", (crop_width, crop_height), 0)
-    alpha_pixels = alpha_mask.load()
+    alpha_mask = [[0] * crop_width for _ in range(crop_height)]
     for component in included_components:
         bbox_left, bbox_top, bbox_right, bbox_bottom = (
             int(value) for value in component["bbox"]
@@ -196,20 +211,19 @@ def _extract_cutout(sheet: Image.Image, slot_rect: tuple[int, int, int, int]) ->
             for x_pos in range(max(0, bbox_left - 2), min(crop_width, bbox_right + 3)):
                 if y_pos < 84 or y_pos > crop_height - 22:
                     continue
-                pixel = crop_pixels[x_pos, y_pos]
+                pixel = _get_pixel(crop, x_pos, y_pos)
                 if _is_yellow_border(pixel):
                     continue
                 if _distance_from_background(pixel) > SOFT_ALPHA_THRESHOLD:
-                    alpha_pixels[x_pos, y_pos] = 255
+                    alpha_mask[y_pos][x_pos] = 255
 
-    cutout = Image.new("RGBA", (crop_width, crop_height), (0, 0, 0, 0))
-    cutout_pixels = cutout.load()
+    cutout = pygame.Surface((crop_width, crop_height), pygame.SRCALPHA)
     bbox: tuple[int, int, int, int] | None = None
     for y_pos in range(crop_height):
         for x_pos in range(crop_width):
-            if alpha_pixels[x_pos, y_pos] == 0:
+            if alpha_mask[y_pos][x_pos] == 0:
                 continue
-            cutout_pixels[x_pos, y_pos] = crop_pixels[x_pos, y_pos]
+            cutout.set_at((x_pos, y_pos), _get_pixel(crop, x_pos, y_pos))
             if bbox is None:
                 bbox = (x_pos, y_pos, x_pos, y_pos)
             else:
@@ -227,13 +241,45 @@ def _extract_cutout(sheet: Image.Image, slot_rect: tuple[int, int, int, int]) ->
     top = max(0, bbox[1] - OUTPUT_PADDING)
     right = min(crop_width, bbox[2] + OUTPUT_PADDING + 1)
     bottom = min(crop_height, bbox[3] + OUTPUT_PADDING + 1)
-    return cutout.crop((left, top, right, bottom))
+    output = pygame.Surface((right - left, bottom - top), pygame.SRCALPHA)
+    output.blit(cutout, (-left, -top))
+    return output
 
 
-def export_relic_cutouts() -> list[Path]:
-    sheet = Image.open(RELIC_SPRITE_SHEET_PATH).convert("RGBA")
+def _normalize_target_ids(raw_ids: list[str] | None) -> set[str] | None:
+    if not raw_ids:
+        return None
+    target_ids: set[str] = set()
+    for raw_id in raw_ids:
+        for item in raw_id.split(","):
+            normalized = item.strip()
+            if normalized:
+                target_ids.add(normalized)
+    return target_ids
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Export traced relic cutouts from the runtime relic reference sheet."
+    )
+    parser.add_argument(
+        "--ids",
+        nargs="+",
+        help="Optional relic ids to export. Supports space-separated or comma-separated values.",
+    )
+    return parser.parse_args()
+
+
+def export_relic_cutouts(target_ids: set[str] | None = None) -> list[Path]:
+    sheet = pygame.image.load(str(RELIC_SPRITE_SHEET_PATH))
     relic_entries = _load_sorted_relic_entries()
     relic_ids_by_name = _load_relic_id_by_name()
+    known_ids = set(relic_ids_by_name.values())
+
+    if target_ids is not None:
+        unknown_ids = sorted(target_ids - known_ids)
+        if unknown_ids:
+            raise ValueError(f"Unknown relic ids requested: {', '.join(unknown_ids)}")
 
     RELIC_CUTOUTS_ROOT.mkdir(parents=True, exist_ok=True)
     written_paths: list[Path] = []
@@ -242,6 +288,8 @@ def export_relic_cutouts() -> list[Path]:
         modifier_id = relic_ids_by_name.get(relic_name)
         if modifier_id is None:
             raise ValueError(f"No relic id found for sheet entry: {relic_name}")
+        if target_ids is not None and modifier_id not in target_ids:
+            continue
         slot_rect = (
             int(float(entry["x"])),
             int(float(entry["y"])),
@@ -250,13 +298,14 @@ def export_relic_cutouts() -> list[Path]:
         )
         cutout = _extract_cutout(sheet, slot_rect)
         output_path = RELIC_CUTOUTS_ROOT / f"{modifier_id}.png"
-        cutout.save(output_path)
+        pygame.image.save(cutout, str(output_path))
         written_paths.append(output_path)
 
     return written_paths
 
 
 if __name__ == "__main__":
-    paths = export_relic_cutouts()
+    args = _parse_args()
+    paths = export_relic_cutouts(target_ids=_normalize_target_ids(args.ids))
     for path in paths:
         print(path)

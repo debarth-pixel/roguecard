@@ -79,6 +79,13 @@ class SpriteSheetAssets:
 
         sheet = self._ensure_sheet_loaded(sheet_key)
         rect = pygame.Rect(entry["x"], entry["y"], entry["width"], entry["height"])
+        sheet_rect = sheet.get_rect()
+        if not sheet_rect.contains(rect):
+            raise ValueError(
+                f"Sprite crop is out of bounds for {sheet_key} atlas: "
+                f"{entry['name']} needs {rect.width}x{rect.height} at ({rect.x}, {rect.y}) "
+                f"but atlas size is {sheet_rect.width}x{sheet_rect.height}."
+            )
         crop = sheet.subsurface(rect).copy()
         self._crop_cache[cache_key] = crop
         return crop
