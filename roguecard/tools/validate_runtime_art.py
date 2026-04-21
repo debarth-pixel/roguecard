@@ -19,8 +19,6 @@ from config import (  # noqa: E402
     CARD_ART_ATLAS_PATH,
     CARDS_DATA_PATH,
     RELIC_CUTOUTS_ROOT,
-    RELIC_SPRITE_COORDINATES_PATH,
-    RELIC_SPRITE_SHEET_PATH,
     RUN_MODIFIERS_DATA_PATH,
 )
 
@@ -55,38 +53,38 @@ def validate() -> None:
         if str(entry.get("type", "")).strip().lower() == "relic"
     ]
     card_entries = _load_csv_rows(CARD_ART_ATLAS_COORDINATES_PATH)
-    relic_entries = _load_csv_rows(RELIC_SPRITE_COORDINATES_PATH)
     card_atlas = pygame.image.load(str(CARD_ART_ATLAS_PATH))
-    relic_sheet = pygame.image.load(str(RELIC_SPRITE_SHEET_PATH))
 
     card_names = {str(entry.get("name", "")).strip() for entry in cards}
-    relic_names = {str(entry.get("name", "")).strip() for entry in relics}
     atlas_card_names = {str(entry["name"]).strip() for entry in card_entries}
-    atlas_relic_names = {str(entry["name"]).strip() for entry in relic_entries}
 
     missing_cards = sorted(card_names - atlas_card_names)
-    missing_relics = sorted(relic_names - atlas_relic_names)
     if missing_cards:
         raise ValueError(f"Missing card atlas entries: {', '.join(missing_cards)}")
-    if missing_relics:
-        raise ValueError(f"Missing relic atlas entries: {', '.join(missing_relics)}")
 
     for entry in card_entries:
         _assert_in_bounds(card_atlas, entry)
-    for entry in relic_entries:
-        _assert_in_bounds(relic_sheet, entry)
 
-    missing_cutouts = []
+    missing_cutouts: list[str] = []
+    unloadable_cutouts: list[str] = []
     for relic in relics:
         relic_id = str(relic.get("id", "")).strip()
-        if relic_id and not (RELIC_CUTOUTS_ROOT / f"{relic_id}.png").exists():
+        if not relic_id:
+            continue
+        cutout_path = RELIC_CUTOUTS_ROOT / f"{relic_id}.png"
+        if not cutout_path.exists():
             missing_cutouts.append(relic_id)
+            continue
+        try:
+            pygame.image.load(str(cutout_path))
+        except pygame.error:
+            unloadable_cutouts.append(relic_id)
     if missing_cutouts:
         raise ValueError(f"Missing relic cutouts: {', '.join(missing_cutouts)}")
+    if unloadable_cutouts:
+        raise ValueError(f"Unreadable relic cutouts: {', '.join(unloadable_cutouts)}")
 
-    print(
-        f"Validated {len(card_entries)} card atlas entries, {len(relic_entries)} relic slots, and {len(relics)} relic cutouts."
-    )
+    print(f"Validated {len(card_entries)} card atlas entries and {len(relics)} runtime relic cutouts.")
 
 
 if __name__ == "__main__":

@@ -38,6 +38,7 @@ from ui.reward_ui import RewardUI
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 from ui.shop_ui import ShopUI
 from ui.sprite_sheet_assets import sprite_sheet_assets
+from ui.status_icon_assets import status_icon_assets
 from ui.title_ui import TitleUI
 from ui.ui_system import (
     COLOR_CYAN,
@@ -86,6 +87,7 @@ class UIManager:
     def preload_assets(self) -> None:
         sprite_sheet_assets.preload()
         relic_assets.preload()
+        status_icon_assets.preload()
         self.character_select_ui.preload_assets()
         self.map_ui.preload_assets()
         self.combat_ui.preload_assets()
@@ -249,6 +251,7 @@ class UIManager:
     def _combat_view_state(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         combat_state = state_snapshot["combat"]
         hand = state_snapshot.get("player_hand") or []
+        campaign = state_snapshot.get("campaign") or {}
         return {
             "status_message": state_snapshot["status_message"],
             "character": state_snapshot.get("character"),
@@ -261,6 +264,9 @@ class UIManager:
             "active_bark": combat_state.get("active_bark"),
             "player_hand": hand,
             "run_modifiers": list((state_snapshot.get("run_modifiers") or {}).get("active", [])),
+            "map_id": campaign.get("map_id"),
+            "map_index": campaign.get("map_index"),
+            "branch_faction": campaign.get("branch_faction"),
             "presentation": state_snapshot.get("presentation", {}),
         }
 
@@ -689,32 +695,64 @@ class UIManager:
         if hovered_type == "relic":
             relic_thumb = relic_assets.get_relic_art(hovered_modifier["id"], (56, 56))
 
-        tooltip_height = 118 if hovered_modifier.get("downside") else 96
-        if hovered_modifier.get("duration_label"):
-            tooltip_height += 22
+        hovered_rect = pygame.Rect(*hovered_modifier["rect"])
+        tooltip_padding = 14
+        tooltip_gap = 12
+        chip_height = 26
+        chip_label = hovered_type.title()
+        chip_width = max(70, self._tiny_font.size(chip_label)[0] + 22)
+        thumb_size = relic_thumb.get_width() if relic_thumb is not None else 0
+        body_width = STATUS_TOOLTIP_WIDTH - (tooltip_padding * 2)
+        title_width = body_width - (thumb_size + 12 if relic_thumb is not None else 0)
+        title_lines = self._wrap_lines(hovered_modifier["name"], self._small_font, title_width)
+        description_lines = self._wrap_lines(hovered_modifier["description"], self._tiny_font, body_width)
+        duration_lines = self._wrap_lines(hovered_modifier.get("duration_label"), self._tiny_font, body_width)
+        downside_lines = self._wrap_lines(
+            f"Tradeoff: {hovered_modifier['downside']}" if hovered_modifier.get("downside") else None,
+            self._tiny_font,
+            body_width,
+        )
+
+        title_height = max(1, len(title_lines)) * self._small_font.get_linesize()
+        header_height = title_height + 6 + chip_height
         if relic_thumb is not None:
-            tooltip_height += 18
-        tooltip_x = max(24, min(1280 - STATUS_TOOLTIP_WIDTH - 24, hovered_modifier["rect"][0] - STATUS_TOOLTIP_WIDTH + hovered_modifier["rect"][2]))
-        tooltip_y = 58
+            header_height = max(header_height, relic_thumb.get_height())
+
+        text_line_height = self._tiny_font.get_linesize()
+        body_height = max(1, len(description_lines)) * text_line_height
+        if duration_lines:
+            body_height += 8 + (len(duration_lines) * text_line_height)
+        if downside_lines:
+            body_height += 8 + (len(downside_lines) * text_line_height)
+
+        tooltip_height = (tooltip_padding * 2) + header_height + tooltip_gap + body_height
+        tooltip_x = hovered_rect.centerx - (STATUS_TOOLTIP_WIDTH // 2)
+        tooltip_x = max(24, min(1280 - STATUS_TOOLTIP_WIDTH - 24, tooltip_x))
+        tooltip_y = hovered_rect.bottom + 12
+        tooltip_y = max(58, min(720 - tooltip_height - 24, tooltip_y))
         tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, STATUS_TOOLTIP_WIDTH, tooltip_height)
         pygame.draw.rect(surface, (8, 14, 24), tooltip_rect, border_radius=14)
         pygame.draw.rect(surface, (255, 214, 110), tooltip_rect, 2, border_radius=14)
         accent = self._modifier_accent(hovered_type, high_contrast)
         title_x = tooltip_rect.x + 14
+        title_y = tooltip_rect.y + tooltip_padding
         if relic_thumb is not None:
-            thumb_rect = relic_thumb.get_rect(topleft=(tooltip_rect.x + 14, tooltip_rect.y + 12))
+            thumb_rect = relic_thumb.get_rect(topleft=(tooltip_rect.x + tooltip_padding, tooltip_rect.y + tooltip_padding))
             surface.blit(relic_thumb, thumb_rect)
             title_x = thumb_rect.right + 12
-        self._draw_text(surface, hovered_modifier["name"], (title_x, tooltip_rect.y + 12), self._small_font, width=tooltip_rect.right - title_x - 14)
-        self._draw_chip(surface, hovered_type.title(), (title_x, tooltip_rect.y + 38), 96, accent=accent)
-        text_y = tooltip_rect.y + (86 if relic_thumb is not None else 68)
-        self._draw_text(surface, hovered_modifier["description"], (tooltip_rect.x + 14, text_y), self._tiny_font, width=tooltip_rect.width - 28)
-        text_y += 20
-        if hovered_modifier.get("duration_label"):
-            self._draw_text(surface, hovered_modifier["duration_label"], (tooltip_rect.x + 14, text_y), self._tiny_font, width=tooltip_rect.width - 28)
-            text_y += 22
-        if hovered_modifier.get("downside"):
-            self._draw_text(surface, f"Tradeoff: {hovered_modifier['downside']}", (tooltip_rect.x + 14, text_y), self._tiny_font, width=tooltip_rect.width - 28)
+        self._draw_text(surface, hovered_modifier["name"], (title_x, title_y), self._small_font, width=tooltip_rect.right - title_x - tooltip_padding)
+        chip_y = title_y + title_height + 6
+        self._draw_chip(surface, chip_label, (title_x, chip_y), chip_width, accent=accent)
+        text_y = tooltip_rect.y + tooltip_padding + header_height + tooltip_gap
+        self._draw_text(surface, hovered_modifier["description"], (tooltip_rect.x + tooltip_padding, text_y), self._tiny_font, width=body_width)
+        text_y += max(1, len(description_lines)) * text_line_height
+        if duration_lines:
+            text_y += 8
+            self._draw_text(surface, hovered_modifier["duration_label"], (tooltip_rect.x + tooltip_padding, text_y), self._tiny_font, width=body_width)
+            text_y += len(duration_lines) * text_line_height
+        if downside_lines:
+            text_y += 8
+            self._draw_text(surface, f"Tradeoff: {hovered_modifier['downside']}", (tooltip_rect.x + tooltip_padding, text_y), self._tiny_font, width=body_width)
 
     def _pause_layout(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         buttons = [
@@ -1333,6 +1371,28 @@ class UIManager:
         width: int | None = None,
     ) -> None:
         draw_wrapped_text(surface, text, position, font, width=width)
+
+    def _wrap_lines(self, text: str | None, font: Any, width: int) -> list[str]:
+        if text is None:
+            return []
+        words = str(text).split()
+        if not words:
+            return []
+        lines: list[str] = []
+        line = ""
+        for word in words:
+            candidate = word if not line else f"{line} {word}"
+            if font.size(candidate)[0] <= width:
+                line = candidate
+                continue
+            if not line:
+                lines.append(word)
+            else:
+                lines.append(line)
+                line = word
+        if line:
+            lines.append(line)
+        return lines
 
     def _ensure_fonts(self, scale: float) -> None:
         scale = clamp_scale(scale, MIN_UI_SCALE, MAX_UI_SCALE)

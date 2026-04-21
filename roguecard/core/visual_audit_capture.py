@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import os
 import tempfile
 from pathlib import Path
@@ -60,6 +61,7 @@ def capture_visual_audit(
             continue
 
         if manager.current_state == "combat":
+            _capture_combat_status_icon_showcase(ui_manager, surface, snapshot, output_path, captured_paths)
             _play_simple_combat(manager)
             continue
 
@@ -169,45 +171,131 @@ def _choose_map_node(snapshot: dict[str, Any], captured_paths: dict[str, str]) -
 
 
 def _play_simple_combat(manager: StateManager) -> None:
-    action_budget = 0
-    while manager.current_state == "combat":
-        action_budget += 1
-        if action_budget > 120:
-            manager.player.current_hp = 0
-            manager.combat_manager.combat_active = False
-            manager._close_combat()
-            return
+    # The audit only needs a representative combat screen; force a deterministic
+    # win after capture so unrelated combat bugs do not block the screenshot pass.
+    if manager.current_state != "combat" or manager.combat_manager is None:
+        return
 
-        snapshot = manager.get_state_snapshot()
-        if snapshot["combat"]["turn_owner"] != "player":
-            manager.end_combat_turn()
-            continue
+    for enemy in manager.combat_manager.enemies:
+        enemy.current_hp = 0
+    manager.combat_manager.combat_active = False
+    manager._close_combat()
 
-        hand = snapshot["player_hand"]
-        player = snapshot["player"]
-        combat = snapshot["combat"]
-        living_enemy_id = combat["living_enemy_ids"][0] if combat["living_enemy_ids"] else None
 
-        candidates: list[tuple[int, int, dict[str, Any]]] = []
-        for index, card in enumerate(hand):
-            if card["cost"] > player["energy"]:
-                continue
-            score = 0
-            effect_values = {effect["type"]: effect.get("value", 0) for effect in card["effects"]}
-            score += effect_values.get("damage", 0) * 4
-            score += effect_values.get("block", 0) * 2
-            score += effect_values.get("draw", 0) * 3
-            score += effect_values.get("energy", 0) * 5
-            score += effect_values.get("heal", 0)
-            candidates.append((score, index, card))
+def _capture_combat_status_icon_showcase(
+    ui_manager: UIManager,
+    surface: Any,
+    snapshot: dict[str, Any],
+    output_path: Path,
+    captured_paths: dict[str, str],
+) -> None:
+    if snapshot.get("current_state") != "combat" or snapshot.get("combat") is None:
+        return
+    if "combat_status_icons" in captured_paths:
+        return
 
-        if not candidates:
-            manager.end_combat_turn()
-            continue
-
-        _, hand_index, chosen_card = max(candidates)
-        target_id = living_enemy_id if any(effect["type"] == "damage" for effect in chosen_card["effects"]) else None
-        manager.play_card_from_hand(hand_index, target_id=target_id)
+    showcase = copy.deepcopy(snapshot)
+    showcase["status_message"] = "Combat status icon showcase."
+    showcase["combat"]["turn_number"] = 5
+    showcase["combat"]["turn_owner"] = "player"
+    showcase["combat"]["event_log"] = [
+        {"card_id": "bio_hemorrhage_01", "summary": "Hemorrhage applied Bleed 2 to Salvage Brute."}
+    ]
+    showcase["combat"]["active_bark"] = None
+    showcase["combat"]["player"] = {
+        **showcase["combat"]["player"],
+        "current_hp": 57,
+        "max_hp": 70,
+        "block": 4,
+        "energy": 3,
+        "max_energy": 3,
+        "strength": 2,
+        "weak": 1,
+        "vulnerable": 1,
+        "combat_statuses": {
+            "infect": 2,
+            "burn": 1,
+            "bleed": 3,
+            "marked": 2,
+            "suppressed": 1,
+            "nullified": True,
+        },
+    }
+    showcase["combat"]["enemies"] = [
+        {
+            "id": "showcase_salvage_brute",
+            "name": "Salvage Brute",
+            "faction_id": "cinder_jackals",
+            "tier": "normal",
+            "current_hp": 18,
+            "max_hp": 34,
+            "block": 0,
+            "strength": 1,
+            "weak": 0,
+            "vulnerable": 1,
+            "current_intent": "scrap_rend",
+            "intent_value": 7,
+            "intent_summary": "Attack for 7 and apply 2 Bleed.",
+            "intent_display": {
+                "kind": "mixed",
+                "damage_per_hit": 7,
+                "hit_count": 1,
+                "total_damage": 7,
+                "block": 0,
+                "buffs": [],
+                "debuffs": ["Bleed"],
+                "icon_effects": [
+                    {"icon_id": "bleed", "count": 2, "category": "combat_status", "label": "Bleed"}
+                ],
+                "summon_count": 0,
+                "tooltip": "Attack for 7 and apply 2 Bleed.",
+            },
+            "statuses": {
+                "bleed": 4,
+                "marked": 2,
+                "suppressed": 1,
+                "nullified": 1,
+                "momentum": 2,
+            },
+        },
+        {
+            "id": "showcase_signal_leech",
+            "name": "Signal Leech",
+            "faction_id": "blackwire_directorate",
+            "tier": "normal",
+            "current_hp": 16,
+            "max_hp": 28,
+            "block": 6,
+            "strength": 0,
+            "weak": 1,
+            "vulnerable": 0,
+            "current_intent": "lag_spike",
+            "intent_value": 1,
+            "intent_summary": "Add 1 Lag Card to the discard pile.",
+            "intent_display": {
+                "kind": "debuff",
+                "damage_per_hit": 0,
+                "hit_count": 0,
+                "total_damage": 0,
+                "block": 0,
+                "buffs": [],
+                "debuffs": ["Lag Card"],
+                "icon_effects": [
+                    {"icon_id": "intent_lag", "count": 1, "category": "enemy_intent", "label": "Lag Card"}
+                ],
+                "summon_count": 0,
+                "tooltip": "Add 1 Lag Card to the discard pile.",
+            },
+            "statuses": {
+                "fortified": 3,
+                "regenerate": 2,
+                "biomass": 1,
+                "mutated": 1,
+            },
+        },
+    ]
+    showcase["combat"]["living_enemy_ids"] = [enemy["id"] for enemy in showcase["combat"]["enemies"]]
+    _capture_screen(ui_manager, surface, showcase, output_path, captured_paths, force_name="combat_status_icons")
 
 
 def _resolve_modifier_draft(manager: StateManager) -> None:
@@ -229,19 +317,28 @@ def _resolve_modifier_draft(manager: StateManager) -> None:
 
 
 def _resolve_reward(manager: StateManager) -> None:
-    reward_state = manager.get_state_snapshot()["reward"]
-    for section in reward_state["sections"]:
-        if section["resolved"]:
-            continue
-        if section["type"] == "card_offer":
-            option = section["options"][0]
-            manager.select_reward_option(section["id"], option["option_id"])
-            manager.confirm_reward_selection(section["id"])
-        elif section["type"] == "purge_offer" and section["options"]:
-            manager.skip_reward_section(section["id"])
-        elif section.get("can_skip"):
-            manager.skip_reward_section(section["id"])
-    manager.continue_from_reward()
+    while manager.current_state == "reward":
+        reward_state = manager.get_state_snapshot()["reward"]
+        unresolved_sections = [section for section in reward_state["sections"] if not section["resolved"]]
+        if not unresolved_sections:
+            manager.continue_from_reward()
+            return
+
+        progressed = False
+        for section in unresolved_sections:
+            options = section.get("options", [])
+            if options:
+                option = options[0]
+                manager.select_reward_option(section["id"], option["option_id"])
+                manager.confirm_reward_selection(section["id"])
+                progressed = True
+                continue
+            if section.get("can_skip"):
+                manager.skip_reward_section(section["id"])
+                progressed = True
+
+        if not progressed:
+            raise ValueError("Could not auto-resolve reward sections for visual audit capture.")
 
 
 def _resolve_shop(

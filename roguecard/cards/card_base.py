@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -121,7 +122,7 @@ class CardResourceEffect:
         return {"resource": self.resource, "delta": self.delta}
 
 
-@dataclass(frozen=True)
+@dataclass
 class CardBase:
     id: str
     name: str
@@ -135,6 +136,8 @@ class CardBase:
     triggers: list[dict[str, Any]] = field(default_factory=list)
     resource_costs: list[CardResourceCost] = field(default_factory=list)
     resource_effects: list[CardResourceEffect] = field(default_factory=list)
+    instance_id: str | None = None
+    temporary_cost_override: int | None = None
 
     @classmethod
     def from_dict(cls, card_data: dict[str, Any]) -> "CardBase":
@@ -159,6 +162,8 @@ class CardBase:
         triggers_data = card_data.get("triggers", [])
         resource_costs_data = card_data.get("resource_costs", [])
         resource_effects_data = card_data.get("resource_effects", [])
+        instance_id = card_data.get("instance_id")
+        temporary_cost_override = card_data.get("temporary_cost_override")
 
         if not isinstance(card_id, str) or not card_id:
             raise ValueError("Card id must be a non-empty string.")
@@ -184,6 +189,12 @@ class CardBase:
             raise ValueError("Card resource_costs must be a list when provided.")
         if not isinstance(resource_effects_data, list):
             raise ValueError("Card resource_effects must be a list when provided.")
+        if instance_id is not None and (not isinstance(instance_id, str) or not instance_id):
+            raise ValueError("Card instance_id must be a non-empty string when provided.")
+        if temporary_cost_override is not None and (
+            not isinstance(temporary_cost_override, int) or temporary_cost_override < 0
+        ):
+            raise ValueError("Card temporary_cost_override must be a non-negative integer when provided.")
 
         owners = cls._validate_owners(card_id, owners_data)
         keywords = cls._validate_keywords(card_id, keywords_data)
@@ -221,6 +232,8 @@ class CardBase:
             triggers=triggers,
             resource_costs=resource_costs,
             resource_effects=resource_effects,
+            instance_id=instance_id,
+            temporary_cost_override=temporary_cost_override,
         )
 
     @classmethod
@@ -403,6 +416,22 @@ class CardBase:
     def has_keyword(self, keyword: str) -> bool:
         return keyword in self.keywords
 
+    def assign_instance_id(self, *, force: bool = False) -> str:
+        if force or self.instance_id is None:
+            self.instance_id = uuid.uuid4().hex
+        return self.instance_id
+
+    def set_temporary_cost_override(self, value: int | None) -> None:
+        if value is None:
+            self.temporary_cost_override = None
+            return
+        if not isinstance(value, int) or value < 0:
+            raise ValueError("Temporary card cost overrides must be non-negative integers.")
+        self.temporary_cost_override = value
+
+    def clear_temporary_cost_override(self) -> None:
+        self.temporary_cost_override = None
+
     def owned_by(self, owner_id: str) -> bool:
         return owner_id in self.owners
 
@@ -431,6 +460,10 @@ class CardBase:
             card_data["resource_effects"] = [
                 effect.to_dict() for effect in self.resource_effects
             ]
+        if self.instance_id is not None:
+            card_data["instance_id"] = self.instance_id
+        if self.temporary_cost_override is not None:
+            card_data["temporary_cost_override"] = self.temporary_cost_override
         return card_data
 
 

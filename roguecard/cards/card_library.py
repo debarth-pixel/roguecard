@@ -43,7 +43,10 @@ class CardLibrary:
             raise KeyError(f"Unknown card id: {card_id}") from error
 
     def create_card(self, card_id: str) -> CardBase:
-        return copy.deepcopy(self.get_card(card_id))
+        card = copy.deepcopy(self.get_card(card_id))
+        card.assign_instance_id(force=True)
+        card.clear_temporary_cost_override()
+        return card
 
     def list_cards(self) -> list[CardBase]:
         if not self._cards:

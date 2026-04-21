@@ -22,6 +22,7 @@ RARITY_OUTLINE_COLORS = {
     "common": (154, 162, 176),
     "uncommon": (94, 208, 124),
     "rare": (154, 108, 255),
+    "boss": (244, 208, 132),
     "special": (208, 160, 255),
 }
 
@@ -178,7 +179,7 @@ class ModifierDraftUI:
         surface.blit(shadow, (art_rect.x + 4, art_rect.y + 10))
 
         pulse_strength = 1.0
-        if rarity in {"rare", "special"}:
+        if rarity in {"rare", "boss", "special"}:
             pulse_strength = 0.9 + (0.1 * math.sin(pygame.time.get_ticks() * 0.0032))
 
         self._draw_outline(
@@ -188,7 +189,7 @@ class ModifierDraftUI:
             color=self._scaled_color(outline_color, pulse_strength),
             thickness=4 if selected else 3 if hovered else 2,
             glow_alpha=84 if selected else 44 if hovered else 22,
-            animated=rarity in {"rare", "special"},
+            animated=rarity in {"rare", "boss", "special"},
         )
         if selected:
             self._draw_outline(

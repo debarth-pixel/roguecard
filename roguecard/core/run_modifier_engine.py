@@ -17,6 +17,7 @@ INTENSITY_SCALABLE_EFFECT_TYPES = {
     "lose_block",
     "draw_cards",
     "gain_energy",
+    "gain_strength",
     "heal",
     "extra_card_choice",
     "percent_discount",
@@ -30,7 +31,16 @@ INTENSITY_SCALABLE_EFFECT_TYPES = {
     "cost_surcharge_after_first_card",
     "damage_event_target",
     "damage_random_enemy",
+    "damage_highest_status_enemy",
     "gain_next_turn_energy",
+    "heal_if_any_enemy_has_status",
+    "modify_next_card_cost",
+    "modify_next_attack_damage",
+    "add_status_card",
+    "apply_status_event_target",
+    "apply_status_other_enemies",
+    "set_random_hand_card_cost_until_played",
+    "add_random_temporary_card_to_hand",
 }
 STACK_COUNT_REPEATABLE_EFFECT_TYPES = {
     "gain_credits",
@@ -40,6 +50,7 @@ STACK_COUNT_REPEATABLE_EFFECT_TYPES = {
     "lose_block",
     "draw_cards",
     "gain_energy",
+    "gain_strength",
     "heal",
     "extra_card_choice",
 }

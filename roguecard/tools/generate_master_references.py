@@ -333,11 +333,33 @@ def _summarize_modifier_hook(action: dict[str, Any]) -> str:
     card_type = action.get("card_type")
     if isinstance(card_type, str):
         qualifiers.append(f"If card type is `{card_type}`")
+    card_id = action.get("card_id")
+    if isinstance(card_id, str) and action_type not in {"add_card", "add_status_card"}:
+        qualifiers.append(f"If card is `{card_id}`")
+    played_cost_equals = action.get("played_cost_equals")
+    if isinstance(played_cost_equals, int):
+        qualifiers.append(f"If played cost is `{played_cost_equals}`")
+    multiple_of = action.get("played_card_type_count_multiple_of")
+    if isinstance(multiple_of, int):
+        qualifiers.append(f"Every `{multiple_of}` matching cards this turn")
+    played_type_set = action.get("require_played_type_set")
+    if isinstance(played_type_set, list) and played_type_set:
+        qualifiers.append(f"If played types include {_bullet_list([str(entry) for entry in played_type_set])}")
     required_statuses = action.get("require_target_has_statuses")
     if isinstance(required_statuses, list) and required_statuses:
         qualifiers.append(
             f"If target has {_bullet_list([str(status_id) for status_id in required_statuses])}"
         )
+    min_target_status_count = action.get("min_target_status_count")
+    if isinstance(min_target_status_count, int):
+        qualifiers.append(f"At least `{min_target_status_count}` matching statuses")
+    turn_interval = action.get("turn_interval")
+    if isinstance(turn_interval, int):
+        turn_offset = int(action.get("turn_offset", 0))
+        qualifiers.append(f"Every `{turn_interval}` turns starting after offset `{turn_offset}`")
+    require_modifier_flag = action.get("require_modifier_flag")
+    if isinstance(require_modifier_flag, str):
+        qualifiers.append(f"If modifier flag `{require_modifier_flag}` is set")
     if action_type == "gain_block":
         summary = f"Gain {value} Block."
         return " ".join([*qualifiers, summary]).strip()
@@ -356,6 +378,9 @@ def _summarize_modifier_hook(action: dict[str, Any]) -> str:
         return " ".join([*qualifiers, summary]).strip()
     if action_type == "heal":
         summary = f"Heal {value} HP."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "gain_strength":
+        summary = f"Gain {value} Strength."
         return " ".join([*qualifiers, summary]).strip()
     if action_type == "percent_discount":
         summary = f"Reduce `{action.get('target')}` prices by {value}%."
@@ -383,14 +408,26 @@ def _summarize_modifier_hook(action: dict[str, Any]) -> str:
     if action_type == "damage_random_enemy":
         summary = f"Deal {value} damage to a random enemy."
         return " ".join([*qualifiers, summary]).strip()
+    if action_type == "damage_highest_status_enemy":
+        summary = f"The enemy with the highest `{action.get('status_id')}` takes {value} damage."
+        return " ".join([*qualifiers, summary]).strip()
     if action_type == "apply_status_all_enemies":
         summary = f"Apply {value} `{action.get('status_id')}` to all enemies."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "apply_status_event_target":
+        summary = f"Apply {value} `{action.get('status_id')}` to the triggering enemy."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "apply_status_other_enemies":
+        summary = f"Apply {value} `{action.get('status_id')}` to all other enemies."
         return " ".join([*qualifiers, summary]).strip()
     if action_type == "increase_highest_enemy_status":
         summary = f"The enemy with the highest `{action.get('status_id')}` gains {value} more `{action.get('status_id')}`."
         return " ".join([*qualifiers, summary]).strip()
     if action_type == "gain_next_turn_energy":
         summary = f"Gain {value} Energy next turn."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "heal_if_any_enemy_has_status":
+        summary = f"Heal {value} HP if any enemy has `{action.get('status_id')}`."
         return " ".join([*qualifiers, summary]).strip()
     if action_type == "reduce_player_status":
         status_id = action.get("status_id")
@@ -399,6 +436,28 @@ def _summarize_modifier_hook(action: dict[str, Any]) -> str:
         else:
             summary = f"Reduce the triggering player status by {value}."
         return " ".join([*qualifiers, summary]).strip()
+    if action_type == "modify_next_card_cost":
+        summary = f"Modify the next card cost by {value}."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "modify_next_attack_damage":
+        summary = f"Modify the next attack damage by {value}."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "add_status_card":
+        count = int(action.get("count", 1))
+        summary = f"Add {count} `{action.get('card_id')}` status card{'s' if count != 1 else ''} to {action.get('pile', 'discard')}."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "exhaust_drawn_card":
+        return " ".join([*qualifiers, "Exhaust the drawn card."]).strip()
+    if action_type == "set_random_hand_card_cost_until_played":
+        summary = f"Set a random hand card to cost {value} until played."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "add_random_temporary_card_to_hand":
+        summary = f"Add {value} random temporary common 0-cost card{'s' if int(value) != 1 else ''} to hand."
+        return " ".join([*qualifiers, summary]).strip()
+    if action_type == "set_modifier_flag":
+        return " ".join([*qualifiers, f"Set modifier flag `{action.get('flag_id')}`."]).strip()
+    if action_type == "clear_modifier_flag":
+        return " ".join([*qualifiers, f"Clear modifier flag `{action.get('flag_id')}`."]).strip()
     return " ".join([*qualifiers, f"{action_type} {value!r}".strip()]).strip()
 
 
@@ -689,21 +748,29 @@ def _write_cards_reference(cards: list[dict[str, Any]]) -> Path:
 def _write_relics_reference(run_modifiers: list[dict[str, Any]]) -> Path:
     relics = [entry for entry in run_modifiers if str(entry.get("type", "")).lower() == "relic"]
     skipped_types = Counter(str(entry.get("type", "unknown")) for entry in run_modifiers if str(entry.get("type", "")).lower() != "relic")
+    track_counts = Counter(str(entry.get("track") or "legacy/untracked") for entry in relics)
+    track_order = ["legacy/untracked", "drop_in", "advanced"]
     lines: list[str] = [
         "# Relics Master Reference",
         "",
         "Generated from `data/run_modifiers.json`.",
         "",
         f"- Total relics: **{len(relics)}**",
+        f"- Track breakdown: {', '.join(f'`{track}` x{track_counts.get(track, 0)}' for track in track_order if track in track_counts)}",
         f"- Non-relic modifier types excluded from the main list: {', '.join(f'`{key}` x{value}' for key, value in sorted(skipped_types.items())) or 'None'}",
         "",
     ]
 
     rarity_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for relic in sorted(relics, key=lambda entry: (str(entry.get("rarity", "")), str(entry.get("name", "")))):
+    for relic in sorted(relics, key=lambda entry: (str(entry.get("name", "")), str(entry.get("id", "")))):
         rarity_groups[str(relic.get("rarity", "unknown"))].append(relic)
 
-    for rarity, rarity_relics in rarity_groups.items():
+    rarity_order = ["common", "uncommon", "rare", "boss"]
+    ordered_rarities = [rarity for rarity in rarity_order if rarity in rarity_groups] + [
+        rarity for rarity in sorted(rarity_groups) if rarity not in rarity_order
+    ]
+    for rarity in ordered_rarities:
+        rarity_relics = rarity_groups[rarity]
         lines.extend([f"## {rarity}", ""])
         for relic in rarity_relics:
             lines.extend(
@@ -713,10 +780,17 @@ def _write_relics_reference(run_modifiers: list[dict[str, Any]]) -> Path:
                     f"- Description: {relic.get('description', 'No description.')}",
                     f"- Base Weight: `{relic.get('base_weight', 'unknown')}`",
                     f"- Draft Eligible: `{bool(relic.get('draft_eligible', False))}`",
+                    f"- Track: `{relic.get('track') or 'legacy/untracked'}`",
                     f"- Source Types: {_bullet_list([str(entry) for entry in relic.get('source_types', [])])}",
                     f"- Tags: {_bullet_list([str(entry) for entry in relic.get('tags', [])])}",
                 ]
             )
+            synergies = relic.get("synergies", [])
+            if isinstance(synergies, list) and synergies:
+                lines.append(f"- Synergies: {_bullet_list([str(entry) for entry in synergies])}")
+            notes = relic.get("notes")
+            if isinstance(notes, str) and notes.strip():
+                lines.append(f"- Notes: {notes}")
             hooks = relic.get("hooks", {})
             if isinstance(hooks, dict) and hooks:
                 lines.append("- Hooks:")

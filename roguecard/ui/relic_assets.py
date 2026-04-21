@@ -88,6 +88,24 @@ class RelicAssets:
         if self._validated:
             return
 
+        missing_ids = [
+            relic_id
+            for relic_id, path in self._paths_by_id.items()
+            if not path.exists()
+        ]
+        if missing_ids:
+            raise ValueError(f"Missing relic cutouts: {', '.join(sorted(missing_ids))}")
+
+        if pygame is not None:
+            unloadable_ids: list[str] = []
+            for relic_id in self._paths_by_id:
+                try:
+                    pygame.image.load(str(self._paths_by_id[relic_id]))
+                except (FileNotFoundError, pygame.error):
+                    unloadable_ids.append(relic_id)
+            if unloadable_ids:
+                raise ValueError(f"Unreadable relic cutouts: {', '.join(sorted(unloadable_ids))}")
+
         self._validated = True
 
     def _load_surface(self, relic_id: str) -> Any | None:

@@ -3,6 +3,46 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+INTENT_DEBUFF_EFFECT_TYPES = {
+    "enemy_apply_weak",
+    "enemy_apply_vulnerable",
+    "enemy_apply_infect",
+    "enemy_apply_marked",
+    "enemy_apply_suppressed",
+    "enemy_apply_burn",
+    "enemy_apply_bleed",
+    "enemy_apply_nullified",
+    "enemy_add_status_card",
+    "enemy_strip_buff",
+    "enemy_trigger_infection_burst",
+    "enemy_steal_block",
+}
+
+INTENT_STATUS_ICON_IDS = {
+    "enemy_apply_weak": "weak",
+    "enemy_apply_vulnerable": "vulnerable",
+    "enemy_apply_infect": "infect",
+    "enemy_apply_marked": "marked",
+    "enemy_apply_suppressed": "suppressed",
+    "enemy_apply_burn": "burn",
+    "enemy_apply_bleed": "bleed",
+    "enemy_apply_nullified": "nullified",
+}
+
+INTENT_STATUS_CARD_ICON_IDS = {
+    "status_burn_01": "intent_burn",
+    "status_glitch_01": "intent_glitch",
+    "status_junk_01": "intent_junk",
+    "status_lag_01": "intent_lag",
+}
+
+INTENT_STATUS_CARD_LABELS = {
+    "status_burn_01": "Burn Card",
+    "status_glitch_01": "Glitch Card",
+    "status_junk_01": "Junk Card",
+    "status_lag_01": "Lag Card",
+}
+
 
 @dataclass
 class Enemy:
@@ -450,6 +490,7 @@ class Enemy:
                 "block": 0,
                 "buffs": [],
                 "debuffs": [],
+                "icon_effects": [],
                 "summon_count": 0,
                 "tooltip": summary,
             }
@@ -461,6 +502,7 @@ class Enemy:
         summon_count = 0
         buffs: list[str] = []
         debuffs: list[str] = []
+        icon_effects: list[dict[str, Any]] = []
 
         for effect in move.get("effects", []):
             effect_type = effect.get("type")
@@ -479,23 +521,13 @@ class Enemy:
                 summon_count += count
                 continue
 
-            label = self._intent_effect_label(effect_type)
+            label = self._intent_effect_label(effect_type, effect)
             if label is None:
                 continue
-            if effect_type in {
-                "enemy_apply_weak",
-                "enemy_apply_vulnerable",
-                "enemy_apply_infect",
-                "enemy_apply_marked",
-                "enemy_apply_suppressed",
-                "enemy_apply_burn",
-                "enemy_apply_bleed",
-                "enemy_apply_nullified",
-                "enemy_add_status_card",
-                "enemy_strip_buff",
-                "enemy_trigger_infection_burst",
-                "enemy_steal_block",
-            }:
+            icon_effect = self._intent_icon_effect(effect, label)
+            if icon_effect is not None:
+                icon_effects.append(icon_effect)
+            if effect_type in INTENT_DEBUFF_EFFECT_TYPES:
                 if label not in debuffs:
                     debuffs.append(label)
             else:
@@ -530,6 +562,7 @@ class Enemy:
             "block": block,
             "buffs": buffs,
             "debuffs": debuffs,
+            "icon_effects": icon_effects,
             "summon_count": summon_count,
             "tooltip": summary,
         }
@@ -544,7 +577,12 @@ class Enemy:
             return "defend"
         return "support"
 
-    def _intent_effect_label(self, effect_type: Any) -> str | None:
+    def _intent_effect_label(self, effect_type: Any, effect: dict[str, Any] | None = None) -> str | None:
+        if str(effect_type) == "enemy_add_status_card":
+            card_id = "" if effect is None else str(effect.get("card_id", "")).strip()
+            if card_id:
+                return INTENT_STATUS_CARD_LABELS.get(card_id, "Status Card")
+
         labels = {
             "enemy_apply_weak": "Weak",
             "enemy_apply_vulnerable": "Vulnerable",
@@ -555,7 +593,6 @@ class Enemy:
             "enemy_apply_burn": "Burn",
             "enemy_apply_bleed": "Bleed",
             "enemy_apply_nullified": "Nullify",
-            "enemy_add_status_card": "Clog",
             "enemy_strip_buff": "Strip Buff",
             "enemy_cleanse_ally": "Cleanse",
             "enemy_gain_strength": "Strength",
@@ -571,6 +608,28 @@ class Enemy:
             "enemy_self_destruct": "Detonate",
         }
         return labels.get(str(effect_type))
+
+    def _intent_icon_effect(self, effect: dict[str, Any], label: str) -> dict[str, Any] | None:
+        effect_type = str(effect.get("type", "")).strip()
+        icon_id = INTENT_STATUS_ICON_IDS.get(effect_type)
+        category = "combat_status"
+        if icon_id is None and effect_type == "enemy_add_status_card":
+            card_id = str(effect.get("card_id", "")).strip()
+            icon_id = INTENT_STATUS_CARD_ICON_IDS.get(card_id)
+            category = "enemy_intent"
+        if icon_id is None:
+            return None
+
+        raw_count = effect.get("count")
+        if raw_count is None:
+            raw_count = effect.get("value")
+        count = 1 if raw_count in {None, False} else max(1, int(raw_count))
+        return {
+            "icon_id": icon_id,
+            "count": count,
+            "category": category,
+            "label": label,
+        }
 
     def _outgoing_attack_damage(self, base_value: int) -> int:
         amount = max(0, base_value + self.strength)

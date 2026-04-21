@@ -715,7 +715,7 @@ class RewardUI:
                 self._draw_chip(
                     surface,
                     pygame.Rect(preview_rect.x + 142, preview_rect.y + 58, 96, 26),
-                    str(claimed["relic"].get("rarity", "common")).title(),
+                    self._relic_badge_label(claimed["relic"]),
                     palette["pill_fill"],
                     palette["accent"],
                     self._micro_font,
@@ -966,7 +966,7 @@ class RewardUI:
         draw_chip(
             surface,
             rarity_rect,
-            label=str(option["relic"].get("rarity", "common")).title(),
+            label=self._relic_badge_label(option["relic"]),
             font=self._micro_font,
             accent=accent,
             fill=COLOR_PANEL,
@@ -1105,7 +1105,7 @@ class RewardUI:
 
         self._draw_text(surface, option["relic"]["name"], (rect.x + 18, rect.y + 110), self._tiny_font, width=rect.width - 36, color=(246, 248, 255))
         rarity_rect = pygame.Rect(rect.x + 18, rect.y + 138, 94, 24)
-        self._draw_chip(surface, rarity_rect, str(option["relic"].get("rarity", "common")).title(), palette["pill_fill"], palette["accent"], self._micro_font)
+        self._draw_chip(surface, rarity_rect, self._relic_badge_label(option["relic"]), palette["pill_fill"], palette["accent"], self._micro_font)
         self._draw_text(
             surface,
             option["relic"].get("description", "No description."),
@@ -1145,8 +1145,23 @@ class RewardUI:
                 "pill_fill": (72, 42, 16),
                 "art_fill": (34, 22, 16),
             },
+            "boss": {
+                "fill": (44, 18, 18),
+                "fill_hover": (62, 24, 24),
+                "fill_selected": (88, 34, 28),
+                "border": (226, 180, 112),
+                "accent": (255, 224, 148),
+                "pill_fill": (110, 30, 22),
+                "art_fill": (42, 14, 14),
+            },
         }
         return palettes.get(rarity, palettes["common"])
+
+    def _relic_badge_label(self, relic: dict[str, Any]) -> str:
+        rarity = str(relic.get("rarity", "common")).lower()
+        if rarity == "boss":
+            return "BOS"
+        return rarity.title()
 
     def _selected_option(self, section: dict[str, Any]) -> dict[str, Any] | None:
         option_id = section.get("selected_option_id")
