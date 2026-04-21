@@ -97,6 +97,9 @@ CARD_ART_ATLAS_COORDINATES_PATH = SPRITE_REFERENCE_PACK_ROOT / "card_art_atlas_c
 RELIC_SPRITE_SHEET_PATH = SPRITE_REFERENCE_PACK_ROOT / "relic_sprite_sheet_reference.png"
 RELIC_SPRITE_COORDINATES_PATH = SPRITE_REFERENCE_PACK_ROOT / "relic_sprite_coordinates.csv"
 RELIC_CUTOUTS_ROOT = ASSETS_ROOT / "ui" / "relics"
+STATUS_ICON_ROOT = ASSETS_ROOT / "ui" / "status_icons"
+STATUS_ICON_SPRITE_SHEET_PATH = STATUS_ICON_ROOT / "grayspine_status_icons_spritesheet.png"
+STATUS_ICON_MANIFEST_PATH = STATUS_ICON_ROOT / "grayspine_status_icons_manifest.json"
 
 ENCOUNTER_ENEMY_IDS = {
     "combat": "enemy_basic_01",
@@ -139,6 +142,7 @@ STATUS_RARITY_WEIGHTS = {
         "common": 1.0,
         "uncommon": 0.5,
         "rare": 0.18,
+        "boss": 0.12,
         "cursed": 0.0,
         "special": 0.0,
     },
@@ -146,6 +150,7 @@ STATUS_RARITY_WEIGHTS = {
         "common": 0.85,
         "uncommon": 0.55,
         "rare": 0.22,
+        "boss": 0.12,
         "cursed": 0.35,
         "special": 0.0,
     },
@@ -217,6 +222,24 @@ STATUS_TAGS = (
     "event",
     "curse",
     "blessing",
+    "attack",
+    "burn",
+    "combo",
+    "corruption",
+    "cost_reduction",
+    "generation",
+    "heal",
+    "marked",
+    "nullified",
+    "power",
+    "retaliation",
+    "reward",
+    "self_damage",
+    "skill",
+    "strength",
+    "suppressed",
+    "turn_counter",
+    "zero_cost",
 )
 STATUS_SOURCE_TYPES = (
     "event",

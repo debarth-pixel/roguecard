@@ -13,6 +13,7 @@ from config import (
     CARD_HOVER_LIFT,
     MAX_UI_SCALE,
     MIN_UI_SCALE,
+    PROJECT_ROOT,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     resolve_asset_path,
@@ -21,6 +22,7 @@ from ui.card_renderer import card_summary_lines, draw_card
 from ui.card_style import CARD_PORTRAIT_HEIGHT_RATIO
 from ui.relic_assets import relic_assets
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+from ui.status_icon_assets import status_icon_assets
 
 SELECT_ANIM_MS = 150
 RESOLVE_ANIM_MS = 110
@@ -39,6 +41,10 @@ COMBAT_MODIFIER_LIMIT = 7
 PLAYER_FOOT = (214, 466)
 PLAYER_SCALE = 1.14
 GROUND_RING_HEIGHT = 28
+COMBAT_STATUS_ICON_SIZE = 20
+COMBAT_STATUS_COUNT_GAP = 2
+COMBAT_STATUS_ITEM_GAP = 6
+COMBAT_STATUS_LIMIT = 6
 
 ENEMY_SLOT_MAP = {
     1: [(1016, 430, 1.14)],
@@ -55,23 +61,43 @@ FACTION_COLORS = {
     "legacy": (192, 172, 220),
 }
 
-STATUS_META = {
-    "strength": {"label": "Strength", "short": "STR", "color": (232, 100, 92)},
-    "weak": {"label": "Weak", "short": "W", "color": (255, 206, 118)},
-    "vulnerable": {"label": "Vulnerable", "short": "V", "color": (224, 126, 92)},
-    "infect": {"label": "Infection", "short": "INF", "color": (104, 230, 154)},
-    "burn": {"label": "Burn", "short": "BRN", "color": (255, 132, 78)},
-    "bleed": {"label": "Bleed", "short": "BLD", "color": (240, 84, 114)},
-    "marked": {"label": "Marked", "short": "MRK", "color": (118, 190, 255)},
-    "suppressed": {"label": "Suppressed", "short": "SUP", "color": (174, 182, 220)},
-    "nullified": {"label": "Nullified", "short": "NUL", "color": (196, 156, 255)},
-    "fortified": {"label": "Fortified", "short": "FOR", "color": (92, 168, 255)},
-    "regenerate": {"label": "Regenerate", "short": "REG", "color": (112, 236, 170)},
-    "momentum": {"label": "Momentum", "short": "MOM", "color": (255, 156, 84)},
-    "overheat": {"label": "Overheat", "short": "HT", "color": (255, 132, 68)},
-    "biomass": {"label": "Biomass", "short": "BIO", "color": (118, 214, 126)},
-    "mutated": {"label": "Mutated", "short": "MUT", "color": (154, 255, 162)},
+STATUS_LABELS = {
+    "strength": "Strength",
+    "weak": "Weak",
+    "vulnerable": "Vulnerable",
+    "infect": "Infection",
+    "burn": "Burn",
+    "bleed": "Bleed",
+    "marked": "Marked",
+    "suppressed": "Suppressed",
+    "nullified": "Nullified",
+    "fortified": "Fortified",
+    "regenerate": "Regenerate",
+    "momentum": "Momentum",
+    "overheat": "Overheat",
+    "biomass": "Biomass",
+    "mutated": "Mutated",
 }
+
+STATUS_DISPLAY_ORDER = (
+    "strength",
+    "fortified",
+    "regenerate",
+    "momentum",
+    "biomass",
+    "overheat",
+    "weak",
+    "vulnerable",
+    "infect",
+    "burn",
+    "bleed",
+    "marked",
+    "suppressed",
+    "nullified",
+    "mutated",
+)
+
+PRIMARY_STATUS_KEYS = ("strength", "weak", "vulnerable")
 
 BUFF_LABELS = {
     "Heal": "Restores health.",
@@ -93,10 +119,29 @@ DEBUFF_LABELS = {
     "Burn": "Applies decaying burn damage.",
     "Bleed": "Triggers damage on later hits.",
     "Nullify": "Blocks the next positive status.",
+    "Burn Card": "Adds a Burn Card to the player's discard pile.",
+    "Glitch Card": "Adds a Glitch Card to the player's discard pile.",
+    "Junk Card": "Adds a Junk Card to the player's discard pile.",
+    "Lag Card": "Adds a Lag Card to the player's discard pile.",
     "Strip Buff": "Removes player buffs.",
     "Burst": "Triggers infection burst damage.",
     "Steal Block": "Removes player block.",
     "Detonate": "Self-destructs after acting.",
+}
+
+ARTS_ROOT = PROJECT_ROOT / "arts"
+DEFAULT_COMBAT_BACKGROUND_PATH = resolve_asset_path("ui", "bg_combat.png")
+COMBAT_BACKGROUND_PATHS = {
+    "outskirts": ARTS_ROOT / "map_1_combat.png",
+    "city_streets": ARTS_ROOT / "map_2_combat.png",
+    "blackwire_lockdown_sector": ARTS_ROOT / "map_3_blackwire.png",
+    "cinder_jackals_edgeworks": ARTS_ROOT / "map_3_cinderjackal.png",
+    "helix_ward_depths": ARTS_ROOT / "map_3_helixware.png",
+}
+COMBAT_BACKGROUND_FACTION_PATHS = {
+    "blackwire_directorate": ARTS_ROOT / "map_3_blackwire.png",
+    "cinder_jackals": ARTS_ROOT / "map_3_cinderjackal.png",
+    "helix_ward": ARTS_ROOT / "map_3_helixware.png",
 }
 
 
@@ -141,7 +186,8 @@ class CombatUI:
     def preload_assets(self) -> None:
         if pygame is None:
             return
-        self._load_image(resolve_asset_path("ui", "bg_combat.png"))
+        for path in [DEFAULT_COMBAT_BACKGROUND_PATH, *COMBAT_BACKGROUND_PATHS.values()]:
+            self._load_image(path)
 
     def poll_action(self, combat_state: dict[str, Any]) -> dict[str, Any] | None:
         if self._pending_action is None:
@@ -344,6 +390,8 @@ class CombatUI:
 
     def build_layout(self, combat_state: dict[str, Any]) -> dict[str, Any]:
         presentation = combat_state.get("presentation", {})
+        if pygame is not None:
+            self._ensure_fonts(presentation.get("ui_scale", 1.0))
         hand = combat_state.get("player_hand", [])
         player = combat_state["player"]
         character = combat_state.get("character") or {}
@@ -533,14 +581,10 @@ class CombatUI:
             return "enemy"
         return "self"
 
-    def _card_footer_label(self, card: dict[str, Any], target_mode: str) -> str:
-        if target_mode == "single_enemy":
-            return "Target: enemy"
-        if target_mode == "all_enemies":
-            return "Target: all enemies"
-        if target_mode == "immediate_self":
-            return "Target: self"
-        return "Play instantly"
+    def _card_footer_label(self, card: dict[str, Any], target_mode: str) -> str | None:
+        del card
+        del target_mode
+        return None
 
     def _weakest_enemy_id(self, enemies: list[dict[str, Any]], valid_ids: list[str]) -> str | None:
         ranked = [
@@ -645,53 +689,110 @@ class CombatUI:
         return actors
 
     def _status_items_for_player(self, player: dict[str, Any]) -> list[dict[str, Any]]:
-        statuses: list[dict[str, Any]] = []
-        for stat_key in ("strength", "weak", "vulnerable"):
-            value = int(player.get(stat_key, 0) or 0)
-            if value > 0:
-                statuses.append(self._status_item(stat_key, value))
+        status_values: dict[str, int] = {}
+        for status_id in PRIMARY_STATUS_KEYS:
+            count = self._status_count(player.get(status_id, 0))
+            if count > 0:
+                status_values[status_id] = count
+
         combat_statuses = player.get("combat_statuses", {})
         if isinstance(combat_statuses, dict):
-            for key in ("infect", "burn", "bleed", "marked", "suppressed"):
-                value = int(combat_statuses.get(key, 0) or 0)
-                if value > 0:
-                    statuses.append(self._status_item(key, value))
-            if combat_statuses.get("nullified"):
-                statuses.append(self._status_item("nullified", 1, show_count=False))
-        return statuses[:6]
+            for status_id in STATUS_DISPLAY_ORDER:
+                if status_id in PRIMARY_STATUS_KEYS:
+                    continue
+                count = self._status_count(combat_statuses.get(status_id, 0))
+                if count > 0:
+                    status_values[status_id] = count
+
+        return self._ordered_status_items(status_values)
 
     def _status_items_for_enemy(self, enemy: dict[str, Any]) -> list[dict[str, Any]]:
-        statuses: list[dict[str, Any]] = []
-        for stat_key in ("strength", "weak", "vulnerable"):
-            value = int(enemy.get(stat_key, 0) or 0)
-            if value > 0:
-                statuses.append(self._status_item(stat_key, value))
+        status_values: dict[str, int] = {}
+        for status_id in PRIMARY_STATUS_KEYS:
+            count = self._status_count(enemy.get(status_id, 0))
+            if count > 0:
+                status_values[status_id] = count
+
         raw_statuses = enemy.get("statuses", {})
         if isinstance(raw_statuses, dict):
-            for key in ("infect", "burn", "fortified", "regenerate", "momentum", "overheat", "biomass"):
-                value = int(raw_statuses.get(key, 0) or 0)
-                if value > 0:
-                    statuses.append(self._status_item(key, value))
-            if int(raw_statuses.get("mutated", 0) or 0) > 0:
-                statuses.append(self._status_item("mutated", 1, show_count=False))
-        return statuses[:6]
+            for status_id in STATUS_DISPLAY_ORDER:
+                if status_id in PRIMARY_STATUS_KEYS:
+                    continue
+                count = self._status_count(raw_statuses.get(status_id, 0))
+                if count > 0:
+                    status_values[status_id] = count
 
-    def _status_item(self, status_id: str, value: int, *, show_count: bool = True) -> dict[str, Any]:
-        meta = STATUS_META.get(status_id, {"label": status_id.replace("_", " ").title(), "short": status_id[:3].upper(), "color": (186, 198, 224)})
+        return self._ordered_status_items(status_values)
+
+    def _ordered_status_items(self, status_values: dict[str, int]) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        for status_id in STATUS_DISPLAY_ORDER:
+            count = int(status_values.get(status_id, 0) or 0)
+            if count > 0:
+                items.append(self._status_item(status_id, count))
+        return items[:COMBAT_STATUS_LIMIT]
+
+    def _status_item(self, status_id: str, value: int) -> dict[str, Any]:
+        label = STATUS_LABELS.get(status_id, status_id.replace("_", " ").title())
         count = max(1, int(value))
-        return {"id": status_id, "label": meta["label"], "short": meta["short"], "color": meta["color"], "count": count, "show_count": show_count and count > 1}
+        if status_id in {"nullified", "mutated"}:
+            count = 1
+        return {"id": status_id, "icon_id": status_id, "label": label, "count": count}
+
+    def _status_count(self, raw_value: Any) -> int:
+        if isinstance(raw_value, bool):
+            return 1 if raw_value else 0
+        try:
+            value = int(raw_value or 0)
+        except (TypeError, ValueError):
+            return 0
+        return max(0, value)
 
     def _status_regions(self, status_items: list[dict[str, Any]], origin: tuple[int, int], *, anchor: str) -> list[dict[str, Any]]:
         if not status_items:
             return []
-        chip_width = 34
-        total_width = (len(status_items) * chip_width) + (max(0, len(status_items) - 1) * 6)
+        scale = self._font_scale or 1.0
+        icon_size = max(16, int(COMBAT_STATUS_ICON_SIZE * scale))
+        count_gap = max(2, int(COMBAT_STATUS_COUNT_GAP * scale))
+        item_gap = max(4, int(COMBAT_STATUS_ITEM_GAP * scale))
+        region_specs: list[dict[str, Any]] = []
+        total_width = 0
+        for item in status_items:
+            count_label = str(item["count"])
+            if self._tiny_font is None:
+                count_width = max(8, len(count_label) * 7)
+            else:
+                count_width = self._tiny_font.size(count_label)[0]
+            width = icon_size + count_gap + count_width
+            region_specs.append(
+                {
+                    "item": item,
+                    "count_label": count_label,
+                    "width": width,
+                    "icon_size": icon_size,
+                    "count_gap": count_gap,
+                }
+            )
+            total_width += width
+        total_width += max(0, len(region_specs) - 1) * item_gap
         start_x = origin[0] - (total_width // 2) if anchor == "center" else origin[0]
         regions = []
-        for index, item in enumerate(status_items):
-            rect = (start_x + (index * (chip_width + 6)), origin[1], chip_width, 26)
-            count_text = f" x{item['count']}" if item["show_count"] else ""
-            regions.append({"rect": rect, "title": item["label"], "text": f"{item['label']}{count_text}".strip(), "item": item})
+        cursor_x = start_x
+        for spec in region_specs:
+            item = spec["item"]
+            rect = (cursor_x, origin[1], spec["width"], spec["icon_size"])
+            regions.append(
+                {
+                    "rect": rect,
+                    "title": item["label"],
+                    "text": f"{item['label']} x{spec['count_label']}",
+                    "item": item,
+                    "count_label": spec["count_label"],
+                    "icon_size": spec["icon_size"],
+                    "count_gap": spec["count_gap"],
+                }
+            )
+            cursor_x += spec["width"] + item_gap
         return regions
 
     def _combat_modifier_items(self, run_modifiers: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -753,14 +854,7 @@ class CombatUI:
 
     def _helper_summary(self, hand_cards: list[dict[str, Any]], selected_card: dict[str, Any] | None, event_log: list[dict[str, Any]]) -> str:
         if selected_card is not None:
-            source = selected_card["source_card"]
-            if source["target_mode"] == "single_enemy":
-                return "Select a target. Hover or click another enemy to retarget, then click again to confirm."
-            if source["target_mode"] == "all_enemies":
-                return "Armed for all-enemy hit. Action will resolve immediately."
-            if source["target_mode"] == "immediate_self":
-                return "Self-targeted card armed. Action will resolve immediately."
-            return "Immediate card armed. Action will resolve immediately."
+            return self._build_recent_summary(event_log)
         hovered = next((card for card in hand_cards if card["index"] == self._hovered_card_index), None)
         if hovered is not None:
             return hovered["summary"] or hovered["footer_label"]
@@ -774,9 +868,9 @@ class CombatUI:
         self._ensure_fonts(presentation.get("ui_scale", 1.0))
         layout = self.build_layout(combat_state)
 
-        background = self._scaled_image(resolve_asset_path("ui", "bg_combat.png"), surface.get_size())
+        background = self._scaled_image(self._combat_background_path(combat_state), surface.get_size())
         surface.blit(background, (0, 0))
-        draw_screen_scrim(surface, alpha=176, color=(8, 8, 16))
+        draw_screen_scrim(surface, alpha=124, color=(8, 8, 16))
         self._draw_stage_gradient(surface)
         if layout["selected_card"] is not None:
             self._draw_target_focus_scrim(surface)
@@ -805,9 +899,18 @@ class CombatUI:
 
     def _draw_stage_gradient(self, surface: Any) -> None:
         overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        for row in range(surface.get_height()):
-            alpha = int(_lerp(12, 72, row / max(1, surface.get_height() - 1)))
-            pygame.draw.line(overlay, (18, 12, 28, alpha), (0, row), (surface.get_width(), row))
+        width = surface.get_width()
+        height = surface.get_height()
+        for row in range(height):
+            progress = row / max(1, height - 1)
+            shadow_alpha = int(_lerp(6, 38, progress))
+            glow_alpha = int(_lerp(42, 10, progress))
+            pygame.draw.line(overlay, (16, 12, 24, shadow_alpha), (0, row), (width, row))
+            pygame.draw.line(overlay, (74, 92, 118, glow_alpha), (0, row), (width, row))
+
+        ambient_rect = pygame.Rect(0, 0, int(width * 0.84), int(height * 0.62))
+        ambient_rect.center = (width // 2, int(height * 0.38))
+        pygame.draw.ellipse(overlay, (132, 150, 182, 28), ambient_rect)
         surface.blit(overlay, (0, 0))
 
     def _draw_target_focus_scrim(self, surface: Any) -> None:
@@ -1054,64 +1157,106 @@ class CombatUI:
         border = (222, 236, 255) if high_contrast else actor["accent"]
         self._draw_panel(surface, rect, fill=(10, 18, 28, 236), border=border, radius=14)
         kind = intent.get("kind", "wait")
-        cursor_x = rect.x + 8
-        icon_rect = pygame.Rect(cursor_x, rect.y + 4, 18, 18)
+        icon_rect = pygame.Rect(rect.x + 8, rect.y + 4, 18, 18)
+        icon_effects = [
+            effect
+            for effect in intent.get("icon_effects", [])
+            if isinstance(effect, dict) and str(effect.get("icon_id", "")).strip()
+        ]
+        primary_icon_effect = icon_effects[0] if kind == "debuff" and icon_effects else None
 
         if kind in {"attack", "mixed"} and int(intent.get("hit_count", 0)) > 0:
             hit_count = int(intent.get("hit_count", 0))
             icon_count = min(3, hit_count)
             for index in range(icon_count):
                 self._draw_sword_icon(surface, pygame.Rect(icon_rect.x + (index * 14), icon_rect.y, 16, 16), (255, 112, 112))
-            cursor_x += 16 + ((icon_count - 1) * 14) + 6
-            self._draw_text(surface, str(intent.get("damage_per_hit", 0)), (cursor_x, rect.y + 4), self._small_font)
-            cursor_x += 24
+            damage_x = rect.x + 30 + ((icon_count - 1) * 14)
+            self._draw_text(surface, str(intent.get("damage_per_hit", 0)), (damage_x, rect.y + 4), self._small_font)
             if hit_count > 1:
-                self._draw_text(surface, f"x{hit_count}", (cursor_x, rect.y + 6), self._tiny_font)
-                cursor_x += 22
+                self._draw_text(surface, f"x{hit_count}", (damage_x + 24, rect.y + 6), self._tiny_font)
         elif kind == "defend":
             self._draw_shield_icon(surface, icon_rect, (116, 198, 255))
             self._draw_text(surface, str(intent.get("block", 0)), (rect.x + 28, rect.y + 4), self._small_font)
-            cursor_x = rect.x + 62
         elif kind == "summon":
             self._draw_summon_icon(surface, icon_rect, (202, 146, 255))
             self._draw_text(surface, str(intent.get("summon_count", 0)), (rect.x + 28, rect.y + 4), self._small_font)
-            cursor_x = rect.x + 58
         elif kind == "buff":
             self._draw_buff_icon(surface, icon_rect, (106, 234, 170))
-            cursor_x = rect.x + 28
+        elif primary_icon_effect is not None:
+            self._blit_status_icon(surface, str(primary_icon_effect["icon_id"]), icon_rect)
+            self._draw_text(surface, str(primary_icon_effect.get("count", 1)), (rect.x + 28, rect.y + 4), self._small_font)
         elif kind == "debuff":
             self._draw_debuff_icon(surface, icon_rect, (255, 156, 96))
-            cursor_x = rect.x + 28
         else:
             self._draw_wait_icon(surface, icon_rect, (176, 190, 214))
-            cursor_x = rect.x + 28
 
-        chip_values: list[tuple[str, tuple[int, int, int], str]] = []
+        chip_entries: list[dict[str, Any]] = []
+        icon_queue = icon_effects[1:] if primary_icon_effect is not None else icon_effects
+        for icon_effect in icon_queue:
+            chip_entries.append(
+                {
+                    "chip_type": "icon",
+                    "icon_id": str(icon_effect.get("icon_id", "")),
+                    "count": max(1, int(icon_effect.get("count", 1) or 1)),
+                }
+            )
+
         if kind in {"attack", "mixed"} and int(intent.get("block", 0)) > 0:
-            chip_values.append((str(intent["block"]), (116, 198, 255), "shield"))
+            chip_entries.append({"chip_type": "glyph", "label": str(intent["block"]), "color": (116, 198, 255), "glyph_kind": "shield"})
         for label in intent.get("buffs", [])[:2]:
-            chip_values.append((label[:3].upper(), (106, 234, 170), "buff"))
-        for label in intent.get("debuffs", [])[:2]:
-            chip_values.append((label[:3].upper(), (255, 156, 96), "debuff"))
+            chip_entries.append({"chip_type": "glyph", "label": label[:3].upper(), "color": (106, 234, 170), "glyph_kind": "buff"})
+
+        icon_labels = {str(effect.get("label", "")).strip() for effect in icon_effects if str(effect.get("label", "")).strip()}
+        for label in intent.get("debuffs", []):
+            if label in icon_labels:
+                continue
+            chip_entries.append({"chip_type": "glyph", "label": label[:3].upper(), "color": (255, 156, 96), "glyph_kind": "debuff"})
+
         if kind == "mixed" and int(intent.get("summon_count", 0)) > 0:
-            chip_values.append((f"+{intent['summon_count']}", (202, 146, 255), "summon"))
+            chip_entries.append({"chip_type": "glyph", "label": f"+{intent['summon_count']}", "color": (202, 146, 255), "glyph_kind": "summon"})
+
         chip_x = rect.right - 6
-        for label, color, chip_kind in reversed(chip_values[:2]):
-            width = 34 if len(label) <= 2 else 40
-            chip_rect = pygame.Rect(chip_x - width, rect.y + 5, width, 18)
-            pygame.draw.rect(surface, (18, 24, 36), chip_rect, border_radius=8)
-            pygame.draw.rect(surface, color, chip_rect, 2, border_radius=8)
-            glyph_rect = pygame.Rect(chip_rect.x + 4, chip_rect.y + 3, 12, 12)
-            if chip_kind == "shield":
-                self._draw_shield_icon(surface, glyph_rect, color)
-            elif chip_kind == "buff":
-                self._draw_buff_icon(surface, glyph_rect, color)
-            elif chip_kind == "debuff":
-                self._draw_debuff_icon(surface, glyph_rect, color)
+        for chip in reversed(chip_entries[:2]):
+            if chip["chip_type"] == "icon":
+                chip_width = max(30, 20 + self._tiny_font.size(str(chip["count"]))[0])
+                chip_rect = pygame.Rect(chip_x - chip_width, rect.y + 5, chip_width, 18)
+                self._draw_intent_icon_chip(surface, chip_rect, str(chip["icon_id"]), int(chip["count"]))
             else:
-                self._draw_summon_icon(surface, glyph_rect, color)
-            self._draw_text(surface, label, (chip_rect.x + 18, chip_rect.y + 3), self._tiny_font, width=chip_rect.width - 20)
+                label = str(chip["label"])
+                chip_width = 34 if len(label) <= 2 else 40
+                chip_rect = pygame.Rect(chip_x - chip_width, rect.y + 5, chip_width, 18)
+                self._draw_intent_glyph_chip(surface, chip_rect, label, chip["color"], str(chip["glyph_kind"]))
             chip_x = chip_rect.x - 6
+
+    def _draw_intent_icon_chip(self, surface: Any, rect: Any, icon_id: str, count: int) -> None:
+        chip_rect = pygame.Rect(rect)
+        pygame.draw.rect(surface, (18, 24, 36), chip_rect, border_radius=8)
+        pygame.draw.rect(surface, (162, 190, 226), chip_rect, 2, border_radius=8)
+        icon_rect = pygame.Rect(chip_rect.x + 4, chip_rect.y + 3, 12, 12)
+        self._blit_status_icon(surface, icon_id, icon_rect)
+        self._draw_count_label(surface, str(max(1, count)), (chip_rect.x + 18, chip_rect.y + 3), font=self._tiny_font)
+
+    def _draw_intent_glyph_chip(
+        self,
+        surface: Any,
+        rect: Any,
+        label: str,
+        color: tuple[int, int, int],
+        glyph_kind: str,
+    ) -> None:
+        chip_rect = pygame.Rect(rect)
+        pygame.draw.rect(surface, (18, 24, 36), chip_rect, border_radius=8)
+        pygame.draw.rect(surface, color, chip_rect, 2, border_radius=8)
+        glyph_rect = pygame.Rect(chip_rect.x + 4, chip_rect.y + 3, 12, 12)
+        if glyph_kind == "shield":
+            self._draw_shield_icon(surface, glyph_rect, color)
+        elif glyph_kind == "buff":
+            self._draw_buff_icon(surface, glyph_rect, color)
+        elif glyph_kind == "debuff":
+            self._draw_debuff_icon(surface, glyph_rect, color)
+        else:
+            self._draw_summon_icon(surface, glyph_rect, color)
+        self._draw_text(surface, label, (chip_rect.x + 18, chip_rect.y + 3), self._tiny_font, width=chip_rect.width - 20)
 
     def _draw_hand(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
         cards = list(layout["hand_cards"])
@@ -1160,17 +1305,6 @@ class CombatUI:
             high_contrast=high_contrast,
             alpha=255,
         )
-        if selected_card["target_mode"] == "single_enemy" and selected_card["target_id"] is not None:
-            caption = "Target locked. Click the highlighted enemy to confirm."
-        elif selected_card["target_mode"] == "all_enemies":
-            caption = "All enemies highlighted."
-        elif selected_card["target_mode"] == "immediate_self":
-            caption = "Self-target locked."
-        else:
-            caption = "Playing immediately."
-        caption_rect = pygame.Rect(selected_card["center_rect"][0] - 8, selected_card["center_rect"][1] + selected_card["center_rect"][3] + 10, selected_card["center_rect"][2] + 16, 28)
-        self._draw_panel(surface, caption_rect, fill=(10, 15, 24, 226), border=(88, 156, 228), radius=14)
-        self._draw_text(surface, caption, (caption_rect.x + 12, caption_rect.y + 6), self._tiny_font, width=caption_rect.width - 24)
 
     def _draw_card_sprite(
         self,
@@ -1243,18 +1377,43 @@ class CombatUI:
             seg_end = (_lerp(start[0], end[0], min(1.0, t + (0.6 / steps))), _lerp(start[1], end[1], min(1.0, t + (0.6 / steps))))
             pygame.draw.line(surface, color, seg_start, seg_end, 3)
 
+    def _blit_status_icon(self, surface: Any, icon_id: str, rect: Any) -> None:
+        target_rect = pygame.Rect(rect)
+        icon = status_icon_assets.get_icon(icon_id, target_rect.size)
+        if icon is not None:
+            icon_rect = icon.get_rect(center=target_rect.center)
+            surface.blit(icon, icon_rect.topleft)
+            return
+        pygame.draw.circle(surface, (184, 198, 224), target_rect.center, max(4, target_rect.width // 2 - 1), 1)
+        fallback = self._tiny_font.render(STATUS_LABELS.get(icon_id, "?")[:1], True, (240, 244, 255))
+        surface.blit(fallback, fallback.get_rect(center=target_rect.center))
+
+    def _draw_count_label(
+        self,
+        surface: Any,
+        label: str,
+        position: tuple[int, int],
+        *,
+        font: Any,
+        color: tuple[int, int, int] = (240, 244, 255),
+    ) -> None:
+        shadow = font.render(label, True, (0, 0, 0))
+        shadow.set_alpha(168)
+        surface.blit(shadow, (position[0] + 1, position[1] + 1))
+        surface.blit(font.render(label, True, color), position)
+
     def _draw_status_row(self, surface: Any, regions: list[dict[str, Any]]) -> None:
         for region in regions:
             rect = pygame.Rect(*region["rect"])
             item = region["item"]
-            panel = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-            pygame.draw.rect(panel, (*item["color"], 44), panel.get_rect(), border_radius=10)
-            pygame.draw.rect(panel, item["color"], panel.get_rect(), 2, border_radius=10)
-            surface.blit(panel, rect.topleft)
-            self._draw_text(surface, item["short"], (rect.x + 5, rect.y + 4), self._tiny_font, width=rect.width - 10)
-            if item["show_count"]:
-                count_label = self._tiny_font.render(str(item["count"]), True, (244, 248, 255))
-                surface.blit(count_label, count_label.get_rect(bottomright=(rect.right - 4, rect.bottom - 3)))
+            icon_size = int(region["icon_size"])
+            icon_rect = pygame.Rect(rect.x, rect.y, icon_size, icon_size)
+            self._blit_status_icon(surface, item["icon_id"], icon_rect)
+            count_text = region["count_label"]
+            count_width, count_height = self._tiny_font.size(count_text)
+            count_x = icon_rect.right + int(region["count_gap"])
+            count_y = rect.y + max(0, (rect.height - count_height) // 2) - 1
+            self._draw_count_label(surface, count_text, (count_x, count_y), font=self._tiny_font)
 
     def _draw_helper_panel(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
         rect = pygame.Rect(*layout["helper_panel_rect"])
@@ -1418,6 +1577,19 @@ class CombatUI:
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         return pygame.transform.smoothscale(self._load_image(path), size)
+
+    def _combat_background_path(self, combat_state: dict[str, Any]) -> Path:
+        map_id = combat_state.get("map_id")
+        if isinstance(map_id, str):
+            background_path = COMBAT_BACKGROUND_PATHS.get(map_id)
+            if background_path is not None and background_path.exists():
+                return background_path
+        branch_faction = combat_state.get("branch_faction")
+        if isinstance(branch_faction, str):
+            background_path = COMBAT_BACKGROUND_FACTION_PATHS.get(branch_faction)
+            if background_path is not None and background_path.exists():
+                return background_path
+        return DEFAULT_COMBAT_BACKGROUND_PATH
 
     def _load_image(self, path: Path) -> Any:
         cache_key = str(path)

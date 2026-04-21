@@ -42,6 +42,14 @@ class SpriteSheetAssets:
     def get_card_art(self, card_name: str, target_size: tuple[int, int]) -> Any | None:
         return self._get_scaled_sprite("card", card_name, target_size)
 
+    def get_card_art_crop(self, card_name: str) -> Any | None:
+        if pygame is None:
+            return None
+        entry = self._lookup_entry("card", card_name)
+        if entry is None:
+            return None
+        return self._get_crop("card", entry)
+
     def get_relic_art(self, relic_name: str, target_size: tuple[int, int]) -> Any | None:
         return self._get_scaled_sprite("relic", relic_name, target_size)
 
@@ -79,6 +87,13 @@ class SpriteSheetAssets:
 
         sheet = self._ensure_sheet_loaded(sheet_key)
         rect = pygame.Rect(entry["x"], entry["y"], entry["width"], entry["height"])
+        sheet_rect = sheet.get_rect()
+        if not sheet_rect.contains(rect):
+            raise ValueError(
+                f"Sprite crop is out of bounds for {sheet_key} atlas: "
+                f"{entry['name']} needs {rect.width}x{rect.height} at ({rect.x}, {rect.y}) "
+                f"but atlas size is {sheet_rect.width}x{sheet_rect.height}."
+            )
         crop = sheet.subsurface(rect).copy()
         self._crop_cache[cache_key] = crop
         return crop

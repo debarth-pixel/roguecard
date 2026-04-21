@@ -573,7 +573,7 @@ class ShopUI:
             if art is not None:
                 art_dest = art.get_rect(center=icon_rect.center)
                 surface.blit(art, art_dest.topleft)
-            self._draw_text(surface, str(offer["relic"].get("rarity", "common")).title(), (detail_card.x + 92, detail_card.y + 18), self._tiny_font, color=COLOR_MUTED)
+            self._draw_text(surface, self._relic_badge_label(offer["relic"]), (detail_card.x + 92, detail_card.y + 18), self._tiny_font, color=COLOR_MUTED)
             self._draw_text(surface, offer["relic"].get("description", "Relic"), (detail_card.x + 18, detail_card.y + 88), self._tiny_font, width=detail_card.width - 36, color=COLOR_TEXT)
         elif offer["type"] == "purge":
             self._draw_text(surface, "Choose a card in the drawer and purchase the service.", (body_rect.x, body_rect.y + 8), self._tiny_font, width=body_rect.width, color=COLOR_MUTED)
@@ -606,7 +606,7 @@ class ShopUI:
         if offer["type"] == "card":
             return {"attack": "ATK", "skill": "SKL", "power": "PWR"}.get(offer["card"].get("type", "card"), "CRD")
         if offer["type"] == "relic":
-            return {"common": "COM", "uncommon": "UNC", "rare": "RAR"}.get(
+            return {"common": "COM", "uncommon": "UNC", "rare": "RAR", "boss": "BOS"}.get(
                 str(offer["relic"].get("rarity", "common")).lower(),
                 "REL",
             )
@@ -616,7 +616,7 @@ class ShopUI:
         if offer["type"] == "card":
             return compact_card_summary(offer["card"])
         if offer["type"] == "relic":
-            rarity = str(offer["relic"].get("rarity", "common")).title()
+            rarity = self._relic_badge_label(offer["relic"])
             description = offer["relic"].get("description", "Relic")
             return f"{rarity} relic. {description}"
         return offer.get("description", "Service")
@@ -663,8 +663,22 @@ class ShopUI:
                 "muted": (236, 214, 184),
                 "pill": (255, 214, 110),
             },
+            "boss": {
+                "fill": (56, 20, 18),
+                "fill_hover": (72, 26, 22),
+                "fill_selected": (96, 36, 26),
+                "border": (238, 198, 126),
+                "muted": (246, 226, 194),
+                "pill": (255, 224, 148),
+            },
         }
         return palettes.get(rarity, palettes["common"])
+
+    def _relic_badge_label(self, relic: dict[str, Any]) -> str:
+        rarity = str(relic.get("rarity", "common")).lower()
+        if rarity == "boss":
+            return "BOS"
+        return rarity.title()
 
     def _event_for_action(self, action_id: str, layout: dict[str, Any]) -> dict[str, Any]:
         if action_id == "purchase":

@@ -4,6 +4,7 @@ import copy
 import random
 from typing import Any
 
+from cards.card_base import CardBase
 from cards.card_library import CardLibrary
 from cards.deck_manager import DeckManager
 from combat.combat_manager import CombatManager
@@ -216,6 +217,23 @@ class StateManager:
             }
         )
         self._record_combat_card_play(card, resolution)
+        combat_flags = self._combat_runtime_flags()
+        card_type_counts = combat_flags.get("card_type_counts_this_turn", {})
+        played_type_set = sorted(
+            card_type
+            for card_type, count in card_type_counts.items()
+            if isinstance(card_type, str) and int(count) > 0
+        )
+        self._handle_combat_runtime_event(
+            {
+                "hook": "after_card_played",
+                "card_id": getattr(card, "id", None),
+                "card_type": getattr(card, "type", None),
+                "played_cost": play_context["cost"],
+                "played_card_type_count_this_turn": int(card_type_counts.get(getattr(card, "type", ""), 0)),
+                "played_type_set_this_turn": played_type_set,
+            }
+        )
 
         if not self.combat_manager.combat_active:
             self._close_combat()
@@ -1451,12 +1469,14 @@ class StateManager:
             "active_modifier_ids": [],
             "cards_played_this_combat": 0,
             "cards_played_this_turn": 0,
+            "card_type_counts_this_turn": {},
             "current_turn_attack_played": False,
             "last_turn_attack_played": False,
             "first_block_penalty_remaining": 0,
             "pending_energy_next_turn": 0,
             "triggered_modifier_ids_this_turn": [],
             "triggered_modifier_ids_this_combat": [],
+            "modifier_state": {},
             "runtime_event_index": 0,
         }
 
@@ -1560,6 +1580,14 @@ class StateManager:
             return [f"Lost {lost} credits."]
         if effect_type == "damage":
             damage = self.player.take_damage(effect["value"])
+            if damage > 0 and self.current_state == "combat":
+                self._handle_combat_runtime_event(
+                    {
+                        "hook": "on_self_damage",
+                        "self_damage": damage,
+                        "source_modifier_id": effect.get("modifier_id"),
+                    }
+                )
             return [f"Lost {damage} HP."]
         if effect_type == "modify_max_hp":
             delta = self.player.adjust_max_hp(effect["value"])
@@ -1574,6 +1602,8 @@ class StateManager:
             self.player.deck_manager.normalize_overworld_deck()
             return [f"Added {card.name} to the deck."]
         if effect_type == "gain_block":
+            if self._player_positive_gain_blocked("block", effect["value"]):
+                return ["Gained 0 Block."]
             gained = self.player.gain_block(effect["value"])
             return [f"Gained {gained} Block."]
         if effect_type == "lose_block":
@@ -1589,6 +1619,11 @@ class StateManager:
         if effect_type == "gain_energy":
             self.player.energy += effect["value"]
             return [f"Gained {effect['value']} Energy."]
+        if effect_type == "gain_strength":
+            if self._player_positive_gain_blocked("gain_strength", effect["value"]):
+                return ["Gained 0 Strength."]
+            total = self.player.adjust_strength(effect["value"])
+            return [f"Strength is now {total}."]
         if effect_type == "gain_next_turn_energy":
             combat_flags = self._combat_runtime_flags()
             combat_flags["pending_energy_next_turn"] = max(
@@ -1598,6 +1633,8 @@ class StateManager:
             return [f"Banked {effect['value']} Energy for next turn."]
         if effect_type == "heal":
             healed = self.player.heal(effect["value"])
+            if healed > 0 and self.current_state == "combat":
+                self._handle_combat_runtime_event({"hook": "on_heal", "amount": healed})
             return [f"Recovered {healed} HP."]
         if effect_type == "heal_after_event":
             healed = self.player.heal(effect["value"])
@@ -1614,6 +1651,12 @@ class StateManager:
                 return []
             applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
             return [] if applied <= 0 else [f"{enemy.name} took {applied} random damage."]
+        if effect_type == "damage_highest_status_enemy":
+            enemy = self._highest_status_enemy(effect["status_id"])
+            if enemy is None:
+                return []
+            applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
+            return [] if applied <= 0 else [f"{enemy.name} took {applied} bonus damage."]
         if effect_type == "apply_status_all_enemies":
             if self.combat_manager is None:
                 return []
@@ -1629,6 +1672,24 @@ class StateManager:
                 if applied > 0:
                     applied_count += 1
             return [] if applied_count <= 0 else [f"Applied {effect['status_id']} to {applied_count} enemies."]
+        if effect_type == "apply_status_event_target":
+            enemy = self._event_target_enemy(event)
+            if enemy is None:
+                return []
+            applied = self.combat_manager._apply_status_to_enemy(enemy, effect["status_id"], effect["value"])
+            return [] if applied <= 0 else [f"Applied {effect['status_id']} to {enemy.name}."]
+        if effect_type == "apply_status_other_enemies":
+            if self.combat_manager is None:
+                return []
+            target_enemy = self._event_target_enemy(event)
+            applied_count = 0
+            for enemy in self.combat_manager.enemies:
+                if not enemy.is_alive() or enemy is target_enemy:
+                    continue
+                applied = self.combat_manager._apply_status_to_enemy(enemy, effect["status_id"], effect["value"])
+                if applied > 0:
+                    applied_count += 1
+            return [] if applied_count <= 0 else [f"Applied {effect['status_id']} to {applied_count} other enemies."]
         if effect_type == "increase_highest_enemy_status":
             enemy = self._highest_status_enemy(effect["status_id"])
             if enemy is None:
@@ -1639,6 +1700,18 @@ class StateManager:
                 effect["value"],
             )
             return [] if applied <= 0 else [f"{enemy.name}'s {effect['status_id']} increased."]
+        if effect_type == "heal_if_any_enemy_has_status":
+            if self.combat_manager is None:
+                return []
+            if not any(
+                enemy.is_alive() and self._combat_status_value(enemy, effect["status_id"]) > 0
+                for enemy in self.combat_manager.enemies
+            ):
+                return []
+            healed = self.player.heal(effect["value"])
+            if healed > 0 and self.current_state == "combat":
+                self._handle_combat_runtime_event({"hook": "on_heal", "amount": healed})
+            return [] if healed <= 0 else [f"Recovered {healed} HP."]
         if effect_type == "reduce_player_status":
             status_id = effect.get("status_id")
             if status_id is None and event is not None:
@@ -1650,6 +1723,72 @@ class StateManager:
             else:
                 reduced = self.player.cleanse_combat_status(status_id, effect["value"])
             return [] if reduced <= 0 else [f"Reduced {status_id} by {reduced}."]
+        if effect_type == "modify_next_card_cost":
+            if self._player_positive_gain_blocked("modify_next_card_cost", effect["value"]):
+                return ["Next card cost was not reduced."]
+            previous_total = self.player.next_card_cost_delta
+            total = self.player.adjust_next_card_cost(effect["value"])
+            if self.current_state == "combat" and effect["value"] < 0 and total < previous_total:
+                self._handle_combat_runtime_event(
+                    {
+                        "hook": "on_card_cost_reduced",
+                        "amount": abs(effect["value"]),
+                        "source_modifier_id": effect.get("modifier_id"),
+                    }
+                )
+            return [f"Next card cost modifier is now {total}."]
+        if effect_type == "modify_next_attack_damage":
+            if self._player_positive_gain_blocked("modify_next_attack_damage", effect["value"]):
+                return ["Next attack damage was not increased."]
+            total = self.player.adjust_next_attack_damage(effect["value"])
+            return [f"Next attack bonus is now {total}."]
+        if effect_type == "add_status_card":
+            if self.current_state != "combat" or self.combat_manager is None:
+                return []
+            added = self.combat_manager._add_status_cards_to_player(
+                effect["card_id"],
+                int(effect.get("count", effect["value"])),
+                effect.get("pile", "discard"),
+            )
+            return [] if added <= 0 else [f"Added {added} status card{'s' if added != 1 else ''}."]
+        if effect_type == "exhaust_drawn_card":
+            if self.current_state != "combat" or self.combat_manager is None or event is None:
+                return []
+            drawn_card = event.get("card")
+            if drawn_card is None or drawn_card not in self.player.deck_manager.hand:
+                return []
+            self.player.deck_manager.exhaust_card(drawn_card)
+            self.combat_manager._notify_card_exhausted(drawn_card)
+            return [f"Exhausted {drawn_card.name}."]
+        if effect_type == "set_random_hand_card_cost_until_played":
+            target_card = self._choose_random_hand_card(effect)
+            if target_card is None:
+                return []
+            previous_cost = self._card_payable_cost(target_card)
+            target_card.set_temporary_cost_override(effect["value"])
+            if self.current_state == "combat" and effect["value"] < previous_cost:
+                self._handle_combat_runtime_event(
+                    {
+                        "hook": "on_card_cost_reduced",
+                        "amount": previous_cost - effect["value"],
+                        "card_id": target_card.id,
+                        "source_modifier_id": effect.get("modifier_id"),
+                    }
+                )
+            return [f"{target_card.name} now costs {effect['value']} until played."]
+        if effect_type == "add_random_temporary_card_to_hand":
+            card = self._create_random_temporary_card(effect)
+            if card is None:
+                return []
+            self.player.add_temporary_combat_card(card)
+            self.player.deck_manager.hand.append(card)
+            return [f"Added temporary {card.name} to hand."]
+        if effect_type == "set_modifier_flag":
+            self._set_modifier_flag(effect.get("modifier_id"), effect["flag_id"])
+            return []
+        if effect_type == "clear_modifier_flag":
+            self._clear_modifier_flag(effect.get("modifier_id"), effect["flag_id"])
+            return []
         if effect_type == "random_one_of":
             option = self._resolve_random_modifier_option(effect)
             nested_details: list[str] = []
@@ -1661,8 +1800,12 @@ class StateManager:
         return []
 
     def _apply_combat_modifier_effects(self, hook_name: str) -> None:
+        event = {"hook": hook_name}
+        if self.combat_manager is not None:
+            event["turn_number"] = self.combat_manager.turn_manager.turn_number
         for effect in self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), hook_name):
-            self._apply_modifier_effect(effect)
+            if self._modifier_effect_matches_event(effect, event):
+                self._apply_modifier_effect(effect, event=event)
 
     def _handle_combat_runtime_event(self, event: dict[str, Any]) -> None:
         if self.current_state != "combat" or self.combat_manager is None:
@@ -1677,26 +1820,39 @@ class StateManager:
         triggered_this_combat = set(combat_flags.get("triggered_modifier_ids_this_combat", []))
 
         for record in self._active_modifiers_for_combat():
-            modifier = self.run_modifier_library.get_modifier(record["id"])
-            hook_effects = modifier.get("hooks", {}).get(hook_name, [])
+            hook_effects = self.run_modifier_engine.get_effects([record], hook_name)
             matching_effects = [
                 effect for effect in hook_effects if self._modifier_effect_matches_event(effect, event)
             ]
             if not matching_effects:
                 continue
 
-            gate_key = f"{modifier['id']}:{hook_name}"
-            if any(effect.get("once_per") == "turn" for effect in matching_effects) and gate_key in triggered_this_turn:
-                continue
-            if any(effect.get("once_per") == "combat" for effect in matching_effects) and gate_key in triggered_this_combat:
-                continue
-
+            turn_gated_effects: dict[str, list[dict[str, Any]]] = {}
+            combat_gated_effects: dict[str, list[dict[str, Any]]] = {}
+            ungated_effects: list[dict[str, Any]] = []
             for effect in matching_effects:
-                self._apply_modifier_effect(effect, event=event)
+                once_per = effect.get("once_per")
+                gate_key = f"{effect.get('modifier_id')}:{effect.get('gate_id', hook_name)}"
+                if once_per == "turn":
+                    if gate_key in triggered_this_turn:
+                        continue
+                    turn_gated_effects.setdefault(gate_key, []).append(effect)
+                elif once_per == "combat":
+                    if gate_key in triggered_this_combat:
+                        continue
+                    combat_gated_effects.setdefault(gate_key, []).append(effect)
+                else:
+                    ungated_effects.append(effect)
 
-            if any(effect.get("once_per") == "turn" for effect in matching_effects):
+            for effect in ungated_effects:
+                self._apply_modifier_effect(effect, event=event)
+            for gate_key, gated_effects in turn_gated_effects.items():
+                for effect in gated_effects:
+                    self._apply_modifier_effect(effect, event=event)
                 triggered_this_turn.add(gate_key)
-            if any(effect.get("once_per") == "combat" for effect in matching_effects):
+            for gate_key, gated_effects in combat_gated_effects.items():
+                for effect in gated_effects:
+                    self._apply_modifier_effect(effect, event=event)
                 triggered_this_combat.add(gate_key)
 
         combat_flags["triggered_modifier_ids_this_turn"] = sorted(triggered_this_turn)
@@ -1713,11 +1869,51 @@ class StateManager:
         if card_type is not None and event.get("card_type") != card_type:
             return False
 
+        card_id = effect.get("card_id")
+        if card_id is not None and event.get("card_id") != card_id:
+            return False
+
+        played_cost_equals = effect.get("played_cost_equals")
+        if played_cost_equals is not None and event.get("played_cost") != played_cost_equals:
+            return False
+
+        played_card_type_count_multiple_of = effect.get("played_card_type_count_multiple_of")
+        if played_card_type_count_multiple_of is not None:
+            played_count = int(event.get("played_card_type_count_this_turn", 0))
+            if played_count <= 0 or played_count % played_card_type_count_multiple_of != 0:
+                return False
+
+        require_played_type_set = effect.get("require_played_type_set")
+        if require_played_type_set is not None:
+            played_type_set = set(event.get("played_type_set_this_turn", []))
+            if not set(require_played_type_set).issubset(played_type_set):
+                return False
+
         required_statuses = effect.get("require_target_has_statuses")
         if required_statuses is not None:
             target_status_ids = set(event.get("target_status_ids", []))
-            if not target_status_ids.intersection(required_statuses):
+            matched_statuses = target_status_ids.intersection(required_statuses)
+            minimum = int(effect.get("min_target_status_count", 1))
+            if len(matched_statuses) < minimum:
                 return False
+        elif effect.get("min_target_status_count") is not None:
+            target_status_ids = set(event.get("target_status_ids", []))
+            if len(target_status_ids) < int(effect["min_target_status_count"]):
+                return False
+
+        turn_interval = effect.get("turn_interval")
+        if turn_interval is not None:
+            turn_number = int(event.get("turn_number", 0))
+            turn_offset = int(effect.get("turn_offset", 0))
+            if turn_number <= turn_offset or (turn_number - turn_offset) % turn_interval != 0:
+                return False
+
+        require_modifier_flag = effect.get("require_modifier_flag")
+        if require_modifier_flag is not None and not self._modifier_flag_is_set(
+            effect.get("modifier_id"),
+            require_modifier_flag,
+        ):
+            return False
 
         return True
 
@@ -1774,6 +1970,87 @@ class StateManager:
         if hasattr(target, "get_status"):
             return max(0, int(target.get_status(key)))
         return 0
+
+    def _player_positive_gain_blocked(self, effect_type: str, value: int) -> bool:
+        if self.current_state != "combat" or self.combat_manager is None:
+            return False
+        return bool(self.combat_manager._player_positive_status_blocked(effect_type, value))
+
+    def _modifier_state(self, modifier_id: Any) -> dict[str, Any]:
+        if not isinstance(modifier_id, str) or not modifier_id:
+            return {}
+        combat_flags = self._combat_runtime_flags()
+        modifier_state = combat_flags.setdefault("modifier_state", {})
+        if not isinstance(modifier_state, dict):
+            modifier_state = {}
+            combat_flags["modifier_state"] = modifier_state
+        state = modifier_state.get(modifier_id)
+        if not isinstance(state, dict):
+            state = {}
+            modifier_state[modifier_id] = state
+        return state
+
+    def _set_modifier_flag(self, modifier_id: Any, flag_id: str) -> None:
+        if not isinstance(flag_id, str) or not flag_id:
+            return
+        state = self._modifier_state(modifier_id)
+        state[flag_id] = True
+
+    def _clear_modifier_flag(self, modifier_id: Any, flag_id: str) -> None:
+        if not isinstance(flag_id, str) or not flag_id:
+            return
+        state = self._modifier_state(modifier_id)
+        state.pop(flag_id, None)
+
+    def _modifier_flag_is_set(self, modifier_id: Any, flag_id: str) -> bool:
+        if not isinstance(flag_id, str) or not flag_id:
+            return False
+        return bool(self._modifier_state(modifier_id).get(flag_id, False))
+
+    def _card_payable_cost(self, card: Any) -> int:
+        if self.current_state == "combat":
+            return int(self._combat_card_context(card)["cost"])
+        return max(0, int(getattr(card, "cost", 0)))
+
+    def _choose_random_hand_card(self, effect: dict[str, Any]) -> Any | None:
+        if self.current_state != "combat" or self.player.deck_manager is None:
+            return None
+        hand = list(self.player.deck_manager.hand)
+        if not hand:
+            return None
+        event_index = int(self._combat_runtime_flags().get("runtime_event_index", 0))
+        rng = self._state_rng(f"modifier_hand_pick:{effect.get('modifier_id', 'modifier')}:{event_index}")
+        return rng.choice(hand)
+
+    def _create_random_temporary_card(self, effect: dict[str, Any]) -> Any | None:
+        if self.player.deck_manager is None:
+            return None
+        owner_ids = ["shared"]
+        if self.character_id is not None:
+            owner_ids.append(self.character_id)
+        candidates = self.card_library.find_cards(owners=owner_ids, exclude_types=["status"])
+        common_like_candidates = [card for card in candidates if int(getattr(card, "shop_price", 0)) <= 45]
+        if common_like_candidates:
+            candidates = common_like_candidates
+        if not candidates:
+            return None
+        event_index = int(self._combat_runtime_flags().get("runtime_event_index", 0))
+        rng = self._state_rng(f"modifier_temp_card:{effect.get('modifier_id', 'modifier')}:{event_index}")
+        card = rng.choice(candidates)
+        card.assign_instance_id(force=True)
+        card.set_temporary_cost_override(int(effect.get("temporary_cost_override", 0)))
+        if self.current_state == "combat" and card.temporary_cost_override is not None:
+            base_cost = max(0, int(card.cost))
+            if card.temporary_cost_override < base_cost:
+                self._handle_combat_runtime_event(
+                    {
+                        "hook": "on_card_cost_reduced",
+                        "amount": base_cost - card.temporary_cost_override,
+                        "card_id": card.id,
+                        "source_modifier_id": effect.get("modifier_id"),
+                    }
+                )
+        return card
 
     def _apply_post_victory_modifier_effects(self, encounter_type: str | None) -> str | None:
         summaries: list[str] = []
@@ -1838,8 +2115,10 @@ class StateManager:
     def _start_player_turn_runtime(self) -> None:
         combat_flags = self._combat_runtime_flags()
         combat_flags["cards_played_this_turn"] = 0
+        combat_flags["card_type_counts_this_turn"] = {}
         combat_flags["current_turn_attack_played"] = False
         combat_flags["triggered_modifier_ids_this_turn"] = []
+        combat_flags["modifier_state"] = {}
         pending_energy = int(combat_flags.get("pending_energy_next_turn", 0))
         if pending_energy > 0:
             self.player.gain_energy(pending_energy)
@@ -1850,18 +2129,22 @@ class StateManager:
         card_data = card.to_dict()
         combat_flags = self._combat_runtime_flags()
         passive_effects = self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), "passive")
+        temporary_cost_override = getattr(card, "temporary_cost_override", None)
 
-        cost = card_data["cost"] + self.player.next_card_cost_delta
-        if combat_flags.get("cards_played_this_combat", 0) == 0 and any(
-            effect["type"] == "first_card_free" for effect in passive_effects
-        ):
-            cost = 0
-        elif combat_flags.get("cards_played_this_combat", 0) >= 1:
-            cost += sum(
-                effect["value"]
-                for effect in passive_effects
-                if effect["type"] == "cost_surcharge_after_first_card"
-            )
+        if temporary_cost_override is not None:
+            cost = temporary_cost_override
+        else:
+            cost = card_data["cost"] + self.player.next_card_cost_delta
+            if combat_flags.get("cards_played_this_combat", 0) == 0 and any(
+                effect["type"] == "first_card_free" for effect in passive_effects
+            ):
+                cost = 0
+            elif combat_flags.get("cards_played_this_combat", 0) >= 1:
+                cost += sum(
+                    effect["value"]
+                    for effect in passive_effects
+                    if effect["type"] == "cost_surcharge_after_first_card"
+                )
 
         damage_bonus = self.player.next_attack_bonus
         if card_data["type"] == "attack" and combat_flags.get("last_turn_attack_played", False):
@@ -1908,7 +2191,12 @@ class StateManager:
         combat_flags = self._combat_runtime_flags()
         combat_flags["cards_played_this_combat"] += 1
         combat_flags["cards_played_this_turn"] += 1
-        if getattr(card, "type", "") == "attack":
+        card_type = str(getattr(card, "type", "")).lower()
+        card_type_counts = dict(combat_flags.get("card_type_counts_this_turn", {}))
+        if card_type:
+            card_type_counts[card_type] = int(card_type_counts.get(card_type, 0)) + 1
+        combat_flags["card_type_counts_this_turn"] = card_type_counts
+        if card_type == "attack":
             combat_flags["current_turn_attack_played"] = True
         applied_block_penalty = resolution.get("block_penalty_applied", 0)
         combat_flags["first_block_penalty_remaining"] = max(
@@ -2829,8 +3117,8 @@ class StateManager:
             "vulnerable": self.player.vulnerable,
             "next_card_cost_delta": self.player.next_card_cost_delta,
             "next_attack_bonus": self.player.next_attack_bonus,
-            "active_powers": [card.id for card in self.player.active_powers],
-            "temporary_combat_cards": [card.id for card in self.player.temporary_combat_cards],
+            "active_powers": self._serialize_cards(self.player.active_powers),
+            "temporary_combat_cards": self._serialize_cards(self.player.temporary_combat_cards),
             "first_card_played": self.player.first_card_played,
             "first_attack_played": self.player.first_attack_played,
             "combat_statuses": self.player.combat_status_snapshot(),
@@ -2839,11 +3127,11 @@ class StateManager:
     def _serialize_deck(self, deck_manager: DeckManager) -> dict[str, Any]:
         return {
             "max_hand_size": deck_manager.max_hand_size,
-            "starting_deck": [card.id for card in deck_manager.starting_deck],
-            "draw_pile": [card.id for card in deck_manager.draw_pile],
-            "hand": [card.id for card in deck_manager.hand],
-            "discard_pile": [card.id for card in deck_manager.discard_pile],
-            "exhaust_pile": [card.id for card in deck_manager.exhaust_pile],
+            "starting_deck": self._serialize_cards(deck_manager.starting_deck),
+            "draw_pile": self._serialize_cards(deck_manager.draw_pile),
+            "hand": self._serialize_cards(deck_manager.hand),
+            "discard_pile": self._serialize_cards(deck_manager.discard_pile),
+            "exhaust_pile": self._serialize_cards(deck_manager.exhaust_pile),
         }
 
     def _serialize_map(self) -> dict[str, Any]:
@@ -2872,6 +3160,9 @@ class StateManager:
 
     def _serialize_campaign(self) -> dict[str, Any] | None:
         return None if self.campaign_state is None else copy.deepcopy(self.campaign_state)
+
+    def _serialize_cards(self, cards: list[Any]) -> list[dict[str, Any]]:
+        return [card.to_dict() for card in cards]
 
     def _serialize_combat(self) -> dict[str, Any] | None:
         if self.combat_manager is None:
@@ -3221,6 +3512,7 @@ class StateManager:
         )
         combat_manager.set_card_factory(self.card_library.create_card)
         combat_manager.set_enemy_factory(self.enemy_library.create_enemy)
+        combat_manager.set_event_sink(self._handle_combat_runtime_event)
         combat_manager.combat_active = bool(combat_data["combat_active"])
         combat_manager.turn_manager.turn_number = combat_data["turn_number"]
         combat_manager.turn_manager.turn_owner = combat_data["turn_owner"]
@@ -3443,6 +3735,8 @@ class StateManager:
             "cards_played_this_combat",
             "cards_played_this_turn",
             "first_block_penalty_remaining",
+            "pending_energy_next_turn",
+            "runtime_event_index",
         }:
             value = combat_flags.get(key, restored["combat"][key])
             if not isinstance(value, int) or value < 0:
@@ -3453,6 +3747,31 @@ class StateManager:
             if not isinstance(value, bool):
                 raise ValueError(f"{key} must be a boolean.")
             restored["combat"][key] = value
+        for key in {"triggered_modifier_ids_this_turn", "triggered_modifier_ids_this_combat"}:
+            value = combat_flags.get(key, restored["combat"][key])
+            if not isinstance(value, list) or not all(isinstance(entry, str) for entry in value):
+                raise ValueError(f"{key} must be a list of strings.")
+            restored["combat"][key] = list(dict.fromkeys(value))
+        card_type_counts_this_turn = combat_flags.get("card_type_counts_this_turn", {})
+        if not isinstance(card_type_counts_this_turn, dict):
+            raise ValueError("card_type_counts_this_turn must be a dictionary.")
+        restored["combat"]["card_type_counts_this_turn"] = {
+            str(card_type): int(count)
+            for card_type, count in card_type_counts_this_turn.items()
+            if isinstance(card_type, str) and isinstance(count, int) and count >= 0
+        }
+        modifier_state = combat_flags.get("modifier_state", {})
+        if not isinstance(modifier_state, dict):
+            raise ValueError("modifier_state must be a dictionary.")
+        restored["combat"]["modifier_state"] = {
+            str(modifier_id): {
+                str(flag_id): bool(flag_value)
+                for flag_id, flag_value in state.items()
+                if isinstance(flag_id, str)
+            }
+            for modifier_id, state in modifier_state.items()
+            if isinstance(modifier_id, str) and isinstance(state, dict)
+        }
         return restored
 
     def _restore_event_history(
@@ -3505,10 +3824,26 @@ class StateManager:
             )
         return restored_from_seen
 
-    def _cards_from_ids(self, card_ids: list[str]) -> list[Any]:
-        if not isinstance(card_ids, list) or not all(isinstance(card_id, str) for card_id in card_ids):
-            raise ValueError("Saved deck piles must be lists of card ids.")
-        return [self.card_library.create_card(card_id) for card_id in card_ids]
+    def _cards_from_ids(self, card_ids: list[Any]) -> list[Any]:
+        if not isinstance(card_ids, list):
+            raise ValueError("Saved deck piles must be lists.")
+
+        restored_cards: list[Any] = []
+        for card_entry in card_ids:
+            if isinstance(card_entry, str):
+                restored_cards.append(self.card_library.create_card(card_entry))
+                continue
+            if not isinstance(card_entry, dict):
+                raise ValueError("Saved deck entries must be card ids or card dictionaries.")
+            card_id = card_entry.get("id")
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError("Saved card dictionaries must include a non-empty id.")
+            base_payload = self.card_library.get_card(card_id).to_dict()
+            base_payload.update(card_entry)
+            card = CardBase.from_dict(base_payload)
+            card.assign_instance_id()
+            restored_cards.append(card)
+        return restored_cards
 
 
 def simulate_state_manager() -> dict[str, Any]:
@@ -3538,9 +3873,12 @@ def simulate_state_manager() -> dict[str, Any]:
     manager.active_reward = manager._generate_reward_state("elite", ELITE_COMBAT_CREDIT_REWARD)
     manager.current_state = "reward"
     reward_snapshot = manager.get_state_snapshot()
-    manager.select_reward_option("card_offer", reward_snapshot["reward"]["sections"][0]["options"][0]["option_id"])
-    manager.confirm_reward_selection("card_offer")
-    manager.skip_reward_section("purge_offer")
+    first_reward_section = reward_snapshot["reward"]["sections"][0]
+    manager.select_reward_option(first_reward_section["id"], first_reward_section["options"][0]["option_id"])
+    manager.confirm_reward_selection(first_reward_section["id"])
+    remaining_sections = [section for section in reward_snapshot["reward"]["sections"][1:] if section["id"] == "purge_offer"]
+    if remaining_sections:
+        manager.skip_reward_section("purge_offer")
     manager.continue_from_reward()
     manager.active_shop = manager._generate_shop_state()
     manager.current_state = "shop"

@@ -15,8 +15,8 @@ class DeckManager:
     ) -> None:
         self.rng = rng or random.Random()
         self.max_hand_size = max_hand_size
-        self.starting_deck = list(cards)
-        self.draw_pile = list(cards)
+        self.starting_deck = self._prepare_cards(cards)
+        self.draw_pile = list(self.starting_deck)
         self.hand: list[CardBase] = []
         self.discard_pile: list[CardBase] = []
         self.exhaust_pile: list[CardBase] = []
@@ -53,9 +53,11 @@ class DeckManager:
         raise ValueError(f"Card {card.id} is not currently in hand.")
 
     def add_to_discard(self, card: CardBase) -> None:
+        card.assign_instance_id()
         self.discard_pile.append(card)
 
     def add_to_draw_pile(self, card: CardBase, *, shuffle: bool = False) -> None:
+        card.assign_instance_id()
         self.draw_pile.append(card)
         if shuffle:
             self.shuffle_deck()
@@ -80,6 +82,7 @@ class DeckManager:
         self.hand = retained_cards
 
     def add_to_starting_deck(self, card: CardBase) -> None:
+        card.assign_instance_id()
         self.starting_deck.append(card)
 
     def remove_from_starting_deck(self, index: int) -> CardBase:
@@ -104,6 +107,13 @@ class DeckManager:
 
     def _move_from_hand(self, card: CardBase, destination: list[CardBase]) -> None:
         destination.append(self.remove_card_from_hand(card))
+
+    def _prepare_cards(self, cards: list[CardBase]) -> list[CardBase]:
+        prepared: list[CardBase] = []
+        for card in cards:
+            card.assign_instance_id()
+            prepared.append(card)
+        return prepared
 
 
 def simulate_deck_manager() -> dict[str, int]:

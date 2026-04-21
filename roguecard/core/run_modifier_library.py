@@ -9,7 +9,7 @@ from cards.card_library import CardLibrary
 from config import RUN_MODIFIERS_DATA_PATH, STATUS_SOURCE_TYPES, STATUS_TAGS
 
 ALLOWED_MODIFIER_TYPES = {"relic", "blessing", "curse", "status"}
-ALLOWED_MODIFIER_RARITIES = {"common", "uncommon", "rare", "cursed", "special"}
+ALLOWED_MODIFIER_RARITIES = {"common", "uncommon", "rare", "boss", "cursed", "special"}
 ALLOWED_DURATION_TYPES = {"permanent", "combat", "floor"}
 ALLOWED_ONCE_PER_VALUES = {"turn", "combat"}
 ALLOWED_STACK_BEHAVIORS = {
@@ -29,10 +29,19 @@ ALLOWED_MODIFIER_HOOKS = {
     "turn_one",
     "on_turn_start",
     "turn_end",
+    "after_card_played",
     "on_status_drawn",
     "on_enemy_status_applied",
     "on_player_status_applied",
+    "on_card_cost_reduced",
     "on_card_exhausted",
+    "on_self_damage",
+    "on_heal",
+    "on_bleed_trigger",
+    "on_infect_burst",
+    "on_player_burn_tick",
+    "on_positive_gain_blocked_by_nullified",
+    "on_status_card_added_to_discard",
     "on_enemy_death",
     "on_attack_hit",
     "post_victory",
@@ -52,6 +61,7 @@ ALLOWED_MODIFIER_EFFECT_TYPES = {
     "lose_block",
     "draw_cards",
     "gain_energy",
+    "gain_strength",
     "heal",
     "extra_card_choice",
     "percent_discount",
@@ -71,12 +81,25 @@ ALLOWED_MODIFIER_EFFECT_TYPES = {
     "damage_event_target",
     "damage_random_enemy",
     "apply_status_all_enemies",
+    "apply_status_event_target",
+    "apply_status_other_enemies",
     "increase_highest_enemy_status",
+    "damage_highest_status_enemy",
     "gain_next_turn_energy",
+    "heal_if_any_enemy_has_status",
     "reduce_player_status",
+    "modify_next_card_cost",
+    "modify_next_attack_damage",
+    "add_status_card",
+    "exhaust_drawn_card",
+    "set_random_hand_card_cost_until_played",
+    "add_random_temporary_card_to_hand",
+    "set_modifier_flag",
+    "clear_modifier_flag",
 }
 SHOP_PRICE_TARGETS = {"all", "card", "relic", "purge", "heal", "reroll"}
 ALLOWED_MODIFIER_CARD_TYPES = {"attack", "skill", "power", "status"}
+ALLOWED_CARD_PILES = {"draw", "discard"}
 
 
 class RunModifierLibrary:
@@ -239,6 +262,9 @@ class RunModifierLibrary:
             "duration_type": duration["type"],
             "stack_behavior": stack_behavior,
             "hooks": validated_hooks,
+            "track": modifier_data.get("track"),
+            "synergies": self._validate_string_list(modifier_data.get("synergies"), modifier_id, "synergies"),
+            "notes": self._validate_optional_string(modifier_data.get("notes"), modifier_id, "notes"),
         }
 
     def _validate_tags(self, raw_tags: Any, modifier_id: str) -> list[str]:
@@ -288,6 +314,30 @@ class RunModifierLibrary:
             )
         return {"type": duration_type, "value": value}
 
+    def _validate_optional_string(
+        self,
+        value: Any,
+        modifier_id: str,
+        field_name: str,
+    ) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Run modifier {modifier_id} {field_name} must be a non-empty string when provided.")
+        return value
+
+    def _validate_string_list(
+        self,
+        value: Any,
+        modifier_id: str,
+        field_name: str,
+    ) -> list[str]:
+        if value in (None, []):
+            return []
+        if not isinstance(value, list) or not all(isinstance(entry, str) and entry.strip() for entry in value):
+            raise ValueError(f"Run modifier {modifier_id} {field_name} must be a list of non-empty strings.")
+        return list(dict.fromkeys(value))
+
     def _validate_effect(
         self,
         effect_data: dict[str, Any],
@@ -315,7 +365,20 @@ class RunModifierLibrary:
             validated["card_id"] = card_id
             return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
 
-        if effect_type in {"free_first_purge_run", "free_first_reroll_shop", "first_card_free", "repeat_first_card"}:
+        if effect_type in {
+            "free_first_purge_run",
+            "free_first_reroll_shop",
+            "first_card_free",
+            "repeat_first_card",
+            "exhaust_drawn_card",
+        }:
+            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+
+        if effect_type in {"set_modifier_flag", "clear_modifier_flag"}:
+            flag_id = effect_data.get("flag_id")
+            if not isinstance(flag_id, str) or not flag_id:
+                raise ValueError(f"Run modifier {modifier_id} {effect_type} effects must define flag_id.")
+            validated["flag_id"] = flag_id
             return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
 
         if effect_type == "random_one_of":
@@ -346,20 +409,51 @@ class RunModifierLibrary:
             validated["value"] = value
             return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
 
-        if effect_type in {"apply_status_all_enemies", "increase_highest_enemy_status"}:
+        if effect_type in {
+            "apply_status_all_enemies",
+            "apply_status_event_target",
+            "apply_status_other_enemies",
+            "increase_highest_enemy_status",
+            "damage_highest_status_enemy",
+            "heal_if_any_enemy_has_status",
+        }:
             status_id = effect_data.get("status_id")
             if not isinstance(status_id, str) or not status_id:
                 raise ValueError(
                     f"Run modifier {modifier_id} hook {hook_name} effect {effect_type} must define status_id."
                 )
             validated["status_id"] = status_id
+        elif effect_type == "add_status_card":
+            card_id = effect_data.get("card_id")
+            count = effect_data.get("count", effect_data.get("value", 1))
+            pile = effect_data.get("pile", "discard")
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError(f"Run modifier {modifier_id} add_status_card effects must define card_id.")
+            self.card_library.get_card(card_id)
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(f"Run modifier {modifier_id} add_status_card effects must define a positive count.")
+            if pile not in ALLOWED_CARD_PILES:
+                raise ValueError(f"Run modifier {modifier_id} add_status_card effects use unsupported pile: {pile}")
+            validated["card_id"] = card_id
+            validated["count"] = count
+            validated["pile"] = pile
+            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+        elif effect_type == "add_random_temporary_card_to_hand":
+            temporary_cost_override = effect_data.get("temporary_cost_override", 0)
+            if not isinstance(temporary_cost_override, int) or temporary_cost_override < 0:
+                raise ValueError(
+                    f"Run modifier {modifier_id} add_random_temporary_card_to_hand temporary_cost_override must be a non-negative integer."
+                )
+            validated["temporary_cost_override"] = temporary_cost_override
+        elif effect_type == "set_random_hand_card_cost_until_played":
+            pass
         elif effect_type == "reduce_player_status":
             status_id = effect_data.get("status_id")
             if status_id is not None:
                 if not isinstance(status_id, str) or not status_id:
                     raise ValueError(
                         f"Run modifier {modifier_id} hook {hook_name} effect {effect_type} status_id must be a non-empty string when provided."
-                    )
+                )
                 validated["status_id"] = status_id
 
         value = effect_data.get("value")
@@ -397,6 +491,12 @@ class RunModifierLibrary:
                 )
             validated["once_per"] = once_per
 
+        gate_id = effect_data.get("gate_id")
+        if gate_id is not None:
+            if not isinstance(gate_id, str) or not gate_id:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} gate_id must be a non-empty string.")
+            validated["gate_id"] = gate_id
+
         status_ids = effect_data.get("status_ids")
         if status_ids is not None:
             if (
@@ -418,6 +518,38 @@ class RunModifierLibrary:
                 )
             validated["card_type"] = card_type
 
+        card_id = effect_data.get("card_id")
+        if "card_id" not in validated and card_id is not None:
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} card_id must be a non-empty string.")
+            validated["card_id"] = card_id
+
+        played_cost_equals = effect_data.get("played_cost_equals")
+        if played_cost_equals is not None:
+            if not isinstance(played_cost_equals, int):
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} played_cost_equals must be an integer.")
+            validated["played_cost_equals"] = played_cost_equals
+
+        played_card_type_count_multiple_of = effect_data.get("played_card_type_count_multiple_of")
+        if played_card_type_count_multiple_of is not None:
+            if not isinstance(played_card_type_count_multiple_of, int) or played_card_type_count_multiple_of <= 0:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} played_card_type_count_multiple_of must be a positive integer."
+                )
+            validated["played_card_type_count_multiple_of"] = played_card_type_count_multiple_of
+
+        require_played_type_set = effect_data.get("require_played_type_set")
+        if require_played_type_set is not None:
+            if (
+                not isinstance(require_played_type_set, list)
+                or not require_played_type_set
+                or not all(entry in ALLOWED_MODIFIER_CARD_TYPES for entry in require_played_type_set)
+            ):
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} require_played_type_set must be a non-empty list of supported card types."
+                )
+            validated["require_played_type_set"] = list(dict.fromkeys(require_played_type_set))
+
         require_target_has_statuses = effect_data.get("require_target_has_statuses")
         if require_target_has_statuses is not None:
             if (
@@ -428,8 +560,36 @@ class RunModifierLibrary:
                 raise ValueError(
                     f"Run modifier {modifier_id} hook {hook_name} require_target_has_statuses must be a "
                     "non-empty list of strings."
-                )
+            )
             validated["require_target_has_statuses"] = list(require_target_has_statuses)
+
+        min_target_status_count = effect_data.get("min_target_status_count")
+        if min_target_status_count is not None:
+            if not isinstance(min_target_status_count, int) or min_target_status_count <= 0:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} min_target_status_count must be a positive integer."
+                )
+            validated["min_target_status_count"] = min_target_status_count
+
+        turn_interval = effect_data.get("turn_interval")
+        if turn_interval is not None:
+            if not isinstance(turn_interval, int) or turn_interval <= 0:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} turn_interval must be a positive integer.")
+            validated["turn_interval"] = turn_interval
+
+        turn_offset = effect_data.get("turn_offset")
+        if turn_offset is not None:
+            if not isinstance(turn_offset, int) or turn_offset < 0:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} turn_offset must be a non-negative integer.")
+            validated["turn_offset"] = turn_offset
+
+        require_modifier_flag = effect_data.get("require_modifier_flag")
+        if require_modifier_flag is not None:
+            if not isinstance(require_modifier_flag, str) or not require_modifier_flag:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} require_modifier_flag must be a non-empty string."
+                )
+            validated["require_modifier_flag"] = require_modifier_flag
 
         return validated
 
