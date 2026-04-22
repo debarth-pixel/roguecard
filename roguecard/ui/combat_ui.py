@@ -98,6 +98,26 @@ STATUS_DISPLAY_ORDER = (
 )
 
 PRIMARY_STATUS_KEYS = ("strength", "weak", "vulnerable")
+SINGLE_STACK_DISPLAY_STATUSES = {"nullified", "mutated"}
+INFECT_PREVIEW_FILL = (98, 220, 146)
+
+STATUS_TOOLTIP_TEMPLATES = {
+    "strength": "Attacks deal +{count} damage.",
+    "weak": "Attack damage is reduced by 25% while active.",
+    "vulnerable": "Attack damage taken is increased by 50% while active.",
+    "infect": "This unit loses {count} HP on its next infect tick.",
+    "burn": "This unit loses {count} HP at turn end. Burn then drops by 1.",
+    "bleed": "The next hit deals +{count} damage, then Bleed drops by 1.",
+    "marked": "Blackwire hits gain +{bonus} damage, then consume 1.",
+    "suppressed": "Attack damage is reduced by about {percent}% while active.",
+    "nullified": "Blocks the next positive combat gain.",
+    "fortified": "Gains {count} Block at turn start.",
+    "regenerate": "Heals {count} HP at turn start, then Regenerate drops by 1.",
+    "momentum": "The next attack gains +{count} damage.",
+    "overheat": "Stored heat resource: {count}.",
+    "biomass": "Stored biomass resource: {count}.",
+    "mutated": "Mutation is active.",
+}
 
 BUFF_LABELS = {
     "Heal": "Restores health.",
@@ -143,6 +163,96 @@ COMBAT_BACKGROUND_FACTION_PATHS = {
     "cinder_jackals": ARTS_ROOT / "map_3_cinderjackal.png",
     "helix_ward": ARTS_ROOT / "map_3_helixware.png",
 }
+ENEMY_SPRITE_SCALE = 0.48
+ENEMY_ACTION_HOLD_MS = 180
+ENEMY_ACTION_RECOVER_MS = 100
+ENEMY_ACTION_GAP_MS = 60
+ENEMY_HIT_REACTION_HOLD_MS = 90
+ENEMY_HIT_REACTION_RETURN_MS = 110
+ENEMY_MELEE_LUNGE_PX = 16.0
+ENEMY_RANGED_LEAN_PX = 6.0
+ENEMY_HIT_RECOIL_PX = 12.0
+
+def _enemy_sprite_definition(*move_ids: str) -> dict[str, Any]:
+    return {
+        "poses": {
+            "idle": "idle.png",
+            "damage": "damage.png",
+            "dead": "dead.png",
+        },
+        "moves": {move_id: f"{move_id}.png" for move_id in move_ids},
+    }
+
+
+ENEMY_SPRITE_METADATA = {
+    "audit_hound": _enemy_sprite_definition("trace_bite", "ledger_sweep", "compliance_leap"),
+    "compliance_engine_ax9": _enemy_sprite_definition(
+        "barrier_cycle",
+        "pacify_burst",
+        "deploy_node",
+        "null_wave",
+        "overdrive_cannon",
+    ),
+    "dune_raider": _enemy_sprite_definition("shiv", "sand_throw"),
+    "dust_saboteur": _enemy_sprite_definition("scrap_dump", "cut_wire", "duck_cover"),
+    "embersnout": _enemy_sprite_definition("cinder_spit", "flare_hide", "fire_up"),
+    "relay_vulture": _enemy_sprite_definition("sightline", "dive_fire", "peck"),
+    "salvage_bulwark": _enemy_sprite_definition("brace_plate", "ram"),
+    "sandpack_alpha": _enemy_sprite_definition("call_hound", "feral_focus", "rake", "alpha_maul", "blood_surge"),
+    "scrap_ticker": _enemy_sprite_definition("target_ping", "buzz_saw"),
+    "signal_junker": _enemy_sprite_definition("dead_channel", "lag_spike", "paint_lock"),
+    "waste_leech": _enemy_sprite_definition("sip", "coil", "gorge"),
+    "wastes_colossus": _enemy_sprite_definition(
+        "sand_plating",
+        "searchlight",
+        "grinding_tread",
+        "flare_vent",
+        "loose_tickers",
+    ),
+}
+ENEMY_MELEE_MOVES = {
+    "shiv",
+    "cut_wire",
+    "trace_bite",
+    "compliance_leap",
+    "peck",
+    "ram",
+    "rake",
+    "alpha_maul",
+    "buzz_saw",
+    "blood_surge",
+    "sip",
+    "gorge",
+    "grinding_tread",
+}
+ENEMY_RANGED_MOVES = {
+    "sand_throw",
+    "scrap_dump",
+    "cinder_spit",
+    "brace_plate",
+    "duck_cover",
+    "flare_hide",
+    "fire_up",
+    "ledger_sweep",
+    "target_ping",
+    "sightline",
+    "dive_fire",
+    "dead_channel",
+    "lag_spike",
+    "paint_lock",
+    "barrier_cycle",
+    "pacify_burst",
+    "deploy_node",
+    "null_wave",
+    "overdrive_cannon",
+    "call_hound",
+    "feral_focus",
+    "coil",
+    "sand_plating",
+    "searchlight",
+    "flare_vent",
+    "loose_tickers",
+}
 
 
 def _lerp(start: float, end: float, progress: float) -> float:
@@ -169,6 +279,7 @@ class CombatUI:
         self._tiny_font = None
         self._font_scale = None
         self._image_cache: dict[str, Any] = {}
+        self._enemy_sprite_cache: dict[str, dict[str, Any]] = {}
         self._hovered_card_index: int | None = None
         self._hover_started_at = 0
         self._pressed_card_index: int | None = None
@@ -182,6 +293,11 @@ class CombatUI:
         self._pressed_end_turn = False
         self._mouse_pos: tuple[int, int] = (-1, -1)
         self._pending_action: dict[str, Any] | None = None
+        self._enemy_visual_state: dict[str, dict[str, Any]] = {}
+        self._enemy_action_clip: dict[str, Any] | None = None
+        self._resolved_enemy_phase_tokens: set[tuple[Any, ...]] = set()
+        self._enemy_phase_queue_signature: tuple[str, ...] | None = None
+        self._enemy_phase_gap_until = 0
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -190,6 +306,10 @@ class CombatUI:
             self._load_image(path)
 
     def poll_action(self, combat_state: dict[str, Any]) -> dict[str, Any] | None:
+        self._advance_enemy_phase_animation(combat_state)
+        enemy_phase_action = self._poll_enemy_phase_action(combat_state)
+        if enemy_phase_action is not None:
+            return enemy_phase_action
         if self._pending_action is None:
             return None
         hand = combat_state.get("player_hand", [])
@@ -397,6 +517,8 @@ class CombatUI:
         character = combat_state.get("character") or {}
         enemies = combat_state["enemies"]
         living_enemy_ids = list(combat_state.get("living_enemy_ids", []))
+        self._sync_enemy_visual_registry(enemies)
+        self._advance_enemy_phase_animation(combat_state)
 
         if self._hovered_card_index is not None and self._hovered_card_index >= len(hand):
             self._hovered_card_index = None
@@ -471,6 +593,8 @@ class CombatUI:
 
         player_actor = self._player_actor_layout(player, character)
         enemy_actors = self._enemy_actor_layout(enemies, selected_card)
+        for enemy_actor in enemy_actors:
+            enemy_actor.update(self._enemy_actor_animation_state(enemy_actor))
         tooltip_regions = []
         player_status_items = self._status_items_for_player(player)
         player_actor["status_regions"] = self._status_regions(player_status_items, player_actor["status_origin"], anchor="left")
@@ -514,6 +638,7 @@ class CombatUI:
             "helper_summary": self._helper_summary(hand_cards, selected_card, combat_state.get("event_log", [])),
             "helper_recent": self._build_recent_summary(combat_state.get("event_log", [])),
             "living_enemy_ids": living_enemy_ids,
+            "enemy_phase": combat_state.get("enemy_phase", {}),
             "high_contrast": presentation.get("high_contrast", False),
             "tooltip": self._tooltip_at_position(tooltip_regions, self._mouse_pos),
             "targeting_active": selected_card is not None,
@@ -643,6 +768,9 @@ class CombatUI:
         actor_width = int(96 * PLAYER_SCALE)
         actor_height = int(156 * PLAYER_SCALE)
         actor_rect = pygame.Rect(int(PLAYER_FOOT[0] - actor_width / 2), int(PLAYER_FOOT[1] - actor_height), actor_width, actor_height) if pygame is not None else None
+        combat_statuses = player.get("combat_statuses", {})
+        infect_value = combat_statuses.get("infect", 0) if isinstance(combat_statuses, dict) else 0
+        infect_preview = self._infect_preview(player.get("current_hp", 0), infect_value)
         return {
             "character_id": character.get("id", player.get("character_id", "runner")),
             "name": character.get("name", "Runner"),
@@ -652,6 +780,8 @@ class CombatUI:
             "hud_rect": (46, 452, 286, 58),
             "status_origin": (56, 515),
             "player": player,
+            "infect_preview_damage": infect_preview["damage"],
+            "infect_preview_lethal": infect_preview["lethal"],
         }
 
     def _enemy_actor_layout(self, enemies: list[dict[str, Any]], selected_card: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -664,17 +794,23 @@ class CombatUI:
                 scale *= 1.12
             elif enemy.get("tier") == "elite":
                 scale *= 1.06
+            enemy_ref = str(enemy.get("enemy_ref") or f"{enemy['id']}#{index}")
             width = int(92 * scale)
             height = int(146 * scale)
             top_y = int(foot_y - height)
             rect = pygame.Rect(int(foot_x - width / 2), top_y, width, height) if pygame is not None else None
             accent = FACTION_COLORS.get(str(enemy.get("faction_id", "legacy")), FACTION_COLORS["legacy"])
+            raw_statuses = enemy.get("statuses", {})
+            infect_value = raw_statuses.get("infect", 0) if isinstance(raw_statuses, dict) else 0
+            infect_preview = self._infect_preview(enemy.get("current_hp", 0), infect_value)
             actors.append(
                 {
                     "enemy": enemy,
                     "id": enemy["id"],
+                    "enemy_ref": enemy_ref,
                     "name": enemy["name"],
                     "foot": (foot_x, foot_y),
+                    "slot_scale": scale,
                     "actor_rect": rect,
                     "accent": accent,
                     "hp_bar_rect": (int(foot_x - 62), int(foot_y + 14), 124, 12),
@@ -684,6 +820,8 @@ class CombatUI:
                     "targeted": enemy["id"] == (selected_card["target_id"] if selected_card is not None else None),
                     "valid_target": enemy["id"] in valid_target_ids if selected_card is not None else True,
                     "dimmed": selected_card is not None and selected_card["target_mode"] in {"single_enemy", "all_enemies"} and enemy["id"] not in valid_target_ids,
+                    "infect_preview_damage": infect_preview["damage"],
+                    "infect_preview_lethal": infect_preview["lethal"],
                 }
             )
         return actors
@@ -735,7 +873,7 @@ class CombatUI:
     def _status_item(self, status_id: str, value: int) -> dict[str, Any]:
         label = STATUS_LABELS.get(status_id, status_id.replace("_", " ").title())
         count = max(1, int(value))
-        if status_id in {"nullified", "mutated"}:
+        if status_id in SINGLE_STACK_DISPLAY_STATUSES:
             count = 1
         return {"id": status_id, "icon_id": status_id, "label": label, "count": count}
 
@@ -747,6 +885,30 @@ class CombatUI:
         except (TypeError, ValueError):
             return 0
         return max(0, value)
+
+    def _infect_preview(self, current_hp: Any, infect_value: Any) -> dict[str, Any]:
+        try:
+            hp = max(0, int(current_hp or 0))
+        except (TypeError, ValueError):
+            hp = 0
+        infect = self._status_count(infect_value)
+        preview_damage = min(hp, infect)
+        return {
+            "damage": preview_damage,
+            "lethal": hp > 0 and infect >= hp,
+        }
+
+    def _status_tooltip_text(self, item: dict[str, Any]) -> str:
+        status_id = str(item.get("id", "")).strip().lower()
+        count = max(1, int(item.get("count", 1) or 1))
+        template = STATUS_TOOLTIP_TEMPLATES.get(status_id)
+        if template is None:
+            return f"{item.get('label', 'Status')} is active."
+        return template.format(
+            count=count,
+            bonus=count * 2,
+            percent=count * 15,
+        )
 
     def _status_regions(self, status_items: list[dict[str, Any]], origin: tuple[int, int], *, anchor: str) -> list[dict[str, Any]]:
         if not status_items:
@@ -785,7 +947,7 @@ class CombatUI:
                 {
                     "rect": rect,
                     "title": item["label"],
-                    "text": f"{item['label']} x{spec['count_label']}",
+                    "text": self._status_tooltip_text(item),
                     "item": item,
                     "count_label": spec["count_label"],
                     "icon_size": spec["icon_size"],
@@ -864,17 +1026,34 @@ class CombatUI:
         if pygame is None or surface is None:
             return
         presentation = combat_state.get("presentation", {})
-        high_contrast = presentation.get("high_contrast", False)
         self._ensure_fonts(presentation.get("ui_scale", 1.0))
         layout = self.build_layout(combat_state)
+        self.render_background(surface, combat_state)
+        self.render_foreground(surface, combat_state, layout=layout)
 
+    def render_background(self, surface: Any, combat_state: dict[str, Any]) -> None:
+        if pygame is None or surface is None:
+            return
         background = self._scaled_image(self._combat_background_path(combat_state), surface.get_size())
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=124, color=(8, 8, 16))
         self._draw_stage_gradient(surface)
+
+    def render_foreground(
+        self,
+        surface: Any,
+        combat_state: dict[str, Any],
+        *,
+        layout: dict[str, Any] | None = None,
+    ) -> None:
+        if pygame is None or surface is None:
+            return
+        presentation = combat_state.get("presentation", {})
+        high_contrast = presentation.get("high_contrast", False)
+        self._ensure_fonts(presentation.get("ui_scale", 1.0))
+        layout = self.build_layout(combat_state) if layout is None else layout
         if layout["selected_card"] is not None:
             self._draw_target_focus_scrim(surface)
-
         self._draw_turn_header(surface, layout, high_contrast=high_contrast)
         self._draw_combat_modifier_strip(surface, layout, high_contrast=high_contrast)
 
@@ -1030,7 +1209,20 @@ class CombatUI:
             pygame.draw.rect(surface, (*accent, 56), hud_rect.inflate(6, 6), 1, border_radius=18)
 
         hp_bar_rect = pygame.Rect(hud_rect.x + 12, hud_rect.y + 10, 168, 14)
-        self._draw_meter(surface, hp_bar_rect, current=int(player["current_hp"]), maximum=max(1, int(player["max_hp"])), fill=(232, 106, 112), background=(36, 18, 28), border=(252, 210, 214), label=f"HP {player['current_hp']}/{player['max_hp']}", label_font=self._tiny_font)
+        self._draw_meter(
+            surface,
+            hp_bar_rect,
+            current=int(player["current_hp"]),
+            maximum=max(1, int(player["max_hp"])),
+            fill=(232, 106, 112),
+            background=(36, 18, 28),
+            border=(252, 210, 214),
+            label=f"HP {player['current_hp']}/{player['max_hp']}",
+            label_font=self._tiny_font,
+            preview_loss=int(actor.get("infect_preview_damage", 0) or 0),
+            preview_fill=INFECT_PREVIEW_FILL,
+            show_skull=bool(actor.get("infect_preview_lethal", False)),
+        )
         self._draw_energy_row(surface, rect=(hud_rect.x + 12, hud_rect.y + 30, 168, 16), current=int(player["energy"]), maximum=max(1, int(player["max_energy"])))
 
         if int(player.get("block", 0) or 0) > 0:
@@ -1045,9 +1237,21 @@ class CombatUI:
         rect = actor["actor_rect"]
         self._draw_ground_plate(surface, foot=(foot_x, foot_y), accent=accent, targeted=actor["targeted"], dimmed=actor["dimmed"])
 
-        body_surface = pygame.Surface((rect.width + 24, rect.height + 24), pygame.SRCALPHA)
-        self._draw_enemy_standee_body(body_surface, body_surface.get_rect().inflate(-24, -24).move(12, 12), enemy=enemy, accent=accent, alpha=96 if actor["dimmed"] else 255)
-        surface.blit(body_surface, (rect.x - 12, rect.y - 12))
+        body_offset = actor.get("body_offset", (0, 0))
+        body_x = int(rect.x - 12 + body_offset[0])
+        body_y = int(rect.y - 12 + body_offset[1])
+        if actor.get("use_sprite"):
+            self._draw_enemy_sprite(surface, actor, alpha=96 if actor["dimmed"] else 255)
+        else:
+            body_surface = pygame.Surface((rect.width + 24, rect.height + 24), pygame.SRCALPHA)
+            self._draw_enemy_standee_body(
+                body_surface,
+                body_surface.get_rect().inflate(-24, -24).move(12, 12),
+                enemy=enemy,
+                accent=accent,
+                alpha=96 if actor["dimmed"] else 255,
+            )
+            surface.blit(body_surface, (body_x, body_y))
 
         self._draw_intent_banner(surface, actor, high_contrast=high_contrast)
         self._draw_text(surface, actor["name"], (rect.x - 12, actor["hp_bar_rect"][1] - 16), self._tiny_font, width=rect.width + 24)
@@ -1104,6 +1308,403 @@ class CombatUI:
         pygame.draw.line(surface, outline, (rect.centerx - 8, rect.bottom - 14), (rect.centerx - 18, rect.bottom + 8), 4)
         pygame.draw.line(surface, outline, (rect.centerx + 6, rect.bottom - 12), (rect.centerx + 18, rect.bottom + 8), 4)
 
+    def apply_snapshot_feedback(
+        self,
+        action_type: str,
+        before_combat: dict[str, Any] | None,
+        after_combat: dict[str, Any] | None,
+    ) -> None:
+        del action_type
+        if after_combat is None:
+            self._enemy_action_clip = None
+            self._enemy_visual_state.clear()
+            self._resolved_enemy_phase_tokens.clear()
+            self._enemy_phase_queue_signature = None
+            self._enemy_phase_gap_until = 0
+            return
+
+        enemies = list(after_combat.get("enemies", []))
+        self._sync_enemy_visual_registry(enemies)
+        if before_combat is None:
+            return
+
+        before_lookup = {
+            self._enemy_ref_from_snapshot(enemy, index): enemy
+            for index, enemy in enumerate(before_combat.get("enemies", []))
+        }
+        now = self._now_ms()
+        for index, enemy in enumerate(enemies):
+            enemy_ref = self._enemy_ref_from_snapshot(enemy, index)
+            state = self._ensure_enemy_visual_state(enemy_ref)
+            current_hp = self._enemy_hp(enemy)
+            state["is_dead_pose"] = current_hp <= 0
+            before_enemy = before_lookup.get(enemy_ref)
+            if before_enemy is None:
+                continue
+            if current_hp < self._enemy_hp(before_enemy):
+                state["pending_hit_reaction"] = {
+                    "started_at": now,
+                    "lethal": current_hp <= 0,
+                }
+                if current_hp <= 0 and self._enemy_action_clip is not None and self._enemy_action_clip.get("enemy_ref") == enemy_ref:
+                    self._enemy_action_clip = None
+
+    def _enemy_ref_from_snapshot(self, enemy: dict[str, Any], index: int) -> str:
+        return str(enemy.get("enemy_ref") or f"{enemy.get('id', 'enemy')}#{index}")
+
+    def _enemy_hp(self, enemy: dict[str, Any]) -> int:
+        try:
+            return max(0, int(enemy.get("current_hp", 0) or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    def _new_enemy_visual_state(self) -> dict[str, Any]:
+        return {
+            "current_clip": None,
+            "clip_time": 0,
+            "base_offset": (0.0, 0.0),
+            "render_offset": (0.0, 0.0),
+            "pending_hit_reaction": None,
+            "is_dead_pose": False,
+        }
+
+    def _ensure_enemy_visual_state(self, enemy_ref: str) -> dict[str, Any]:
+        state = self._enemy_visual_state.get(enemy_ref)
+        if state is None:
+            state = self._new_enemy_visual_state()
+            self._enemy_visual_state[enemy_ref] = state
+        return state
+
+    def _sync_enemy_visual_registry(self, enemies: list[dict[str, Any]]) -> None:
+        active_refs: set[str] = set()
+        for index, enemy in enumerate(enemies):
+            enemy_ref = self._enemy_ref_from_snapshot(enemy, index)
+            active_refs.add(enemy_ref)
+            state = self._ensure_enemy_visual_state(enemy_ref)
+            state["is_dead_pose"] = self._enemy_hp(enemy) <= 0
+        for enemy_ref in list(self._enemy_visual_state):
+            if enemy_ref not in active_refs:
+                self._enemy_visual_state.pop(enemy_ref, None)
+        if not enemies:
+            self._enemy_action_clip = None
+            self._resolved_enemy_phase_tokens.clear()
+            self._enemy_phase_queue_signature = None
+            self._enemy_phase_gap_until = 0
+
+    def _advance_enemy_phase_animation(self, combat_state: dict[str, Any]) -> None:
+        descriptor = self._active_enemy_phase_descriptor(combat_state)
+        now = self._now_ms()
+
+        if descriptor is None:
+            self._enemy_action_clip = None
+            self._resolved_enemy_phase_tokens.clear()
+            self._enemy_phase_queue_signature = None
+            return
+
+        queue_signature = descriptor["queue_signature"]
+        if queue_signature != self._enemy_phase_queue_signature:
+            self._enemy_phase_queue_signature = queue_signature
+            self._resolved_enemy_phase_tokens.clear()
+
+        if self._enemy_action_clip is not None:
+            clip_elapsed = max(0, now - int(self._enemy_action_clip["started_at"]))
+            state = self._ensure_enemy_visual_state(self._enemy_action_clip["enemy_ref"])
+            state["current_clip"] = dict(self._enemy_action_clip)
+            state["clip_time"] = clip_elapsed
+            if clip_elapsed >= int(self._enemy_action_clip["total_duration_ms"]):
+                state["current_clip"] = None
+                state["clip_time"] = 0
+                self._enemy_action_clip = None
+                self._enemy_phase_gap_until = now + self._enemy_animation_ms(ENEMY_ACTION_GAP_MS, combat_state)
+            else:
+                return
+
+        if descriptor["token"] in self._resolved_enemy_phase_tokens:
+            return
+        if now < self._enemy_phase_gap_until or self._has_active_hit_reaction(now):
+            return
+        if descriptor["enemy"] is None or self._enemy_hp(descriptor["enemy"]) <= 0:
+            return
+
+        clip = self._build_enemy_action_clip(
+            enemy=descriptor["enemy"],
+            enemy_ref=descriptor["enemy_ref"],
+            token=descriptor["token"],
+            combat_state=combat_state,
+        )
+        self._enemy_action_clip = clip
+        state = self._ensure_enemy_visual_state(descriptor["enemy_ref"])
+        state["current_clip"] = dict(clip)
+        state["clip_time"] = 0
+
+    def _poll_enemy_phase_action(self, combat_state: dict[str, Any]) -> dict[str, Any] | None:
+        descriptor = self._active_enemy_phase_descriptor(combat_state)
+        if descriptor is None:
+            return None
+
+        token = descriptor["token"]
+        if descriptor["enemy"] is None or self._enemy_hp(descriptor["enemy"]) <= 0:
+            if token in self._resolved_enemy_phase_tokens:
+                return None
+            self._resolved_enemy_phase_tokens.add(token)
+            return {"type": "resolve_enemy_phase_step"}
+
+        if self._enemy_action_clip is None or self._enemy_action_clip.get("token") != token:
+            return None
+        if self._enemy_action_clip.get("committed", False):
+            return None
+        if self._now_ms() < int(self._enemy_action_clip["commit_at"]):
+            return None
+
+        self._enemy_action_clip["committed"] = True
+        self._resolved_enemy_phase_tokens.add(token)
+        return {"type": "resolve_enemy_phase_step"}
+
+    def _active_enemy_phase_descriptor(self, combat_state: dict[str, Any]) -> dict[str, Any] | None:
+        if combat_state.get("turn_owner") != "enemy":
+            return None
+        enemy_phase = combat_state.get("enemy_phase", {})
+        if not isinstance(enemy_phase, dict) or not enemy_phase.get("active"):
+            return None
+        pending_enemy_ids = tuple(
+            enemy_ref
+            for enemy_ref in enemy_phase.get("pending_enemy_ids", [])
+            if isinstance(enemy_ref, str) and enemy_ref
+        )
+        if not pending_enemy_ids:
+            return None
+        current_index = enemy_phase.get("current_index", 0)
+        if not isinstance(current_index, int) or not (0 <= current_index < len(pending_enemy_ids)):
+            return None
+        enemy_ref = pending_enemy_ids[current_index]
+        enemy = next(
+            (
+                entry
+                for index, entry in enumerate(combat_state.get("enemies", []))
+                if self._enemy_ref_from_snapshot(entry, index) == enemy_ref
+            ),
+            None,
+        )
+        intent_id = "" if enemy is None else str(enemy.get("current_intent") or "")
+        return {
+            "queue_signature": pending_enemy_ids,
+            "token": (pending_enemy_ids, current_index, enemy_ref, intent_id),
+            "enemy_ref": enemy_ref,
+            "enemy": enemy,
+            "intent_id": intent_id,
+        }
+
+    def _enemy_animation_ms(self, base_ms: int, combat_state: dict[str, Any]) -> int:
+        fast_mode = bool(combat_state.get("presentation", {}).get("fast_mode", False))
+        scale = 0.65 if fast_mode else 1.0
+        return max(1, int(base_ms * scale))
+
+    def _build_enemy_action_clip(
+        self,
+        *,
+        enemy: dict[str, Any],
+        enemy_ref: str,
+        token: tuple[Any, ...],
+        combat_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        enemy_id = str(enemy.get("id", ""))
+        intent_id = str(enemy.get("current_intent") or "")
+        idle_frame = self._enemy_pose_frame(enemy_id, "idle")
+        action_frame = self._enemy_move_frame(enemy_id, intent_id)
+        hold_ms = self._enemy_animation_ms(ENEMY_ACTION_HOLD_MS, combat_state)
+        recover_ms = self._enemy_animation_ms(ENEMY_ACTION_RECOVER_MS, combat_state)
+        melee_lunge = ENEMY_MELEE_LUNGE_PX if intent_id in ENEMY_MELEE_MOVES else ENEMY_RANGED_LEAN_PX
+        if intent_id not in ENEMY_MELEE_MOVES and intent_id not in ENEMY_RANGED_MOVES and str(enemy.get("intent_category", "")) == "attack":
+            melee_lunge = ENEMY_MELEE_LUNGE_PX
+
+        segments = [
+            {"duration_ms": hold_ms, "frame": action_frame, "start_offset_x": 0.0, "end_offset_x": -melee_lunge},
+            {"duration_ms": recover_ms, "frame": idle_frame, "start_offset_x": -melee_lunge, "end_offset_x": 0.0},
+        ]
+        commit_at = max(1, hold_ms // 2)
+
+        total_duration_ms = sum(segment["duration_ms"] for segment in segments)
+        now = self._now_ms()
+        return {
+            "enemy_ref": enemy_ref,
+            "enemy_id": enemy_id,
+            "token": token,
+            "started_at": now,
+            "commit_at": now + commit_at,
+            "total_duration_ms": total_duration_ms,
+            "segments": segments,
+            "committed": False,
+        }
+
+    def _enemy_actor_animation_state(self, actor: dict[str, Any]) -> dict[str, Any]:
+        enemy = actor["enemy"]
+        enemy_ref = actor["enemy_ref"]
+        enemy_id = str(enemy.get("id", ""))
+        slot_scale = float(actor.get("slot_scale", 1.0) or 1.0)
+        state = self._ensure_enemy_visual_state(enemy_ref)
+        now = self._now_ms()
+        sprite_frame = None
+        offset = (0.0, 0.0)
+
+        hit_pose = self._hit_reaction_pose(state, enemy_id, slot_scale, now)
+        if hit_pose is not None:
+            sprite_frame = hit_pose["frame"]
+            offset = hit_pose["offset"]
+        elif self._enemy_action_clip is not None and self._enemy_action_clip.get("enemy_ref") == enemy_ref:
+            clip_pose = self._clip_pose(self._enemy_action_clip, slot_scale, now)
+            sprite_frame = clip_pose["frame"]
+            offset = clip_pose["offset"]
+
+        state["render_offset"] = offset
+        use_sprite = self._supports_enemy_sprite(enemy)
+        if use_sprite and sprite_frame is None:
+            pose_name = "dead" if state.get("is_dead_pose") or self._enemy_hp(enemy) <= 0 else "idle"
+            sprite_frame = self._enemy_pose_frame(enemy_id, pose_name)
+        return {
+            "use_sprite": use_sprite,
+            "sprite_frame": sprite_frame,
+            "body_offset": (int(round(offset[0])), int(round(offset[1]))),
+        }
+
+    def _clip_pose(self, clip: dict[str, Any], slot_scale: float, now: int) -> dict[str, Any]:
+        elapsed = max(0, now - int(clip["started_at"]))
+        remaining = elapsed
+        current_segment = clip["segments"][-1]
+        local_elapsed = current_segment["duration_ms"]
+        for segment in clip["segments"]:
+            duration_ms = max(1, int(segment["duration_ms"]))
+            if remaining <= duration_ms:
+                current_segment = segment
+                local_elapsed = remaining
+                break
+            remaining -= duration_ms
+        duration_ms = max(1, int(current_segment["duration_ms"]))
+        progress = max(0.0, min(1.0, local_elapsed / duration_ms))
+        offset_x = _lerp(current_segment["start_offset_x"], current_segment["end_offset_x"], progress) * slot_scale
+        return {
+            "frame": current_segment.get("frame"),
+            "offset": (offset_x, 0.0),
+        }
+
+    def _has_active_hit_reaction(self, now: int) -> bool:
+        return any(self._hit_reaction_pose(state, "", 1.0, now) is not None for state in self._enemy_visual_state.values())
+
+    def _hit_reaction_pose(
+        self,
+        state: dict[str, Any],
+        enemy_id: str,
+        slot_scale: float,
+        now: int,
+    ) -> dict[str, Any] | None:
+        hit_reaction = state.get("pending_hit_reaction")
+        if not isinstance(hit_reaction, dict):
+            return None
+        elapsed = max(0, now - int(hit_reaction.get("started_at", 0)))
+        hold_ms = ENEMY_HIT_REACTION_HOLD_MS
+        return_ms = ENEMY_HIT_REACTION_RETURN_MS
+        total_ms = hold_ms if hit_reaction.get("lethal") else hold_ms + return_ms
+        if elapsed >= total_ms:
+            state["pending_hit_reaction"] = None
+            return None
+
+        recoil_px = ENEMY_HIT_RECOIL_PX * slot_scale
+        if hit_reaction.get("lethal"):
+            progress = max(0.0, min(1.0, elapsed / max(1, hold_ms)))
+            return {
+                "frame": self._enemy_pose_frame(enemy_id, "dead"),
+                "offset": (recoil_px * progress, 0.0),
+            }
+        if elapsed <= hold_ms:
+            progress = max(0.0, min(1.0, elapsed / max(1, hold_ms)))
+            offset_x = recoil_px * progress
+        else:
+            progress = max(0.0, min(1.0, (elapsed - hold_ms) / max(1, return_ms)))
+            offset_x = recoil_px * (1.0 - progress)
+        return {
+            "frame": self._enemy_pose_frame(enemy_id, "damage"),
+            "offset": (offset_x, 0.0),
+        }
+
+    def _supports_enemy_sprite(self, enemy: dict[str, Any]) -> bool:
+        return str(enemy.get("id", "")) in ENEMY_SPRITE_METADATA
+
+    def _enemy_pose_frame(self, enemy_id: str, pose: str) -> str | None:
+        sprite_metadata = ENEMY_SPRITE_METADATA.get(enemy_id)
+        if sprite_metadata is None:
+            return None
+        pose_map = sprite_metadata.get("poses", {})
+        if pose in pose_map:
+            return pose
+        return "idle" if "idle" in pose_map else None
+
+    def _enemy_move_frame(self, enemy_id: str, move_id: str) -> str | None:
+        sprite_metadata = ENEMY_SPRITE_METADATA.get(enemy_id)
+        if sprite_metadata is None:
+            return None
+        move_map = sprite_metadata.get("moves", {})
+        if move_id in move_map:
+            return move_id
+        return self._enemy_pose_frame(enemy_id, "idle")
+
+    def _draw_enemy_sprite(self, surface: Any, actor: dict[str, Any], *, alpha: int) -> None:
+        enemy_id = str(actor["enemy"].get("id", ""))
+        frames = self._enemy_sprite_frames(enemy_id)
+        frame_key = actor.get("sprite_frame")
+        if not frames or frame_key is None or frame_key not in frames:
+            body_surface = pygame.Surface((actor["actor_rect"].width + 24, actor["actor_rect"].height + 24), pygame.SRCALPHA)
+            self._draw_enemy_standee_body(
+                body_surface,
+                body_surface.get_rect().inflate(-24, -24).move(12, 12),
+                enemy=actor["enemy"],
+                accent=actor["accent"],
+                alpha=alpha,
+            )
+            body_offset = actor.get("body_offset", (0, 0))
+            surface.blit(body_surface, (int(actor["actor_rect"].x - 12 + body_offset[0]), int(actor["actor_rect"].y - 12 + body_offset[1])))
+            return
+
+        sprite_surface = frames[frame_key]
+        scale = ENEMY_SPRITE_SCALE * float(actor.get("slot_scale", 1.0) or 1.0)
+        target_size = (
+            max(1, int(sprite_surface.get_width() * scale)),
+            max(1, int(sprite_surface.get_height() * scale)),
+        )
+        scaled_sprite = pygame.transform.smoothscale(sprite_surface, target_size)
+        if alpha < 255:
+            scaled_sprite = scaled_sprite.copy()
+            scaled_sprite.set_alpha(alpha)
+        body_offset = actor.get("body_offset", (0, 0))
+        foot_x, foot_y = actor["foot"]
+        sprite_rect = scaled_sprite.get_rect(
+            midbottom=(int(foot_x + body_offset[0]), int(foot_y + body_offset[1] + 10))
+        )
+        surface.blit(scaled_sprite, sprite_rect.topleft)
+
+    def _enemy_sprite_frames(self, enemy_id: str) -> dict[str, Any]:
+        frames = self._enemy_sprite_cache.get(enemy_id)
+        if frames is not None:
+            return frames
+        sprite_metadata = ENEMY_SPRITE_METADATA.get(enemy_id)
+        if pygame is None or sprite_metadata is None:
+            return {}
+
+        frames = {}
+        for frame_key, filename in sprite_metadata.get("poses", {}).items():
+            frame_path = resolve_asset_path("enemies", enemy_id, filename)
+            if frame_path.exists():
+                frames[frame_key] = self._load_image(frame_path)
+        for frame_key, filename in sprite_metadata.get("moves", {}).items():
+            frame_path = resolve_asset_path("enemies", enemy_id, filename)
+            if frame_path.exists():
+                frames[frame_key] = self._load_image(frame_path)
+
+        idle_surface = frames.get("idle")
+        if idle_surface is not None:
+            frames.setdefault("damage", idle_surface)
+            frames.setdefault("dead", idle_surface)
+        self._enemy_sprite_cache[enemy_id] = frames
+        return frames
+
     def _draw_ground_plate(self, surface: Any, *, foot: tuple[int, int], accent: tuple[int, int, int], targeted: bool, dimmed: bool = False) -> None:
         width = 118 if not targeted else 130
         rect = pygame.Rect(int(foot[0] - width / 2), int(foot[1] - GROUND_RING_HEIGHT / 2), width, GROUND_RING_HEIGHT)
@@ -1115,14 +1716,46 @@ class CombatUI:
         pygame.draw.ellipse(ring_surface, (*outline_color, outline_alpha), ring_surface.get_rect(), 3)
         surface.blit(ring_surface, rect.topleft)
 
-    def _draw_meter(self, surface: Any, rect: Any, *, current: int, maximum: int, fill: tuple[int, int, int], background: tuple[int, int, int], border: tuple[int, int, int], label: str, label_font: Any) -> None:
+    def _draw_meter(
+        self,
+        surface: Any,
+        rect: Any,
+        *,
+        current: int,
+        maximum: int,
+        fill: tuple[int, int, int],
+        background: tuple[int, int, int],
+        border: tuple[int, int, int],
+        label: str,
+        label_font: Any,
+        preview_loss: int = 0,
+        preview_fill: tuple[int, int, int] = INFECT_PREVIEW_FILL,
+        show_skull: bool = False,
+    ) -> None:
         pygame.draw.rect(surface, background, rect, border_radius=8)
         pygame.draw.rect(surface, border, rect, 2, border_radius=8)
-        fill_ratio = max(0.0, min(1.0, current / max(1, maximum)))
-        inner_width = max(0, int((rect.width - 4) * fill_ratio))
-        if inner_width > 0:
-            fill_rect = pygame.Rect(rect.x + 2, rect.y + 2, inner_width, rect.height - 4)
-            pygame.draw.rect(surface, fill, fill_rect, border_radius=6)
+        maximum = max(1, maximum)
+        current = max(0, min(current, maximum))
+        preview_loss = max(0, min(preview_loss, current))
+        inner_rect = pygame.Rect(rect.x + 2, rect.y + 2, max(0, rect.width - 4), max(0, rect.height - 4))
+        current_width = max(0, int(inner_rect.width * (current / maximum)))
+        if current_width > 0 and inner_rect.width > 0 and inner_rect.height > 0:
+            fill_surface = pygame.Surface(inner_rect.size, pygame.SRCALPHA)
+            fill_rect = pygame.Rect(0, 0, current_width, inner_rect.height)
+            radius = max(2, inner_rect.height // 2)
+            pygame.draw.rect(fill_surface, fill, fill_rect, border_radius=radius)
+            if preview_loss > 0:
+                safe_hp = max(0, current - preview_loss)
+                preview_start = max(0, int(inner_rect.width * (safe_hp / maximum)))
+                preview_surface = pygame.Surface(inner_rect.size, pygame.SRCALPHA)
+                preview_surface.set_clip(pygame.Rect(preview_start, 0, inner_rect.width - preview_start, inner_rect.height))
+                pygame.draw.rect(preview_surface, preview_fill, fill_rect, border_radius=radius)
+                fill_surface.blit(preview_surface, (0, 0))
+            surface.blit(fill_surface, inner_rect.topleft)
+        if show_skull:
+            skull_size = max(12, rect.height + 2)
+            skull_rect = pygame.Rect(rect.x - skull_size - 4, rect.centery - (skull_size // 2), skull_size, skull_size)
+            self._draw_skull_icon(surface, skull_rect, (242, 246, 255))
         label_surface = label_font.render(label, True, (244, 248, 255))
         surface.blit(label_surface, label_surface.get_rect(center=rect.center))
 
@@ -1149,7 +1782,20 @@ class CombatUI:
         enemy = actor["enemy"]
         current = int(enemy["current_hp"])
         maximum = max(1, int(enemy["max_hp"]))
-        self._draw_meter(surface, rect, current=current, maximum=maximum, fill=(232, 106, 112), background=(28, 16, 26), border=(248, 214, 218), label=f"{current}/{maximum}", label_font=self._tiny_font)
+        self._draw_meter(
+            surface,
+            rect,
+            current=current,
+            maximum=maximum,
+            fill=(232, 106, 112),
+            background=(28, 16, 26),
+            border=(248, 214, 218),
+            label=f"{current}/{maximum}",
+            label_font=self._tiny_font,
+            preview_loss=int(actor.get("infect_preview_damage", 0) or 0),
+            preview_fill=INFECT_PREVIEW_FILL,
+            show_skull=bool(actor.get("infect_preview_lethal", False)),
+        )
 
     def _draw_intent_banner(self, surface: Any, actor: dict[str, Any], *, high_contrast: bool) -> None:
         intent = actor["enemy"].get("intent_display", {})
@@ -1502,6 +2148,38 @@ class CombatUI:
         pygame.draw.circle(surface, color, rect.center, max(4, rect.width // 2 - 2), 2)
         pygame.draw.circle(surface, color, rect.center, 2)
 
+    def _draw_skull_icon(self, surface: Any, rect: Any, color: tuple[int, int, int]) -> None:
+        icon_rect = pygame.Rect(rect)
+        skull_surface = pygame.Surface(icon_rect.size, pygame.SRCALPHA)
+        shadow_color = (0, 0, 0, 104)
+        face_color = (*color, 255)
+        cutout_color = (14, 18, 28, 255)
+        jaw_top = max(1, icon_rect.height // 2)
+        cranium = pygame.Rect(1, 0, max(4, icon_rect.width - 2), max(4, icon_rect.height - 5))
+        jaw = pygame.Rect(3, jaw_top, max(4, icon_rect.width - 6), max(3, icon_rect.height - jaw_top))
+
+        pygame.draw.ellipse(skull_surface, shadow_color, cranium.move(1, 1))
+        pygame.draw.rect(skull_surface, shadow_color, jaw.move(1, 1), border_radius=3)
+        pygame.draw.ellipse(skull_surface, face_color, cranium)
+        pygame.draw.rect(skull_surface, face_color, jaw, border_radius=3)
+
+        eye_radius = max(1, icon_rect.width // 8)
+        eye_y = max(3, jaw_top - 2)
+        left_eye = (max(3, icon_rect.centerx - eye_radius - 2), eye_y)
+        right_eye = (min(icon_rect.width - 4, icon_rect.centerx + eye_radius + 1), eye_y)
+        pygame.draw.circle(skull_surface, cutout_color, left_eye, eye_radius + 1)
+        pygame.draw.circle(skull_surface, cutout_color, right_eye, eye_radius + 1)
+        nose = [
+            (icon_rect.centerx, jaw_top - 1),
+            (icon_rect.centerx - 2, jaw_top + 3),
+            (icon_rect.centerx + 2, jaw_top + 3),
+        ]
+        pygame.draw.polygon(skull_surface, cutout_color, nose)
+        tooth_top = jaw_top + 2
+        pygame.draw.line(skull_surface, cutout_color, (4, tooth_top), (icon_rect.width - 4, tooth_top), 1)
+        pygame.draw.line(skull_surface, cutout_color, (icon_rect.centerx, tooth_top), (icon_rect.centerx, icon_rect.height - 3), 1)
+        surface.blit(skull_surface, icon_rect.topleft)
+
     def _intent_tooltip(self, enemy: dict[str, Any]) -> str:
         intent = enemy.get("intent_display", {})
         lines = [str(intent.get("tooltip", enemy.get("intent_summary", "Waiting")))]
@@ -1625,7 +2303,7 @@ def simulate_combat_ui() -> dict[str, Any]:
                 "strength": 1,
                 "weak": 0,
                 "vulnerable": 0,
-                "combat_statuses": {"marked": 2},
+                "combat_statuses": {"marked": 2, "infect": 3},
             },
             "turn_number": 1,
             "turn_owner": "player",
@@ -1646,7 +2324,7 @@ def simulate_combat_ui() -> dict[str, Any]:
                     "intent_value": 6,
                     "intent_summary": "Attack for 6",
                     "intent_display": {"kind": "attack", "damage_per_hit": 6, "hit_count": 1, "total_damage": 6, "block": 0, "buffs": [], "debuffs": [], "summon_count": 0, "tooltip": "Attack for 6"},
-                    "statuses": {"marked": 1},
+                    "statuses": {"marked": 1, "bleed": 2, "infect": 3},
                 }
             ],
             "player_hand": [

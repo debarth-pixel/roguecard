@@ -31,6 +31,7 @@ from ui.character_select_ui import CharacterSelectUI
 from ui.combat_ui import CombatUI
 from ui.event_ui import EventUI
 from ui.grayspine_intel_ui import GrayspineIntelUI
+from ui.map_tablet_view import MapTabletView
 from ui.map_ui import MapUI
 from ui.modifier_draft_ui import ModifierDraftUI
 from ui.relic_assets import relic_assets
@@ -66,6 +67,7 @@ class UIManager:
         self.event_ui = EventUI()
         self.grayspine_intel_ui = GrayspineIntelUI()
         self.map_ui = MapUI()
+        self.map_tablet_view = MapTabletView(self.map_ui, self.combat_ui)
         self.modifier_draft_ui = ModifierDraftUI()
         self.reward_ui = RewardUI()
         self.shop_ui = ShopUI()
@@ -90,6 +92,7 @@ class UIManager:
         status_icon_assets.preload()
         self.character_select_ui.preload_assets()
         self.map_ui.preload_assets()
+        self.map_tablet_view.preload_assets()
         self.combat_ui.preload_assets()
         self.event_ui.preload_assets()
         self.grayspine_intel_ui.preload_assets()
@@ -119,15 +122,18 @@ class UIManager:
             return self._handle_pause_event(event, state_snapshot)
 
         current_state = state_snapshot["current_state"]
-        if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
+        if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"} and not self.map_tablet_view.suppress_top_bar(current_state):
             top_action = self._handle_top_bar_event(event, state_snapshot)
             if top_action is not None:
                 return top_action
 
-        if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"}:
+        if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"} and not self.map_tablet_view.suppress_top_bar(current_state):
             self._update_modifier_hover(event, state_snapshot)
         else:
             self._modifier_hovered_id = None
+
+        if self.map_tablet_view.is_transition_active():
+            return None
 
         if current_state == "title" and state_snapshot.get("title") is not None:
             action = self.title_ui.handle_event(event, self._title_view_state(state_snapshot))
@@ -165,7 +171,7 @@ class UIManager:
                 return action
 
         if current_state == "map" and state_snapshot["map"] is not None:
-            action = self.map_ui.handle_event(event, self._map_view_state(state_snapshot))
+            action = self.map_tablet_view.handle_event(event, self._map_view_state(state_snapshot))
             if action is not None:
                 return action
 
@@ -178,9 +184,40 @@ class UIManager:
         return None
 
     def poll_action(self, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+        if self.map_tablet_view.is_transition_active():
+            return None
         if state_snapshot["current_state"] == "combat" and state_snapshot["combat"] is not None:
             return self.combat_ui.poll_action(self._combat_view_state(state_snapshot))
         return None
+
+    def update(self, delta_time: float) -> None:
+        self.map_tablet_view.update(delta_time)
+
+    def apply_snapshot_feedback(
+        self,
+        action_type: str,
+        before_snapshot: dict[str, Any],
+        after_snapshot: dict[str, Any],
+    ) -> None:
+        before_combat = None if before_snapshot.get("combat") is None else self._combat_view_state(before_snapshot)
+        after_combat = None if after_snapshot.get("combat") is None else self._combat_view_state(after_snapshot)
+        self.combat_ui.apply_snapshot_feedback(action_type, before_combat, after_combat)
+
+    def begin_map_to_combat_transition(self, state_snapshot: dict[str, Any]) -> None:
+        if state_snapshot.get("map") is None or state_snapshot.get("combat") is None:
+            return
+        self.map_tablet_view.begin_map_to_combat_transition(
+            self._map_view_state(state_snapshot),
+            self._combat_view_state(state_snapshot),
+        )
+
+    def begin_map_enter_transition(self, state_snapshot: dict[str, Any]) -> None:
+        if state_snapshot.get("map") is None:
+            return
+        self.map_tablet_view.begin_map_enter_transition(self._map_view_state(state_snapshot))
+
+    def is_transition_active(self) -> bool:
+        return self.map_tablet_view.is_transition_active()
 
     def render(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
         if pygame is None or surface is None:
@@ -188,15 +225,19 @@ class UIManager:
 
         self._ensure_fonts(state_snapshot.get("presentation", {}).get("ui_scale", 1.0))
         current_state = state_snapshot["current_state"]
+        map_view_state = None if state_snapshot.get("map") is None else self._map_view_state(state_snapshot)
+        combat_view_state = None if state_snapshot.get("combat") is None else self._combat_view_state(state_snapshot)
 
-        if current_state == "title" and state_snapshot.get("title") is not None:
+        if self.map_tablet_view.is_transition_active():
+            self.map_tablet_view.render(surface, map_view_state, combat_view_state)
+        elif current_state == "title" and state_snapshot.get("title") is not None:
             self.title_ui.render(surface, self._title_view_state(state_snapshot))
         elif current_state == "character_select" and state_snapshot.get("character_select") is not None:
             self.character_select_ui.render(surface, self._character_select_view_state(state_snapshot))
         elif current_state == "modifier_draft" and state_snapshot.get("modifier_draft") is not None:
             self.modifier_draft_ui.render(surface, self._modifier_draft_view_state(state_snapshot))
         elif current_state == "combat" and state_snapshot["combat"] is not None:
-            self.combat_ui.render(surface, self._combat_view_state(state_snapshot))
+            self.combat_ui.render(surface, combat_view_state)
         elif current_state == "event" and state_snapshot["event"] is not None:
             self.event_ui.render(surface, self._event_view_state(state_snapshot))
         elif current_state == "reward" and state_snapshot["reward"] is not None:
@@ -204,13 +245,13 @@ class UIManager:
         elif current_state == "shop" and state_snapshot["shop"] is not None:
             self.shop_ui.render(surface, self._shop_view_state(state_snapshot))
         elif current_state == "map" and state_snapshot["map"] is not None:
-            self.map_ui.render(surface, self._map_view_state(state_snapshot))
+            self.map_tablet_view.render(surface, map_view_state)
         elif current_state in {"victory", "game_over"}:
             self._render_status_screen(surface, self._status_screen_layout(state_snapshot))
         else:
             surface.fill((18, 21, 28))
 
-        if current_state not in {"title", "character_select", "victory", "game_over"}:
+        if self._should_render_top_bar(current_state):
             self._render_top_bar(surface, state_snapshot)
         self._render_notice(
             surface,
@@ -228,6 +269,9 @@ class UIManager:
             self._render_pause_overlay(surface, state_snapshot)
 
     def simulate_ui(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
+        if self.map_tablet_view.is_transition_active():
+            map_view_state = None if state_snapshot.get("map") is None else self._map_view_state(state_snapshot)
+            return self.map_tablet_view.build_layout(map_view_state)
         if state_snapshot["current_state"] == "title" and state_snapshot.get("title") is not None:
             return self.title_ui.build_layout(self._title_view_state(state_snapshot))
         if state_snapshot["current_state"] == "character_select" and state_snapshot.get("character_select") is not None:
@@ -243,10 +287,13 @@ class UIManager:
         if state_snapshot["current_state"] == "shop" and state_snapshot["shop"] is not None:
             return self.shop_ui.build_layout(self._shop_view_state(state_snapshot))
         if state_snapshot["current_state"] == "map" and state_snapshot["map"] is not None:
-            return self.map_ui.build_layout(self._map_view_state(state_snapshot))
+            return self.map_tablet_view.build_layout(self._map_view_state(state_snapshot))
         if state_snapshot["current_state"] in {"victory", "game_over"}:
             return self._status_screen_layout(state_snapshot)
         return {"status_message": state_snapshot["status_message"]}
+
+    def _should_render_top_bar(self, current_state: str) -> bool:
+        return current_state not in {"title", "character_select", "victory", "game_over"} and not self.map_tablet_view.suppress_top_bar(current_state)
 
     def _combat_view_state(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
         combat_state = state_snapshot["combat"]
@@ -260,6 +307,7 @@ class UIManager:
             "turn_number": combat_state.get("turn_number", 0),
             "turn_owner": combat_state.get("turn_owner", "player"),
             "living_enemy_ids": combat_state.get("living_enemy_ids", []),
+            "enemy_phase": combat_state.get("enemy_phase", {}),
             "event_log": combat_state.get("event_log", []),
             "active_bark": combat_state.get("active_bark"),
             "player_hand": hand,

@@ -1,151 +1,45 @@
 {
-  "save_format_version": 12,
-  "current_state": "combat",
-  "status_message": "Entered combat encounter on Outskirts. Play cards or end your turn.",
-  "run_seed": 190060,
-  "character": "operator",
+  "save_format_version": 13,
+  "current_state": "shop",
+  "status_message": "Shop open. Spend, reroll, or leave with 20 credits.",
+  "run_seed": 910091,
+  "character": "bio_hacker",
   "campaign": {
     "map_index": 1,
     "map_id": "outskirts",
     "map_name": "Outskirts",
-    "route_floor_index": 1,
+    "route_floor_index": 2,
     "route_floor_count": 15,
     "branch_faction": null,
-    "selected_boss_id": "wastes_colossus",
-    "global_route_floor_index": 0
+    "selected_boss_id": "sandpack_alpha",
+    "global_route_floor_index": 1
   },
   "character_select": null,
   "player": {
     "max_hp": 70,
-    "current_hp": 33,
+    "current_hp": 64,
     "max_energy": 3,
-    "energy": 2,
+    "energy": 3,
     "block": 0,
     "draw_per_turn": 5,
-    "credits": 0,
+    "credits": 20,
     "healing_multiplier": 1.0,
     "resources": {
       "energy": {
-        "current": 2,
+        "current": 3,
         "max": 3
       }
     },
-    "character_id": "operator",
+    "character_id": "bio_hacker",
     "strength": 0,
     "weak": 0,
     "vulnerable": 0,
     "next_card_cost_delta": 0,
     "next_attack_bonus": 0,
-    "active_powers": [
-      {
-        "id": "operator_auto_tuner_01",
-        "name": "Auto-Tuner",
-        "cost": 1,
-        "type": "power",
-        "effects": [],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 55,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "triggers": [
-          {
-            "hook": "turn_start",
-            "conditions": {},
-            "effects": [
-              {
-                "type": "modify_next_card_cost",
-                "value": -1
-              }
-            ]
-          }
-        ],
-        "instance_id": "94fa26df470a4265b16d3560a2f00346"
-      }
-    ],
-    "temporary_combat_cards": [
-      {
-        "id": "status_junk_01",
-        "name": "Junk",
-        "cost": 0,
-        "type": "status",
-        "effects": [
-          {
-            "type": "noop",
-            "value": 0
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 0,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "patch_grid"
-        },
-        "keywords": [
-          "combat_only"
-        ],
-        "instance_id": "a39b63a315ba44339c473430cf83195a"
-      },
-      {
-        "id": "status_junk_01",
-        "name": "Junk",
-        "cost": 0,
-        "type": "status",
-        "effects": [
-          {
-            "type": "noop",
-            "value": 0
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 0,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "patch_grid"
-        },
-        "keywords": [
-          "combat_only"
-        ],
-        "instance_id": "e1be47dcb2bd45bea7a21895bcf2295f"
-      },
-      {
-        "id": "status_junk_01",
-        "name": "Junk",
-        "cost": 0,
-        "type": "status",
-        "effects": [
-          {
-            "type": "noop",
-            "value": 0
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 0,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "patch_grid"
-        },
-        "keywords": [
-          "combat_only"
-        ],
-        "instance_id": "8c1f1e6f5bef47f89323f633923e945d"
-      }
-    ],
-    "first_card_played": true,
-    "first_attack_played": true,
+    "active_powers": [],
+    "temporary_combat_cards": [],
+    "first_card_played": false,
+    "first_attack_played": false,
     "combat_statuses": {
       "infect": 0,
       "burn": 0,
@@ -160,440 +54,435 @@
     "max_hand_size": 10,
     "starting_deck": [
       {
-        "id": "operator_needle_ping_01",
-        "name": "Needle Ping",
+        "id": "bio_leech_jab_01",
+        "name": "Leech Jab",
         "cost": 1,
         "type": "attack",
         "effects": [
           {
             "type": "damage",
-            "value": 4
+            "value": 5
           },
           {
-            "type": "apply_weak",
+            "type": "apply_infect",
+            "value": 1
+          },
+          {
+            "type": "heal",
             "value": 1
           }
         ],
         "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "3c1089df2e154250b86ab8edbd16db25"
-      },
-      {
-        "id": "operator_needle_ping_01",
-        "name": "Needle Ping",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 4
-          },
-          {
-            "type": "apply_weak",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "4543afa94c184e70a5729f41c5fa423d"
-      },
-      {
-        "id": "operator_needle_ping_01",
-        "name": "Needle Ping",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 4
-          },
-          {
-            "type": "apply_weak",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "cff52fbda4984097914b44b66eac1cfc"
-      },
-      {
-        "id": "operator_deflect_mesh_01",
-        "name": "Deflect Mesh",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 6
-          },
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "741c4ff77b9d41799de16c7822728dc4"
-      },
-      {
-        "id": "operator_deflect_mesh_01",
-        "name": "Deflect Mesh",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 6
-          },
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "140a61ea79bb47b78ee808357d270cfb"
-      },
-      {
-        "id": "operator_deflect_mesh_01",
-        "name": "Deflect Mesh",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 6
-          },
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "6e26ebe718114bf2a9ca0e8615fe82b5"
-      },
-      {
-        "id": "operator_cache_cycle_01",
-        "name": "Cache Cycle",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "draw",
-            "value": 2
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "2bb271becceb4dd49fdcbd8973e266a7"
-      },
-      {
-        "id": "operator_cache_cycle_01",
-        "name": "Cache Cycle",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "draw",
-            "value": 2
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "548a47f8fa3f4ba88383373d37b54a5c"
-      },
-      {
-        "id": "operator_priority_queue_01",
-        "name": "Priority Queue",
-        "cost": 0,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1
-          },
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
+          "bio_hacker"
         ],
         "shop_price": 45,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
         },
-        "instance_id": "81fbe589db1749fa968dc9eb9850dc1d"
+        "instance_id": "f6427c784b0647c38f47b8f37e567e63"
       },
       {
-        "id": "operator_auto_tuner_01",
-        "name": "Auto-Tuner",
+        "id": "bio_leech_jab_01",
+        "name": "Leech Jab",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "apply_infect",
+            "value": 1
+          },
+          {
+            "type": "heal",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 45,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
+        },
+        "instance_id": "08e67310976344ffbedbd4a31fafb39d"
+      },
+      {
+        "id": "bio_leech_jab_01",
+        "name": "Leech Jab",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "apply_infect",
+            "value": 1
+          },
+          {
+            "type": "heal",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 45,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
+        },
+        "instance_id": "28d02eb54ddb40f9bff59e47dcce8ce1"
+      },
+      {
+        "id": "bio_scar_tissue_01",
+        "name": "Scar Tissue",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 7
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 40,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "1c509f61f49a4051a9d69f2a7c2b027d"
+      },
+      {
+        "id": "bio_scar_tissue_01",
+        "name": "Scar Tissue",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 7
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 40,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "6099b884c2904591b1212a9446e2408f"
+      },
+      {
+        "id": "bio_scar_tissue_01",
+        "name": "Scar Tissue",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 7
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 40,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "123a8415800d4b0c95c60ee1976a26fd"
+      },
+      {
+        "id": "bio_triage_loop_01",
+        "name": "Triage Loop",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 4
+          },
+          {
+            "type": "draw",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 44,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "7355c476c4f84dbe86f634378f7abd57"
+      },
+      {
+        "id": "bio_triage_loop_01",
+        "name": "Triage Loop",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 4
+          },
+          {
+            "type": "draw",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 44,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "affde5a9cd70413fbbe07ae412675f80"
+      },
+      {
+        "id": "bio_hemorrhage_01",
+        "name": "Hemorrhage",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "self_damage",
+            "value": 2
+          },
+          {
+            "type": "damage",
+            "value": 11
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 49,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
+        },
+        "instance_id": "eddc4aa315824cee92d9fce1008a6835"
+      },
+      {
+        "id": "bio_symbiote_mesh_01",
+        "name": "Symbiote Mesh",
         "cost": 1,
         "type": "power",
         "effects": [],
         "owners": [
-          "operator"
+          "bio_hacker"
         ],
-        "shop_price": 55,
+        "shop_price": 56,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
           "art_style": "signal_mesh"
         },
         "triggers": [
           {
-            "hook": "turn_start",
+            "hook": "on_self_damage",
             "conditions": {},
             "effects": [
               {
-                "type": "modify_next_card_cost",
-                "value": -1
+                "type": "heal",
+                "value": 2
               }
             ]
           }
         ],
-        "instance_id": "94fa26df470a4265b16d3560a2f00346"
-      },
-      {
-        "id": "firewall_01",
-        "name": "Firewall",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 8
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 44,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "8355b76f34404170bd82fb50e394e114"
+        "instance_id": "16df4073b1a6449bb0bc27827a8ff631"
       }
     ],
-    "draw_pile": [],
-    "hand": [
+    "draw_pile": [
       {
-        "id": "operator_deflect_mesh_01",
-        "name": "Deflect Mesh",
+        "id": "bio_leech_jab_01",
+        "name": "Leech Jab",
         "cost": 1,
-        "type": "skill",
+        "type": "attack",
         "effects": [
           {
-            "type": "block",
-            "value": 6
+            "type": "damage",
+            "value": 5
           },
           {
-            "type": "draw",
+            "type": "apply_infect",
+            "value": 1
+          },
+          {
+            "type": "heal",
             "value": 1
           }
         ],
         "owners": [
-          "operator"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "140a61ea79bb47b78ee808357d270cfb"
-      },
-      {
-        "id": "firewall_01",
-        "name": "Firewall",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 8
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 44,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "8355b76f34404170bd82fb50e394e114"
-      },
-      {
-        "id": "operator_cache_cycle_01",
-        "name": "Cache Cycle",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "draw",
-            "value": 2
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "548a47f8fa3f4ba88383373d37b54a5c"
-      }
-    ],
-    "discard_pile": [
-      {
-        "id": "operator_cache_cycle_01",
-        "name": "Cache Cycle",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "draw",
-            "value": 2
-          }
-        ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "2bb271becceb4dd49fdcbd8973e266a7"
-      },
-      {
-        "id": "operator_priority_queue_01",
-        "name": "Priority Queue",
-        "cost": 0,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1
-          },
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "operator"
+          "bio_hacker"
         ],
         "shop_price": 45,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
         },
-        "instance_id": "81fbe589db1749fa968dc9eb9850dc1d"
+        "instance_id": "f6427c784b0647c38f47b8f37e567e63"
       },
       {
-        "id": "operator_needle_ping_01",
-        "name": "Needle Ping",
+        "id": "bio_leech_jab_01",
+        "name": "Leech Jab",
         "cost": 1,
         "type": "attack",
         "effects": [
           {
             "type": "damage",
-            "value": 4
+            "value": 5
           },
           {
-            "type": "apply_weak",
+            "type": "apply_infect",
+            "value": 1
+          },
+          {
+            "type": "heal",
             "value": 1
           }
         ],
         "owners": [
-          "operator"
+          "bio_hacker"
         ],
-        "shop_price": 43,
+        "shop_price": 45,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
         },
-        "instance_id": "4543afa94c184e70a5729f41c5fa423d"
+        "instance_id": "08e67310976344ffbedbd4a31fafb39d"
       },
       {
-        "id": "operator_deflect_mesh_01",
-        "name": "Deflect Mesh",
+        "id": "bio_leech_jab_01",
+        "name": "Leech Jab",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "apply_infect",
+            "value": 1
+          },
+          {
+            "type": "heal",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 45,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "patch_grid"
+        },
+        "instance_id": "28d02eb54ddb40f9bff59e47dcce8ce1"
+      },
+      {
+        "id": "bio_scar_tissue_01",
+        "name": "Scar Tissue",
         "cost": 1,
         "type": "skill",
         "effects": [
           {
             "type": "block",
-            "value": 6
+            "value": 7
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 40,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "1c509f61f49a4051a9d69f2a7c2b027d"
+      },
+      {
+        "id": "bio_scar_tissue_01",
+        "name": "Scar Tissue",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 7
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 40,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "6099b884c2904591b1212a9446e2408f"
+      },
+      {
+        "id": "bio_scar_tissue_01",
+        "name": "Scar Tissue",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 7
+          }
+        ],
+        "owners": [
+          "bio_hacker"
+        ],
+        "shop_price": 40,
+        "theme": {
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "123a8415800d4b0c95c60ee1976a26fd"
+      },
+      {
+        "id": "bio_triage_loop_01",
+        "name": "Triage Loop",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 4
           },
           {
             "type": "draw",
@@ -601,75 +490,25 @@
           }
         ],
         "owners": [
-          "operator"
+          "bio_hacker"
         ],
-        "shop_price": 42,
+        "shop_price": 44,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
           "art_style": "signal_mesh"
         },
-        "instance_id": "6e26ebe718114bf2a9ca0e8615fe82b5"
+        "instance_id": "7355c476c4f84dbe86f634378f7abd57"
       },
       {
-        "id": "status_junk_01",
-        "name": "Junk",
-        "cost": 0,
-        "type": "status",
-        "effects": [
-          {
-            "type": "noop",
-            "value": 0
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 0,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "patch_grid"
-        },
-        "keywords": [
-          "combat_only"
-        ],
-        "instance_id": "e1be47dcb2bd45bea7a21895bcf2295f"
-      },
-      {
-        "id": "status_junk_01",
-        "name": "Junk",
-        "cost": 0,
-        "type": "status",
-        "effects": [
-          {
-            "type": "noop",
-            "value": 0
-          }
-        ],
-        "owners": [
-          "shared"
-        ],
-        "shop_price": 0,
-        "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
-          "art_style": "patch_grid"
-        },
-        "keywords": [
-          "combat_only"
-        ],
-        "instance_id": "a39b63a315ba44339c473430cf83195a"
-      },
-      {
-        "id": "operator_deflect_mesh_01",
-        "name": "Deflect Mesh",
+        "id": "bio_triage_loop_01",
+        "name": "Triage Loop",
         "cost": 1,
         "type": "skill",
         "effects": [
           {
-            "type": "block",
-            "value": 6
+            "type": "heal",
+            "value": 4
           },
           {
             "type": "draw",
@@ -677,94 +516,74 @@
           }
         ],
         "owners": [
-          "operator"
+          "bio_hacker"
         ],
-        "shop_price": 42,
+        "shop_price": 44,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
           "art_style": "signal_mesh"
         },
-        "instance_id": "741c4ff77b9d41799de16c7822728dc4"
+        "instance_id": "affde5a9cd70413fbbe07ae412675f80"
       },
       {
-        "id": "status_junk_01",
-        "name": "Junk",
-        "cost": 0,
-        "type": "status",
+        "id": "bio_hemorrhage_01",
+        "name": "Hemorrhage",
+        "cost": 1,
+        "type": "attack",
         "effects": [
           {
-            "type": "noop",
-            "value": 0
+            "type": "self_damage",
+            "value": 2
+          },
+          {
+            "type": "damage",
+            "value": 11
           }
         ],
         "owners": [
-          "shared"
+          "bio_hacker"
         ],
-        "shop_price": 0,
+        "shop_price": 49,
         "theme": {
-          "faction": "shared",
-          "palette": "starter_neutral",
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
           "art_style": "patch_grid"
         },
-        "keywords": [
-          "combat_only"
-        ],
-        "instance_id": "8c1f1e6f5bef47f89323f633923e945d"
+        "instance_id": "eddc4aa315824cee92d9fce1008a6835"
       },
       {
-        "id": "operator_needle_ping_01",
-        "name": "Needle Ping",
+        "id": "bio_symbiote_mesh_01",
+        "name": "Symbiote Mesh",
         "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 4
-          },
-          {
-            "type": "apply_weak",
-            "value": 1
-          }
-        ],
+        "type": "power",
+        "effects": [],
         "owners": [
-          "operator"
+          "bio_hacker"
         ],
-        "shop_price": 43,
+        "shop_price": 56,
         "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
+          "faction": "bio_hacker",
+          "palette": "bio_hacker_verdant",
           "art_style": "signal_mesh"
         },
-        "instance_id": "cff52fbda4984097914b44b66eac1cfc"
-      },
-      {
-        "id": "operator_needle_ping_01",
-        "name": "Needle Ping",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
+        "triggers": [
           {
-            "type": "damage",
-            "value": 4
-          },
-          {
-            "type": "apply_weak",
-            "value": 1
+            "hook": "on_self_damage",
+            "conditions": {},
+            "effects": [
+              {
+                "type": "heal",
+                "value": 2
+              }
+            ]
           }
         ],
-        "owners": [
-          "operator"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "operator",
-          "palette": "operator_teal",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "3c1089df2e154250b86ab8edbd16db25"
+        "instance_id": "16df4073b1a6449bb0bc27827a8ff631"
       }
     ],
+    "hand": [],
+    "discard_pile": [],
     "exhaust_pile": []
   },
   "map": {
@@ -775,13 +594,13 @@
     "branch_faction": null,
     "route_floor_count": 15,
     "global_floor_offset": 0,
-    "selected_boss_id": "wastes_colossus",
+    "selected_boss_id": "sandpack_alpha",
     "selected_boss": {
-      "id": "wastes_colossus",
-      "name": "Wastes Colossus",
+      "id": "sandpack_alpha",
+      "name": "Sandpack Alpha",
       "branch_faction": null,
       "enemy_ids": [
-        "wastes_colossus"
+        "sandpack_alpha"
       ],
       "base_weight": 1.0
     },
@@ -797,18 +616,16 @@
         "route_floor": 1,
         "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 97,
+        "render_x": 108,
         "render_y": 116,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
-          "dust_saboteur",
-          "carrion_hound"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
-          "outskirts_floor_1_node_0",
-          "outskirts_floor_1_node_1"
+          "outskirts_floor_1_node_0"
         ]
       },
       "outskirts_floor_0_node_1": {
@@ -820,13 +637,13 @@
         "route_floor": 1,
         "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 509,
+        "render_x": 528,
         "render_y": 116,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
           "outskirts_floor_1_node_1"
@@ -841,59 +658,54 @@
         "route_floor": 1,
         "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 916,
+        "render_x": 924,
         "render_y": 116,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "encounter_hook_id": "outskirts_embersnout_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
+          "embersnout",
+          "scrap_ticker"
         ],
         "next_nodes": [
-          "outskirts_floor_1_node_2"
+          "outskirts_floor_1_node_2",
+          "outskirts_floor_1_node_1"
         ]
       },
       "outskirts_floor_1_node_0": {
         "node_id": "outskirts_floor_1_node_0",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 1,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 2,
         "campaign_floor": 1,
-        "node_tier": "normal",
-        "render_x": 104,
-        "render_y": 244,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "node_tier": "utility",
+        "render_x": 107,
+        "render_y": 245,
+        "encounter_hook_id": "outskirts:shop:f2:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_2_node_0"
+          "outskirts_floor_2_node_0",
+          "outskirts_floor_2_node_1"
         ]
       },
       "outskirts_floor_1_node_1": {
         "node_id": "outskirts_floor_1_node_1",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 1,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 2,
         "campaign_floor": 1,
-        "node_tier": "normal",
-        "render_x": 507,
-        "render_y": 270,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 510,
+        "render_y": 251,
+        "encounter_hook_id": "outskirts:shop:f2:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_2_node_1",
-          "outskirts_floor_2_node_0"
+          "outskirts_floor_2_node_1"
         ]
       },
       "outskirts_floor_1_node_2": {
@@ -905,13 +717,13 @@
         "route_floor": 2,
         "campaign_floor": 1,
         "node_tier": "normal",
-        "render_x": 933,
-        "render_y": 243,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "render_x": 924,
+        "render_y": 240,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
           "outskirts_floor_2_node_2"
@@ -919,16 +731,16 @@
       },
       "outskirts_floor_2_node_0": {
         "node_id": "outskirts_floor_2_node_0",
-        "node_type": "shop",
+        "node_type": "event",
         "floor": 2,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 3,
         "campaign_floor": 2,
         "node_tier": "utility",
-        "render_x": 117,
-        "render_y": 398,
-        "encounter_hook_id": "outskirts:shop:f3:c0",
+        "render_x": 120,
+        "render_y": 383,
+        "encounter_hook_id": "outskirts:event:f3:c0",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
@@ -945,7 +757,7 @@
         "campaign_floor": 2,
         "node_tier": "normal",
         "render_x": 524,
-        "render_y": 414,
+        "render_y": 401,
         "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -954,26 +766,25 @@
         ],
         "next_nodes": [
           "outskirts_floor_3_node_1",
-          "outskirts_floor_3_node_2"
+          "outskirts_floor_3_node_0"
         ]
       },
       "outskirts_floor_2_node_2": {
         "node_id": "outskirts_floor_2_node_2",
-        "node_type": "combat",
+        "node_type": "elite",
         "floor": 2,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 3,
         "campaign_floor": 2,
-        "node_tier": "normal",
-        "render_x": 918,
-        "render_y": 413,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
+        "node_tier": "elite",
+        "render_x": 938,
+        "render_y": 387,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
-          "dust_saboteur",
-          "carrion_hound"
+          "signal_junker",
+          "salvage_bulwark"
         ],
         "next_nodes": [
           "outskirts_floor_3_node_2"
@@ -988,8 +799,8 @@
         "route_floor": 4,
         "campaign_floor": 3,
         "node_tier": "normal",
-        "render_x": 114,
-        "render_y": 557,
+        "render_x": 99,
+        "render_y": 536,
         "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -997,82 +808,20 @@
           "salvage_bulwark"
         ],
         "next_nodes": [
-          "outskirts_floor_4_node_0",
-          "outskirts_floor_4_node_1"
+          "outskirts_floor_4_node_0"
         ]
       },
       "outskirts_floor_3_node_1": {
         "node_id": "outskirts_floor_3_node_1",
-        "node_type": "elite",
+        "node_type": "combat",
         "floor": 3,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 4,
         "campaign_floor": 3,
-        "node_tier": "elite",
-        "render_x": 508,
-        "render_y": 542,
-        "encounter_hook_id": "outskirts_junker_bulwark",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "signal_junker",
-          "salvage_bulwark"
-        ],
-        "next_nodes": [
-          "outskirts_floor_4_node_1"
-        ]
-      },
-      "outskirts_floor_3_node_2": {
-        "node_id": "outskirts_floor_3_node_2",
-        "node_type": "shop",
-        "floor": 3,
-        "column": 2,
-        "map_id": "outskirts",
-        "route_floor": 4,
-        "campaign_floor": 3,
-        "node_tier": "utility",
-        "render_x": 912,
-        "render_y": 536,
-        "encounter_hook_id": "outskirts:shop:f4:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [],
-        "next_nodes": [
-          "outskirts_floor_4_node_2"
-        ]
-      },
-      "outskirts_floor_4_node_0": {
-        "node_id": "outskirts_floor_4_node_0",
-        "node_type": "combat",
-        "floor": 4,
-        "column": 0,
-        "map_id": "outskirts",
-        "route_floor": 5,
-        "campaign_floor": 4,
         "node_tier": "normal",
-        "render_x": 104,
-        "render_y": 672,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "dust_saboteur",
-          "carrion_hound"
-        ],
-        "next_nodes": [
-          "outskirts_floor_5_node_0"
-        ]
-      },
-      "outskirts_floor_4_node_1": {
-        "node_id": "outskirts_floor_4_node_1",
-        "node_type": "combat",
-        "floor": 4,
-        "column": 1,
-        "map_id": "outskirts",
-        "route_floor": 5,
-        "campaign_floor": 4,
-        "node_tier": "normal",
-        "render_x": 511,
-        "render_y": 687,
+        "render_x": 516,
+        "render_y": 554,
         "encounter_hook_id": "outskirts_embersnout_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1080,8 +829,72 @@
           "scrap_ticker"
         ],
         "next_nodes": [
-          "outskirts_floor_5_node_1",
-          "outskirts_floor_5_node_0"
+          "outskirts_floor_4_node_1",
+          "outskirts_floor_4_node_2"
+        ]
+      },
+      "outskirts_floor_3_node_2": {
+        "node_id": "outskirts_floor_3_node_2",
+        "node_type": "combat",
+        "floor": 3,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 4,
+        "campaign_floor": 3,
+        "node_tier": "normal",
+        "render_x": 933,
+        "render_y": 540,
+        "encounter_hook_id": "outskirts_leech_bulwark",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "waste_leech",
+          "salvage_bulwark"
+        ],
+        "next_nodes": [
+          "outskirts_floor_4_node_2"
+        ]
+      },
+      "outskirts_floor_4_node_0": {
+        "node_id": "outskirts_floor_4_node_0",
+        "node_type": "elite",
+        "floor": 4,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 5,
+        "campaign_floor": 4,
+        "node_tier": "elite",
+        "render_x": 116,
+        "render_y": 690,
+        "encounter_hook_id": "outskirts_junker_bulwark",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "signal_junker",
+          "salvage_bulwark"
+        ],
+        "next_nodes": [
+          "outskirts_floor_5_node_0",
+          "outskirts_floor_5_node_1"
+        ]
+      },
+      "outskirts_floor_4_node_1": {
+        "node_id": "outskirts_floor_4_node_1",
+        "node_type": "elite",
+        "floor": 4,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 5,
+        "campaign_floor": 4,
+        "node_tier": "elite",
+        "render_x": 527,
+        "render_y": 693,
+        "encounter_hook_id": "outskirts_junker_bulwark",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "signal_junker",
+          "salvage_bulwark"
+        ],
+        "next_nodes": [
+          "outskirts_floor_5_node_1"
         ]
       },
       "outskirts_floor_4_node_2": {
@@ -1093,13 +906,13 @@
         "route_floor": 5,
         "campaign_floor": 4,
         "node_tier": "normal",
-        "render_x": 933,
-        "render_y": 671,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "render_x": 921,
+        "render_y": 676,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
           "outskirts_floor_5_node_2"
@@ -1114,13 +927,14 @@
         "route_floor": 6,
         "campaign_floor": 5,
         "node_tier": "normal",
-        "render_x": 97,
-        "render_y": 821,
-        "encounter_hook_id": "outskirts_embersnout_ticker",
+        "render_x": 115,
+        "render_y": 837,
+        "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
         "enemy_ids": [
-          "embersnout",
-          "scrap_ticker"
+          "dune_raider",
+          "dust_saboteur",
+          "carrion_hound"
         ],
         "next_nodes": [
           "outskirts_floor_6_node_0"
@@ -1135,8 +949,8 @@
         "route_floor": 6,
         "campaign_floor": 5,
         "node_tier": "utility",
-        "render_x": 510,
-        "render_y": 819,
+        "render_x": 512,
+        "render_y": 820,
         "encounter_hook_id": "outskirts:shop:f6:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
@@ -1146,19 +960,19 @@
       },
       "outskirts_floor_5_node_2": {
         "node_id": "outskirts_floor_5_node_2",
-        "node_type": "combat",
+        "node_type": "elite",
         "floor": 5,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 6,
         "campaign_floor": 5,
-        "node_tier": "normal",
-        "render_x": 915,
-        "render_y": 814,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "node_tier": "elite",
+        "render_x": 928,
+        "render_y": 826,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "waste_leech",
+          "signal_junker",
           "salvage_bulwark"
         ],
         "next_nodes": [
@@ -1168,20 +982,25 @@
       },
       "outskirts_floor_6_node_0": {
         "node_id": "outskirts_floor_6_node_0",
-        "node_type": "shop",
+        "node_type": "combat",
         "floor": 6,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 7,
         "campaign_floor": 6,
-        "node_tier": "utility",
-        "render_x": 115,
-        "render_y": 958,
-        "encounter_hook_id": "outskirts:shop:f7:c0",
+        "node_tier": "normal",
+        "render_x": 117,
+        "render_y": 981,
+        "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dune_raider",
+          "dust_saboteur",
+          "carrion_hound"
+        ],
         "next_nodes": [
-          "outskirts_floor_7_node_0"
+          "outskirts_floor_7_node_0",
+          "outskirts_floor_7_node_1"
         ]
       },
       "outskirts_floor_6_node_1": {
@@ -1193,13 +1012,14 @@
         "route_floor": 7,
         "campaign_floor": 6,
         "node_tier": "normal",
-        "render_x": 508,
-        "render_y": 975,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "render_x": 527,
+        "render_y": 966,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
         ],
         "next_nodes": [
           "outskirts_floor_7_node_1"
@@ -1207,21 +1027,18 @@
       },
       "outskirts_floor_6_node_2": {
         "node_id": "outskirts_floor_6_node_2",
-        "node_type": "elite",
+        "node_type": "event",
         "floor": 6,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 7,
         "campaign_floor": 6,
-        "node_tier": "elite",
-        "render_x": 936,
+        "node_tier": "utility",
+        "render_x": 918,
         "render_y": 957,
-        "encounter_hook_id": "outskirts_junker_bulwark",
+        "encounter_hook_id": "outskirts:event:f7:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "signal_junker",
-          "salvage_bulwark"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_7_node_2"
         ]
@@ -1235,13 +1052,13 @@
         "route_floor": 8,
         "campaign_floor": 7,
         "node_tier": "normal",
-        "render_x": 112,
-        "render_y": 1111,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "render_x": 117,
+        "render_y": 1093,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
           "outskirts_floor_8_node_0"
@@ -1249,21 +1066,18 @@
       },
       "outskirts_floor_7_node_1": {
         "node_id": "outskirts_floor_7_node_1",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 7,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 8,
         "campaign_floor": 7,
-        "node_tier": "normal",
-        "render_x": 519,
-        "render_y": 1104,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 527,
+        "render_y": 1094,
+        "encounter_hook_id": "outskirts:event:f8:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_8_node_1",
           "outskirts_floor_8_node_0"
@@ -1271,18 +1085,21 @@
       },
       "outskirts_floor_7_node_2": {
         "node_id": "outskirts_floor_7_node_2",
-        "node_type": "event",
+        "node_type": "elite",
         "floor": 7,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 8,
         "campaign_floor": 7,
-        "node_tier": "utility",
-        "render_x": 925,
-        "render_y": 1122,
-        "encounter_hook_id": "outskirts:event:f8:c2",
+        "node_tier": "elite",
+        "render_x": 922,
+        "render_y": 1106,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "signal_junker",
+          "salvage_bulwark"
+        ],
         "next_nodes": [
           "outskirts_floor_8_node_2"
         ]
@@ -1296,8 +1113,8 @@
         "route_floor": 9,
         "campaign_floor": 8,
         "node_tier": "normal",
-        "render_x": 102,
-        "render_y": 1236,
+        "render_x": 105,
+        "render_y": 1270,
         "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1311,58 +1128,61 @@
       },
       "outskirts_floor_8_node_1": {
         "node_id": "outskirts_floor_8_node_1",
-        "node_type": "event",
+        "node_type": "combat",
         "floor": 8,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 9,
         "campaign_floor": 8,
-        "node_tier": "utility",
-        "render_x": 513,
-        "render_y": 1266,
-        "encounter_hook_id": "outskirts:event:f9:c1",
+        "node_tier": "normal",
+        "render_x": 505,
+        "render_y": 1269,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dune_raider",
+          "carrion_hound"
+        ],
         "next_nodes": [
-          "outskirts_floor_9_node_1",
-          "outskirts_floor_9_node_0"
+          "outskirts_floor_9_node_1"
         ]
       },
       "outskirts_floor_8_node_2": {
         "node_id": "outskirts_floor_8_node_2",
-        "node_type": "elite",
+        "node_type": "event",
         "floor": 8,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 9,
         "campaign_floor": 8,
-        "node_tier": "elite",
-        "render_x": 916,
-        "render_y": 1264,
-        "encounter_hook_id": "outskirts_junker_raider",
+        "node_tier": "utility",
+        "render_x": 913,
+        "render_y": 1257,
+        "encounter_hook_id": "outskirts:event:f9:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "signal_junker",
-          "dune_raider"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_9_node_2"
+          "outskirts_floor_9_node_2",
+          "outskirts_floor_9_node_1"
         ]
       },
       "outskirts_floor_9_node_0": {
         "node_id": "outskirts_floor_9_node_0",
-        "node_type": "event",
+        "node_type": "elite",
         "floor": 9,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 10,
         "campaign_floor": 9,
-        "node_tier": "utility",
-        "render_x": 114,
-        "render_y": 1385,
-        "encounter_hook_id": "outskirts:event:f10:c0",
+        "node_tier": "elite",
+        "render_x": 115,
+        "render_y": 1401,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "signal_junker",
+          "salvage_bulwark"
+        ],
         "next_nodes": [
           "outskirts_floor_10_node_0"
         ]
@@ -1376,47 +1196,30 @@
         "route_floor": 10,
         "campaign_floor": 9,
         "node_tier": "elite",
-        "render_x": 522,
-        "render_y": 1398,
-        "encounter_hook_id": "outskirts_junker_raider",
+        "render_x": 504,
+        "render_y": 1382,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
           "signal_junker",
-          "dune_raider"
+          "salvage_bulwark"
         ],
         "next_nodes": [
-          "outskirts_floor_10_node_1"
+          "outskirts_floor_10_node_1",
+          "outskirts_floor_10_node_2"
         ]
       },
       "outskirts_floor_9_node_2": {
         "node_id": "outskirts_floor_9_node_2",
-        "node_type": "event",
+        "node_type": "combat",
         "floor": 9,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 10,
         "campaign_floor": 9,
-        "node_tier": "utility",
-        "render_x": 914,
-        "render_y": 1391,
-        "encounter_hook_id": "outskirts:event:f10:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [],
-        "next_nodes": [
-          "outskirts_floor_10_node_2"
-        ]
-      },
-      "outskirts_floor_10_node_0": {
-        "node_id": "outskirts_floor_10_node_0",
-        "node_type": "combat",
-        "floor": 10,
-        "column": 0,
-        "map_id": "outskirts",
-        "route_floor": 11,
-        "campaign_floor": 10,
         "node_tier": "normal",
-        "render_x": 100,
-        "render_y": 1534,
+        "render_x": 930,
+        "render_y": 1391,
         "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1425,7 +1228,26 @@
           "embersnout"
         ],
         "next_nodes": [
-          "outskirts_floor_11_node_0"
+          "outskirts_floor_10_node_2"
+        ]
+      },
+      "outskirts_floor_10_node_0": {
+        "node_id": "outskirts_floor_10_node_0",
+        "node_type": "shop",
+        "floor": 10,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 11,
+        "campaign_floor": 10,
+        "node_tier": "utility",
+        "render_x": 119,
+        "render_y": 1544,
+        "encounter_hook_id": "outskirts:shop:f11:c0",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_11_node_0",
+          "outskirts_floor_11_node_1"
         ]
       },
       "outskirts_floor_10_node_1": {
@@ -1437,8 +1259,8 @@
         "route_floor": 11,
         "campaign_floor": 10,
         "node_tier": "normal",
-        "render_x": 506,
-        "render_y": 1533,
+        "render_x": 530,
+        "render_y": 1531,
         "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1452,22 +1274,18 @@
       },
       "outskirts_floor_10_node_2": {
         "node_id": "outskirts_floor_10_node_2",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 10,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 11,
         "campaign_floor": 10,
-        "node_tier": "normal",
-        "render_x": 939,
-        "render_y": 1531,
-        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "node_tier": "utility",
+        "render_x": 926,
+        "render_y": 1525,
+        "encounter_hook_id": "outskirts:shop:f11:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "salvage_bulwark",
-          "scrap_ticker",
-          "embersnout"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_11_node_2"
         ]
@@ -1481,8 +1299,8 @@
         "route_floor": 12,
         "campaign_floor": 11,
         "node_tier": "normal",
-        "render_x": 114,
-        "render_y": 1676,
+        "render_x": 113,
+        "render_y": 1681,
         "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1491,7 +1309,8 @@
           "embersnout"
         ],
         "next_nodes": [
-          "outskirts_floor_12_node_0"
+          "outskirts_floor_12_node_0",
+          "outskirts_floor_12_node_1"
         ]
       },
       "outskirts_floor_11_node_1": {
@@ -1503,13 +1322,14 @@
         "route_floor": 12,
         "campaign_floor": 11,
         "node_tier": "normal",
-        "render_x": 513,
-        "render_y": 1683,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "render_x": 514,
+        "render_y": 1694,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
         ],
         "next_nodes": [
           "outskirts_floor_12_node_1"
@@ -1517,42 +1337,36 @@
       },
       "outskirts_floor_11_node_2": {
         "node_id": "outskirts_floor_11_node_2",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 11,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 12,
         "campaign_floor": 11,
-        "node_tier": "normal",
-        "render_x": 925,
-        "render_y": 1669,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "node_tier": "utility",
+        "render_x": 923,
+        "render_y": 1689,
+        "encounter_hook_id": "outskirts:event:f12:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_12_node_2"
         ]
       },
       "outskirts_floor_12_node_0": {
         "node_id": "outskirts_floor_12_node_0",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 12,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 13,
         "campaign_floor": 12,
-        "node_tier": "normal",
-        "render_x": 100,
-        "render_y": 1829,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "node_tier": "utility",
+        "render_x": 115,
+        "render_y": 1805,
+        "encounter_hook_id": "outskirts:shop:f13:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_13_node_0"
         ]
@@ -1566,33 +1380,35 @@
         "route_floor": 13,
         "campaign_floor": 12,
         "node_tier": "normal",
-        "render_x": 522,
-        "render_y": 1828,
-        "encounter_hook_id": "outskirts_embersnout_ticker",
+        "render_x": 524,
+        "render_y": 1835,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
-          "embersnout",
-          "scrap_ticker"
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
         ],
         "next_nodes": [
-          "outskirts_floor_13_node_1"
+          "outskirts_floor_13_node_1",
+          "outskirts_floor_13_node_2"
         ]
       },
       "outskirts_floor_12_node_2": {
         "node_id": "outskirts_floor_12_node_2",
-        "node_type": "combat",
+        "node_type": "elite",
         "floor": 12,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 13,
         "campaign_floor": 12,
-        "node_tier": "normal",
-        "render_x": 931,
-        "render_y": 1813,
-        "encounter_hook_id": "outskirts_embersnout_ticker",
+        "node_tier": "elite",
+        "render_x": 927,
+        "render_y": 1827,
+        "encounter_hook_id": "outskirts_reaver_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "embersnout",
+          "caravan_reaver",
           "scrap_ticker"
         ],
         "next_nodes": [
@@ -1601,99 +1417,97 @@
       },
       "outskirts_floor_13_node_0": {
         "node_id": "outskirts_floor_13_node_0",
-        "node_type": "event",
+        "node_type": "combat",
         "floor": 13,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 14,
         "campaign_floor": 13,
-        "node_tier": "utility",
-        "render_x": 102,
-        "render_y": 1962,
-        "encounter_hook_id": "outskirts:event:f14:c0",
+        "node_tier": "normal",
+        "render_x": 109,
+        "render_y": 1947,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dust_saboteur",
+          "relay_vulture"
+        ],
         "next_nodes": [
           "outskirts_floor_14_node_0"
         ]
       },
       "outskirts_floor_13_node_1": {
         "node_id": "outskirts_floor_13_node_1",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 13,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 14,
         "campaign_floor": 13,
-        "node_tier": "normal",
-        "render_x": 509,
-        "render_y": 1976,
-        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "node_tier": "utility",
+        "render_x": 520,
+        "render_y": 1971,
+        "encounter_hook_id": "outskirts:event:f14:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "salvage_bulwark",
-          "scrap_ticker",
-          "embersnout"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_14_node_1"
         ]
       },
       "outskirts_floor_13_node_2": {
         "node_id": "outskirts_floor_13_node_2",
-        "node_type": "event",
+        "node_type": "elite",
         "floor": 13,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 14,
         "campaign_floor": 13,
-        "node_tier": "utility",
-        "render_x": 939,
-        "render_y": 1948,
-        "encounter_hook_id": "outskirts:event:f14:c2",
+        "node_tier": "elite",
+        "render_x": 919,
+        "render_y": 1963,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "signal_junker",
+          "salvage_bulwark"
+        ],
         "next_nodes": [
           "outskirts_floor_14_node_2"
         ]
       },
       "outskirts_floor_14_node_0": {
         "node_id": "outskirts_floor_14_node_0",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 14,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 15,
         "campaign_floor": 14,
-        "node_tier": "normal",
-        "render_x": 113,
-        "render_y": 2104,
-        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "node_tier": "utility",
+        "render_x": 104,
+        "render_y": 2087,
+        "encounter_hook_id": "outskirts:event:f15:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "salvage_bulwark",
-          "scrap_ticker",
-          "embersnout"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_boss"
         ]
       },
       "outskirts_floor_14_node_1": {
         "node_id": "outskirts_floor_14_node_1",
-        "node_type": "elite",
+        "node_type": "combat",
         "floor": 14,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 15,
         "campaign_floor": 14,
-        "node_tier": "elite",
-        "render_x": 525,
-        "render_y": 2116,
-        "encounter_hook_id": "outskirts_junker_bulwark",
+        "node_tier": "normal",
+        "render_x": 509,
+        "render_y": 2086,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "signal_junker",
+          "waste_leech",
           "salvage_bulwark"
         ],
         "next_nodes": [
@@ -1702,21 +1516,20 @@
       },
       "outskirts_floor_14_node_2": {
         "node_id": "outskirts_floor_14_node_2",
-        "node_type": "combat",
+        "node_type": "elite",
         "floor": 14,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 15,
         "campaign_floor": 14,
-        "node_tier": "normal",
-        "render_x": 935,
-        "render_y": 2107,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
+        "node_tier": "elite",
+        "render_x": 931,
+        "render_y": 2091,
+        "encounter_hook_id": "outskirts_junker_raider",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
-          "dust_saboteur",
-          "carrion_hound"
+          "signal_junker",
+          "dune_raider"
         ],
         "next_nodes": [
           "outskirts_boss"
@@ -1733,10 +1546,10 @@
         "node_tier": "boss",
         "render_x": 518,
         "render_y": 2246,
-        "encounter_hook_id": "wastes_colossus",
-        "boss_slot_id": "wastes_colossus",
+        "encounter_hook_id": "sandpack_alpha",
+        "boss_slot_id": "sandpack_alpha",
         "enemy_ids": [
-          "wastes_colossus"
+          "sandpack_alpha"
         ],
         "next_nodes": []
       }
@@ -1748,1301 +1561,207 @@
     ],
     "boss_node_id": "outskirts_boss",
     "available_node_ids": [
-      "outskirts_floor_1_node_0",
-      "outskirts_floor_1_node_1"
+      "outskirts_floor_2_node_0",
+      "outskirts_floor_2_node_1"
     ],
     "visited_node_ids": [
-      "outskirts_floor_0_node_0"
+      "outskirts_floor_0_node_0",
+      "outskirts_floor_1_node_0"
     ],
-    "selected_node_id": "outskirts_floor_0_node_0"
+    "selected_node_id": "outskirts_floor_1_node_0"
   },
-  "combat": {
-    "combat_active": true,
-    "turn_number": 10,
-    "turn_owner": "player",
-    "event_log": [
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dune_raider"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "dune_raider"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dune_raider, apply_weak 1 -> dune_raider"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Deflect Mesh",
-        "card_id": "operator_deflect_mesh_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Deflect Mesh: block 6 -> player, draw 1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dune_raider"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 2,
-            "target": "dune_raider"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dune_raider, apply_weak 2 -> dune_raider"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Priority Queue",
-        "card_id": "operator_priority_queue_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Priority Queue: modify_next_card_cost -1 -> player, draw 1 -> player"
-      },
-      {
-        "type": "intent",
-        "source": "dune_raider",
-        "label": "Dune Raider",
-        "card_id": "dune_raider",
-        "intent": "shiv",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 5,
-            "applied": 0,
-            "target": "player"
-          }
-        ],
-        "summary": "Slash for 5"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "scrap_dump",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 3,
-            "applied": 0,
-            "target": "player"
-          },
-          {
-            "type": "enemy_add_status_card",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Dump for 3 and add Junk to discard"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "bite",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          }
-        ],
-        "summary": "Bite for 6"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Priority Queue",
-        "card_id": "operator_priority_queue_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Priority Queue: modify_next_card_cost -1 -> player, draw 1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Firewall",
-        "card_id": "firewall_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 8,
-            "applied": 8,
-            "target": "player"
-          }
-        ],
-        "summary": "Firewall: block 8 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Deflect Mesh",
-        "card_id": "operator_deflect_mesh_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Deflect Mesh: block 6 -> player, draw 1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dune_raider"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 2,
-            "target": "dune_raider"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dune_raider, apply_weak 2 -> dune_raider"
-      },
-      {
-        "type": "intent",
-        "source": "dune_raider",
-        "label": "Dune Raider",
-        "card_id": "dune_raider",
-        "intent": "sand_throw",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 3,
-            "applied": 0,
-            "target": "player"
-          },
-          {
-            "type": "enemy_apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Throw for 3 and Weak 1"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "cut_wire",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 5,
-            "applied": 0,
-            "target": "player"
-          }
-        ],
-        "summary": "Cut for 5"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "hamstring",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 4,
-            "applied": 0,
-            "target": "player"
-          },
-          {
-            "type": "enemy_apply_bleed",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Hamstring for 4 and Bleed 1"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dune_raider"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 2,
-            "target": "dune_raider"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dune_raider, apply_weak 2 -> dune_raider"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dune_raider"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 3,
-            "target": "dune_raider"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dune_raider, apply_weak 3 -> dune_raider"
-      },
-      {
-        "type": "intent",
-        "source": "dune_raider",
-        "label": "Dune Raider",
-        "card_id": "dune_raider",
-        "intent": "shiv",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 5,
-            "applied": 4,
-            "target": "player"
-          }
-        ],
-        "summary": "Slash for 5"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "duck_cover",
-        "resolutions": [
-          {
-            "type": "enemy_block",
-            "value": 5,
-            "applied": 5,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Gain 5 Block"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "bite",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          }
-        ],
-        "summary": "Bite for 6"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dune_raider"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 3,
-            "target": "dune_raider"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dune_raider, apply_weak 3 -> dune_raider"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 0,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 0 -> dust_saboteur, apply_weak 1 -> dust_saboteur"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "scrap_dump",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 3,
-            "applied": 3,
-            "target": "player"
-          },
-          {
-            "type": "enemy_add_status_card",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Dump for 3 and add Junk to discard"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "hamstring",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 4,
-            "applied": 4,
-            "target": "player"
-          },
-          {
-            "type": "enemy_apply_bleed",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Hamstring for 4 and Bleed 1"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dust_saboteur, apply_weak 1 -> dust_saboteur"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Auto-Tuner",
-        "card_id": "operator_auto_tuner_01",
-        "card_type": "power",
-        "resolutions": [],
-        "summary": "Auto-Tuner: no effect."
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Deflect Mesh",
-        "card_id": "operator_deflect_mesh_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Deflect Mesh: block 6 -> player, draw 1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Priority Queue",
-        "card_id": "operator_priority_queue_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Priority Queue: modify_next_card_cost -1 -> player, draw 1 -> player"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "cut_wire",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 5,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Cut for 5"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "bite",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 6,
-            "applied": 5,
-            "target": "player"
-          }
-        ],
-        "summary": "Bite for 6"
-      },
-      {
-        "type": "trigger",
-        "source": "player",
-        "label": "Auto-Tuner",
-        "card_id": "operator_auto_tuner_01",
-        "hook": "turn_start",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          }
-        ],
-        "summary": "Auto-Tuner turn_start: modify_next_card_cost -1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dust_saboteur, apply_weak 1 -> dust_saboteur"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 2,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dust_saboteur, apply_weak 2 -> dust_saboteur"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Firewall",
-        "card_id": "firewall_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 8,
-            "applied": 8,
-            "target": "player"
-          }
-        ],
-        "summary": "Firewall: block 8 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "duck_cover",
-        "resolutions": [
-          {
-            "type": "enemy_block",
-            "value": 5,
-            "applied": 5,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Gain 5 Block"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "hamstring",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 4,
-            "applied": 0,
-            "target": "player"
-          },
-          {
-            "type": "enemy_apply_bleed",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Hamstring for 4 and Bleed 1"
-      },
-      {
-        "type": "trigger",
-        "source": "player",
-        "label": "Auto-Tuner",
-        "card_id": "operator_auto_tuner_01",
-        "hook": "turn_start",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          }
-        ],
-        "summary": "Auto-Tuner turn_start: modify_next_card_cost -1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Deflect Mesh",
-        "card_id": "operator_deflect_mesh_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Deflect Mesh: block 6 -> player, draw 1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "carrion_hound"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "carrion_hound"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> carrion_hound, apply_weak 1 -> carrion_hound"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "scrap_dump",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 3,
-            "applied": 1,
-            "target": "player"
-          },
-          {
-            "type": "enemy_add_status_card",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Dump for 3 and add Junk to discard"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "bite",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 6,
-            "applied": 3,
-            "target": "player"
-          }
-        ],
-        "summary": "Bite for 6"
-      },
-      {
-        "type": "trigger",
-        "source": "player",
-        "label": "Auto-Tuner",
-        "card_id": "operator_auto_tuner_01",
-        "hook": "turn_start",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          }
-        ],
-        "summary": "Auto-Tuner turn_start: modify_next_card_cost -1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "carrion_hound"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "carrion_hound"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> carrion_hound, apply_weak 1 -> carrion_hound"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> dust_saboteur, apply_weak 1 -> dust_saboteur"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Deflect Mesh",
-        "card_id": "operator_deflect_mesh_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Deflect Mesh: block 6 -> player, draw 1 -> player"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "cut_wire",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 5,
-            "applied": 0,
-            "target": "player"
-          }
-        ],
-        "summary": "Cut for 5"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "hamstring",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 4,
-            "applied": 3,
-            "target": "player"
-          },
-          {
-            "type": "enemy_apply_bleed",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Hamstring for 4 and Bleed 1"
-      },
-      {
-        "type": "trigger",
-        "source": "player",
-        "label": "Auto-Tuner",
-        "card_id": "operator_auto_tuner_01",
-        "hook": "turn_start",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          }
-        ],
-        "summary": "Auto-Tuner turn_start: modify_next_card_cost -1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "carrion_hound"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "carrion_hound"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> carrion_hound, apply_weak 1 -> carrion_hound"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Cache Cycle",
-        "card_id": "operator_cache_cycle_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "draw",
-            "value": 2,
-            "applied": 2,
-            "target": "player"
-          }
-        ],
-        "summary": "Cache Cycle: draw 2 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Priority Queue",
-        "card_id": "operator_priority_queue_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Priority Queue: modify_next_card_cost -1 -> player, draw 1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 4,
-            "target": "carrion_hound"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 2,
-            "target": "carrion_hound"
-          }
-        ],
-        "summary": "Needle Ping: damage 4 -> carrion_hound, apply_weak 2 -> carrion_hound"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Deflect Mesh",
-        "card_id": "operator_deflect_mesh_01",
-        "card_type": "skill",
-        "resolutions": [
-          {
-            "type": "block",
-            "value": 6,
-            "applied": 6,
-            "target": "player"
-          },
-          {
-            "type": "draw",
-            "value": 1,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Deflect Mesh: block 6 -> player, draw 1 -> player"
-      },
-      {
-        "type": "intent",
-        "source": "dust_saboteur",
-        "label": "Dust Saboteur",
-        "card_id": "dust_saboteur",
-        "intent": "duck_cover",
-        "resolutions": [
-          {
-            "type": "enemy_block",
-            "value": 5,
-            "applied": 5,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Gain 5 Block"
-      },
-      {
-        "type": "intent",
-        "source": "carrion_hound",
-        "label": "Carrion Hound",
-        "card_id": "carrion_hound",
-        "intent": "bite",
-        "resolutions": [
-          {
-            "type": "enemy_damage",
-            "value": 6,
-            "applied": 1,
-            "target": "player"
-          }
-        ],
-        "summary": "Bite for 6"
-      },
-      {
-        "type": "trigger",
-        "source": "player",
-        "label": "Auto-Tuner",
-        "card_id": "operator_auto_tuner_01",
-        "hook": "turn_start",
-        "resolutions": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1,
-            "applied": -1,
-            "target": "player"
-          }
-        ],
-        "summary": "Auto-Tuner turn_start: modify_next_card_cost -1 -> player"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 0,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 1,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 0 -> dust_saboteur, apply_weak 1 -> dust_saboteur"
-      },
-      {
-        "type": "card",
-        "source": "player",
-        "label": "Needle Ping",
-        "card_id": "operator_needle_ping_01",
-        "card_type": "attack",
-        "resolutions": [
-          {
-            "type": "damage",
-            "value": 4,
-            "applied": 3,
-            "target": "dust_saboteur"
-          },
-          {
-            "type": "apply_weak",
-            "value": 1,
-            "applied": 2,
-            "target": "dust_saboteur"
-          }
-        ],
-        "summary": "Needle Ping: damage 3 -> dust_saboteur, apply_weak 2 -> dust_saboteur"
-      }
-    ],
-    "active_bark": null,
-    "bark_runtime": {
-      "nonce": 0,
-      "cooldown_remaining": 0,
-      "speaker_counts": {},
-      "defeated_enemy_ids": [
-        "dune_raider"
-      ]
-    },
-    "enemies": [
-      {
-        "id": "dune_raider",
-        "current_hp": 0,
-        "block": 0,
-        "current_intent": "sand_throw",
-        "strength": 0,
-        "weak": 3,
-        "vulnerable": 0,
-        "runtime": {
-          "intent_index": 2,
-          "cooldowns": {},
-          "active_phase_name": null,
-          "triggered_phase_names": [],
-          "low_hp_bark_fired": true,
-          "statuses": {}
-        }
-      },
-      {
-        "id": "dust_saboteur",
-        "current_hp": 9,
-        "block": 0,
-        "current_intent": "scrap_dump",
-        "strength": 0,
-        "weak": 2,
-        "vulnerable": 0,
-        "runtime": {
-          "intent_index": 1,
-          "cooldowns": {},
-          "active_phase_name": null,
-          "triggered_phase_names": [],
-          "low_hp_bark_fired": true,
-          "statuses": {}
-        }
-      },
-      {
-        "id": "carrion_hound",
-        "current_hp": 10,
-        "block": 0,
-        "current_intent": "hamstring",
-        "strength": 0,
-        "weak": 1,
-        "vulnerable": 0,
-        "runtime": {
-          "intent_index": 2,
-          "cooldowns": {},
-          "active_phase_name": null,
-          "triggered_phase_names": [],
-          "low_hp_bark_fired": false,
-          "statuses": {}
-        }
-      }
-    ]
-  },
+  "combat": null,
   "event": null,
   "reward": null,
-  "shop": null,
+  "shop": {
+    "shop_node_id": "outskirts_floor_1_node_0",
+    "inventory": [
+      {
+        "offer_id": "card:bio_reclaimer_01",
+        "type": "card",
+        "card_id": "bio_reclaimer_01",
+        "card": {
+          "id": "bio_reclaimer_01",
+          "name": "Reclaimer",
+          "cost": 0,
+          "type": "skill",
+          "effects": [
+            {
+              "type": "self_damage",
+              "value": 2
+            },
+            {
+              "type": "energy",
+              "value": 1
+            }
+          ],
+          "owners": [
+            "bio_hacker"
+          ],
+          "shop_price": 46,
+          "theme": {
+            "faction": "bio_hacker",
+            "palette": "bio_hacker_verdant",
+            "art_style": "patch_grid"
+          },
+          "instance_id": "580f54479dc545fa8b3c126c9262e818"
+        },
+        "label": "Reclaimer",
+        "price": 46,
+        "sold_out": false
+      },
+      {
+        "offer_id": "card:bio_triage_loop_01",
+        "type": "card",
+        "card_id": "bio_triage_loop_01",
+        "card": {
+          "id": "bio_triage_loop_01",
+          "name": "Triage Loop",
+          "cost": 1,
+          "type": "skill",
+          "effects": [
+            {
+              "type": "heal",
+              "value": 4
+            },
+            {
+              "type": "draw",
+              "value": 1
+            }
+          ],
+          "owners": [
+            "bio_hacker"
+          ],
+          "shop_price": 44,
+          "theme": {
+            "faction": "bio_hacker",
+            "palette": "bio_hacker_verdant",
+            "art_style": "signal_mesh"
+          },
+          "instance_id": "70cfb4fd1ad643ba8a1b3c2379f98e18"
+        },
+        "label": "Triage Loop",
+        "price": 44,
+        "sold_out": false
+      },
+      {
+        "offer_id": "card:bio_septic_round_01",
+        "type": "card",
+        "card_id": "bio_septic_round_01",
+        "card": {
+          "id": "bio_septic_round_01",
+          "name": "Septic Round",
+          "cost": 1,
+          "type": "attack",
+          "effects": [
+            {
+              "type": "damage",
+              "value": 4
+            },
+            {
+              "type": "apply_infect",
+              "value": 2
+            }
+          ],
+          "owners": [
+            "bio_hacker"
+          ],
+          "shop_price": 48,
+          "theme": {
+            "faction": "bio_hacker",
+            "palette": "bio_hacker_verdant",
+            "art_style": "circuit_burst"
+          },
+          "instance_id": "2c379e16588a49349b3f2f5871160d29"
+        },
+        "label": "Septic Round",
+        "price": 48,
+        "sold_out": false
+      },
+      {
+        "offer_id": "relic:waste_filter",
+        "type": "relic",
+        "relic_id": "waste_filter",
+        "relic": {
+          "id": "waste_filter",
+          "name": "Waste Filter",
+          "type": "relic",
+          "kind": "relic",
+          "draft_eligible": true,
+          "description": "The first time each turn you draw a status card, heal 1 HP.",
+          "downside": null,
+          "rarity": "common",
+          "base_weight": 8.0,
+          "tags": [
+            "status",
+            "heal"
+          ],
+          "primary_tag": "status",
+          "source_types": [
+            "elite_reward",
+            "shop"
+          ],
+          "duration": {
+            "type": "permanent",
+            "value": null
+          },
+          "duration_type": "permanent",
+          "stack_behavior": "no_duplicate",
+          "hooks": {
+            "on_status_drawn": [
+              {
+                "type": "heal",
+                "value": 1,
+                "once_per": "turn"
+              }
+            ]
+          },
+          "track": "drop_in",
+          "synergies": [
+            "Rot Harvest",
+            "status-heavy fights",
+            "self-damage decks that need cushion"
+          ],
+          "notes": "A gentle safety valve that keeps status synergies from being all-or-nothing."
+        },
+        "label": "Waste Filter",
+        "price": 90,
+        "sold_out": false
+      },
+      {
+        "offer_id": "heal_service",
+        "type": "heal",
+        "label": "Clinic Patch",
+        "description": "Recover 14 HP now.",
+        "price": 18,
+        "heal_amount": 14,
+        "sold_out": false
+      },
+      {
+        "offer_id": "purge_service",
+        "type": "purge",
+        "label": "Purge Service",
+        "description": "Remove one card from the deck.",
+        "price": 40,
+        "sold_out": false
+      }
+    ],
+    "selected_offer_id": null,
+    "selected_purge_index": null,
+    "reroll_count": 0,
+    "seen_card_ids": [
+      "bio_reclaimer_01",
+      "bio_triage_loop_01",
+      "bio_septic_round_01"
+    ],
+    "seen_relic_ids": [
+      "waste_filter"
+    ]
+  },
   "modifier_draft": null,
   "run_modifiers": [
     {
-      "id": "plated_grip",
+      "id": "flash_cache",
       "source": "starter_draft",
       "source_detail": null,
       "duration_type": "permanent",
@@ -3056,22 +1775,25 @@
     "clean_slate_used": false,
     "ghost_warranty_used_shops": [],
     "debt_spike_used_shops": [],
-    "last_floor_status_tick": 0,
+    "last_floor_status_tick": 1,
     "combat": {
       "active_modifier_ids": [],
-      "cards_played_this_combat": 37,
-      "cards_played_this_turn": 2,
-      "card_type_counts_this_turn": {
-        "attack": 2
-      },
-      "current_turn_attack_played": true,
-      "last_turn_attack_played": true,
+      "cards_played_this_combat": 0,
+      "cards_played_this_turn": 0,
+      "card_type_counts_this_turn": {},
+      "current_turn_attack_played": false,
+      "last_turn_attack_played": false,
       "first_block_penalty_remaining": 0,
       "pending_energy_next_turn": 0,
       "triggered_modifier_ids_this_turn": [],
       "triggered_modifier_ids_this_combat": [],
       "modifier_state": {},
-      "runtime_event_index": 96
+      "runtime_event_index": 0,
+      "enemy_phase": {
+        "active": false,
+        "pending_enemy_ids": [],
+        "current_index": 0
+      }
     }
   },
   "event_history": [],

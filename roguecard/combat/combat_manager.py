@@ -81,6 +81,28 @@ class CombatManager:
         if not self.combat_active:
             raise ValueError("Cannot end a turn outside of active combat.")
 
+        begin_result = self.begin_enemy_phase()
+        if not begin_result.get("combat_active", False):
+            return {"combat_active": self.combat_active, "enemy_results": []}
+
+        enemy_results: list[dict[str, Any]] = []
+        for enemy_ref in begin_result.get("pending_enemy_ids", []):
+            step_result = self.resolve_enemy_phase_step(enemy_ref)
+            enemy_results.append(step_result)
+            if not self.combat_active:
+                return {"combat_active": self.combat_active, "enemy_results": enemy_results}
+
+        next_turn = self.finalize_enemy_phase()
+        return {
+            "combat_active": self.combat_active,
+            "enemy_results": enemy_results,
+            "next_turn": next_turn,
+        }
+
+    def begin_enemy_phase(self) -> dict[str, Any]:
+        if not self.combat_active:
+            raise ValueError("Cannot begin an enemy phase outside of active combat.")
+
         self.turn_manager.end_player_turn(self.player)
         self._player_cards_played_last_turn = self._player_cards_played_this_turn
         self._player_cards_played_this_turn = 0
@@ -101,37 +123,56 @@ class CombatManager:
         self._resolve_player_end_of_turn_statuses()
         if not self.player.is_alive():
             self.combat_active = False
-            return {"combat_active": self.combat_active, "enemy_results": []}
+            return {"combat_active": self.combat_active, "pending_enemy_ids": []}
 
-        enemy_results: list[dict[str, Any]] = []
-        for enemy in list(self._living_enemies()):
-            self.turn_manager.start_enemy_turn(enemy)
-            self._resolve_enemy_turn_start_effects(enemy)
-            if not enemy.is_alive():
-                self._handle_enemy_defeat(enemy)
-                continue
-            intent = enemy.current_intent or enemy.choose_intent(self)
-            resolution = enemy.execute_intent(self.action_resolver, self.player, combat_manager=self)
-            enemy_results.append({"enemy_id": enemy.id, "resolution": resolution})
-            self.event_log.append(self._enemy_event_entry(enemy=enemy, intent=intent, resolution=resolution))
-            self._resolve_enemy_end_of_turn_effects(enemy)
-            if not self.player.is_alive():
+        pending_enemy_ids = [self._enemy_ref(enemy) for enemy in list(self._living_enemies())]
+        if not pending_enemy_ids:
+            self.combat_active = False
+        return {
+            "combat_active": self.combat_active,
+            "pending_enemy_ids": pending_enemy_ids,
+        }
+
+    def resolve_enemy_phase_step(self, enemy_ref: str) -> dict[str, Any]:
+        if not self.combat_active:
+            raise ValueError("Cannot resolve enemy turns outside of active combat.")
+
+        enemy = self._enemy_from_ref(enemy_ref)
+        if enemy is None or not enemy.is_alive():
+            return {"enemy_id": enemy_ref, "skipped": True, "resolution": None}
+
+        self.turn_manager.start_enemy_turn(enemy)
+        self._resolve_enemy_turn_start_effects(enemy)
+        if not enemy.is_alive():
+            self._handle_enemy_defeat(enemy)
+            if not self._living_enemies():
                 self.combat_active = False
-                return {"combat_active": self.combat_active, "enemy_results": enemy_results}
+            return {"enemy_id": enemy_ref, "skipped": True, "resolution": None}
 
+        intent = enemy.current_intent or enemy.choose_intent(self)
+        resolution = enemy.execute_intent(self.action_resolver, self.player, combat_manager=self)
+        self.event_log.append(self._enemy_event_entry(enemy=enemy, intent=intent, resolution=resolution))
+        self._resolve_enemy_end_of_turn_effects(enemy)
+        if not self.player.is_alive() or not self._living_enemies():
+            self.combat_active = False
+        return {
+            "enemy_id": enemy_ref,
+            "skipped": False,
+            "intent": intent,
+            "resolution": resolution,
+        }
+
+    def finalize_enemy_phase(self) -> dict[str, Any] | None:
+        if not self.combat_active:
+            return None
         if not self._living_enemies():
             self.combat_active = False
-            return {"combat_active": self.combat_active, "enemy_results": enemy_results}
+            return None
 
         for enemy in self._living_enemies():
             enemy.choose_intent(self)
 
-        next_turn = self._start_player_turn()
-        return {
-            "combat_active": self.combat_active,
-            "enemy_results": enemy_results,
-            "next_turn": next_turn,
-        }
+        return self._start_player_turn()
 
     def resolve_action(self, action: dict[str, Any]) -> dict[str, Any]:
         if not self.combat_active:
@@ -287,7 +328,13 @@ class CombatManager:
             "turn_number": self.turn_manager.turn_number,
             "turn_owner": self.turn_manager.turn_owner,
             "player": self.player.get_state(),
-            "enemies": [enemy.get_state() for enemy in self.enemies],
+            "enemies": [
+                {
+                    **enemy.get_state(),
+                    "enemy_ref": self._enemy_ref(enemy),
+                }
+                for enemy in self.enemies
+            ],
             "living_enemy_ids": [enemy.id for enemy in self._living_enemies()],
             "event_log": list(self.event_log),
             "active_bark": None if self.active_bark is None else dict(self.active_bark),
@@ -304,6 +351,33 @@ class CombatManager:
 
     def set_event_sink(self, sink: Any) -> None:
         self._event_sink = sink
+
+    def _enemy_ref(self, enemy: Any) -> str:
+        try:
+            slot_index = self.enemies.index(enemy)
+        except ValueError:
+            slot_index = -1
+        return self._enemy_ref_at_index(slot_index, enemy)
+
+    def _enemy_ref_at_index(self, slot_index: int, enemy: Any) -> str:
+        enemy_id = getattr(enemy, "id", "enemy")
+        return f"{enemy_id}#{max(0, int(slot_index))}"
+
+    def _enemy_from_ref(self, enemy_ref: str) -> Any | None:
+        if isinstance(enemy_ref, str):
+            enemy_id, separator, slot_index = enemy_ref.rpartition("#")
+            if separator:
+                try:
+                    index = int(slot_index)
+                except ValueError:
+                    index = -1
+                if 0 <= index < len(self.enemies):
+                    enemy = self.enemies[index]
+                    if self._enemy_ref_at_index(index, enemy) == enemy_ref:
+                        return enemy
+                if enemy_id:
+                    return next((enemy for enemy in self.enemies if enemy.id == enemy_id), None)
+        return next((enemy for enemy in self.enemies if enemy.id == enemy_ref), None)
 
     def _emit_runtime_event(self, event: dict[str, Any]) -> None:
         if self._event_sink is None:

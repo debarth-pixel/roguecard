@@ -244,13 +244,66 @@ class StateManager:
         self._require_combat()
         self._lock_in_turn_history()
         self._apply_combat_modifier_effects("turn_end")
-        self.combat_manager.end_turn()
+        enemy_phase = self.combat_manager.begin_enemy_phase()
 
         if not self.combat_manager.combat_active:
             self._close_combat()
         else:
-            self._start_player_turn_runtime()
+            combat_flags = self._combat_runtime_flags()
+            pending_enemy_ids = [
+                enemy_ref
+                for enemy_ref in enemy_phase.get("pending_enemy_ids", [])
+                if isinstance(enemy_ref, str) and enemy_ref
+            ]
+            if pending_enemy_ids:
+                combat_flags["enemy_phase"] = {
+                    "active": True,
+                    "pending_enemy_ids": pending_enemy_ids,
+                    "current_index": 0,
+                }
+            else:
+                combat_flags["enemy_phase"] = self._default_enemy_phase_state()
+                self.combat_manager.finalize_enemy_phase()
+                if not self.combat_manager.combat_active:
+                    self._close_combat()
+                else:
+                    self._start_player_turn_runtime()
 
+        return self.get_state_snapshot()
+
+    def resolve_enemy_phase_step(self) -> dict[str, Any]:
+        self._require_combat()
+        combat_flags = self._combat_runtime_flags()
+        enemy_phase = self._normalized_enemy_phase_state(combat_flags.get("enemy_phase"))
+        if not enemy_phase["active"]:
+            raise ValueError("Enemy actions are not waiting to resolve.")
+
+        pending_enemy_ids = list(enemy_phase["pending_enemy_ids"])
+        current_index = max(0, int(enemy_phase["current_index"]))
+
+        if current_index < len(pending_enemy_ids):
+            self.combat_manager.resolve_enemy_phase_step(pending_enemy_ids[current_index])
+            current_index += 1
+
+        if not self.combat_manager.combat_active:
+            combat_flags["enemy_phase"] = self._default_enemy_phase_state()
+            self._close_combat()
+            return self.get_state_snapshot()
+
+        if current_index >= len(pending_enemy_ids):
+            combat_flags["enemy_phase"] = self._default_enemy_phase_state()
+            self.combat_manager.finalize_enemy_phase()
+            if not self.combat_manager.combat_active:
+                self._close_combat()
+            else:
+                self._start_player_turn_runtime()
+            return self.get_state_snapshot()
+
+        combat_flags["enemy_phase"] = {
+            "active": True,
+            "pending_enemy_ids": pending_enemy_ids,
+            "current_index": current_index,
+        }
         return self.get_state_snapshot()
 
     def select_reward_option(self, section: str, option_id: str) -> dict[str, Any]:
@@ -520,6 +573,11 @@ class StateManager:
         return self.get_state_snapshot()
 
     def get_state_snapshot(self) -> dict[str, Any]:
+        combat_snapshot = None if self.combat_manager is None else self.combat_manager.get_state()
+        if combat_snapshot is not None:
+            combat_snapshot["enemy_phase"] = copy.deepcopy(
+                self._combat_runtime_flags().get("enemy_phase", self._default_enemy_phase_state())
+            )
         return {
             "current_state": self.current_state,
             "status_message": self.status_message,
@@ -531,7 +589,7 @@ class StateManager:
             "modifier_draft": self._snapshot_modifier_draft(),
             "run_modifiers": self.run_modifier_engine.snapshot(self.run_modifiers),
             "map": self._snapshot_map(),
-            "combat": self.combat_manager.get_state() if self.combat_manager is not None else None,
+            "combat": combat_snapshot,
             "event": self._snapshot_event(),
             "reward": self._snapshot_reward(),
             "shop": self._snapshot_shop(),
@@ -1478,7 +1536,32 @@ class StateManager:
             "triggered_modifier_ids_this_combat": [],
             "modifier_state": {},
             "runtime_event_index": 0,
+            "enemy_phase": self._default_enemy_phase_state(),
         }
+
+    def _default_enemy_phase_state(self) -> dict[str, Any]:
+        return {
+            "active": False,
+            "pending_enemy_ids": [],
+            "current_index": 0,
+        }
+
+    def _normalized_enemy_phase_state(self, enemy_phase: Any) -> dict[str, Any]:
+        normalized = self._default_enemy_phase_state()
+        if not isinstance(enemy_phase, dict):
+            return normalized
+        normalized["active"] = bool(enemy_phase.get("active", False))
+        pending_enemy_ids = enemy_phase.get("pending_enemy_ids", [])
+        if isinstance(pending_enemy_ids, list):
+            normalized["pending_enemy_ids"] = [
+                enemy_ref
+                for enemy_ref in pending_enemy_ids
+                if isinstance(enemy_ref, str) and enemy_ref
+            ]
+        current_index = enemy_phase.get("current_index", 0)
+        if isinstance(current_index, int) and current_index >= 0:
+            normalized["current_index"] = current_index
+        return normalized
 
     def _combat_runtime_flags(self) -> dict[str, Any]:
         combat_flags = self.modifier_runtime_flags.get("combat")
@@ -3772,6 +3855,8 @@ class StateManager:
             for modifier_id, state in modifier_state.items()
             if isinstance(modifier_id, str) and isinstance(state, dict)
         }
+        enemy_phase = combat_flags.get("enemy_phase", restored["combat"]["enemy_phase"])
+        restored["combat"]["enemy_phase"] = self._normalized_enemy_phase_state(enemy_phase)
         return restored
 
     def _restore_event_history(

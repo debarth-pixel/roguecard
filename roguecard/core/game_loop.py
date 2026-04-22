@@ -125,6 +125,7 @@ class GameLoop:
 
             animation_speed = FAST_MODE_MULTIPLIER if self._fast_mode else 1.0
             self.animator.update(delta_time * animation_speed)
+            self.ui_manager.update(delta_time * animation_speed)
             self._render_frame(screen)
             pygame.display.flip()
 
@@ -203,6 +204,8 @@ class GameLoop:
                 self.state_manager.play_card_from_hand(action["hand_index"], action.get("target_id"))
             elif action_type == "end_turn":
                 self.state_manager.end_combat_turn()
+            elif action_type == "resolve_enemy_phase_step":
+                self.state_manager.resolve_enemy_phase_step()
             elif action_type == "select_reward_option":
                 self.state_manager.select_reward_option(action["section"], action["option_id"])
             elif action_type == "confirm_reward_selection":
@@ -241,6 +244,7 @@ class GameLoop:
         after_snapshot = self._snapshot_with_hand()
         if action_type != "title_quit":
             self._apply_feedback(action_type, before_snapshot, after_snapshot)
+            self.ui_manager.apply_snapshot_feedback(action_type, before_snapshot, after_snapshot)
         self._persist_run_state(after_snapshot)
         if self._action_uses_cooldown(action_type):
             self._interaction_cooldown = ACTION_COOLDOWN_SECONDS
@@ -539,6 +543,8 @@ class GameLoop:
             before_snapshot["current_state"] != "combat"
             and after_snapshot["current_state"] == "combat"
         ):
+            if before_snapshot["current_state"] == "map":
+                self.ui_manager.begin_map_to_combat_transition(after_snapshot)
             self.animator.trigger("idle")
             self._set_notice(after_snapshot["status_message"], duration=2.0)
             return
@@ -547,6 +553,7 @@ class GameLoop:
             before_snapshot["current_state"] != "map"
             and after_snapshot["current_state"] == "map"
         ):
+            self.ui_manager.begin_map_enter_transition(after_snapshot)
             self.animator.trigger("map")
             self._set_notice(after_snapshot["status_message"], level="success", duration=2.2)
 
@@ -594,6 +601,8 @@ class GameLoop:
             return screen, False
 
         current_state = "title" if self._title_active else self.state_manager.current_state
+        if self.ui_manager.is_transition_active():
+            return screen, True
 
         if event.key == pygame.K_ESCAPE:
             if self._settings_open:
