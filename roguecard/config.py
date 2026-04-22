@@ -3,6 +3,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 ASSETS_ROOT = PROJECT_ROOT / "assets"
+ARTS_ROOT = PROJECT_ROOT / "arts"
 DATA_ROOT = PROJECT_ROOT / "data"
 SPRITE_REFERENCE_PACK_ROOT = PROJECT_ROOT / "sprite_sheet_reference_pack"
 
@@ -57,7 +58,7 @@ CAMPAIGN_SCHEMA_VERSION = 1
 ENEMY_SCHEMA_VERSION = 2
 EVENT_SCHEMA_VERSION = 1
 RUN_MODIFIER_SCHEMA_VERSION = 1
-SAVE_FORMAT_VERSION = 12
+SAVE_FORMAT_VERSION = 13
 
 MAX_HAND_SIZE = 10
 PLAYER_STARTING_HP = 70
@@ -265,3 +266,7 @@ FINAL_MAP_ROUTE_IDS = {
 
 def resolve_asset_path(*parts: str) -> Path:
     return ASSETS_ROOT.joinpath(*parts)
+
+
+def resolve_art_path(*parts: str) -> Path:
+    return ARTS_ROOT.joinpath(*parts)

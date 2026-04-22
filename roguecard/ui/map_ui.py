@@ -9,18 +9,12 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from config import MAP_NODE_HIT_RADIUS, MAP_NODE_RADIUS, MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
-from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text
+from ui.render_utils import clamp_scale, draw_wrapped_text
 from ui.ui_system import (
-    COLOR_CYAN,
     COLOR_GOLD,
     COLOR_LINE,
     COLOR_LINE_SOFT,
-    COLOR_MUTED,
-    COLOR_PANEL,
     COLOR_PANEL_ELEVATED,
-    COLOR_TEXT,
-    RADIUS_LG,
-    RADIUS_MD,
     draw_background_stage,
     draw_hint_row,
     draw_panel,
@@ -28,6 +22,7 @@ from ui.ui_system import (
 
 MAP_PANEL_BOUNDS = (36, 84, 1208, 608)
 MAP_HEADER_HEIGHT = 72
+MAP_FOOTER_HEIGHT = 70
 MAP_VIEWPORT_PADDING = 12
 MAP_SCROLL_STEP = 120
 
@@ -146,7 +141,14 @@ class MapUI:
         visited = set(map_state.get("visited_node_ids", []))
         selected = map_state.get("selected_node_id")
         focused_node_id = self._focused_node_id(map_state)
-        viewport_rect = self._viewport_rect()
+        render_context = self._render_context(map_state)
+        map_bounds = tuple(render_context["bounds"])
+        canvas_width = max(1, int(map_state.get("canvas_width", 1036) or 1036))
+        fit_scale = map_bounds[2] / canvas_width if render_context["scale_canvas_to_viewport"] else 1.0
+        node_scale = max(0.62, min(1.0, fit_scale))
+        scrollbar_width = max(8, int(10 * node_scale))
+        scrollbar_gap = max(6, int(8 * node_scale))
+        viewport_rect = self._viewport_rect(map_bounds, render_context, scrollbar_width, scrollbar_gap)
         canvas_height = max(viewport_rect[3], int(map_state.get("canvas_height", viewport_rect[3])))
         max_scroll = max(0, canvas_height - viewport_rect[3])
         if focused_node_id is not None and focused_node_id in nodes:
@@ -154,6 +156,20 @@ class MapUI:
         else:
             self._scroll_offset = max(0, min(self._scroll_offset, max_scroll))
 
+        x_scale = viewport_rect[2] / canvas_width if render_context["scale_canvas_to_viewport"] else 1.0
+        chrome_padding = max(10, int(12 * max(0.85, node_scale)))
+        header_rect = (
+            map_bounds[0] + chrome_padding,
+            map_bounds[1] + max(8, chrome_padding - 2),
+            map_bounds[2] - (chrome_padding * 2),
+            render_context["header_height"] - max(10, chrome_padding),
+        )
+        info_rect = (
+            map_bounds[0] + chrome_padding,
+            map_bounds[1] + map_bounds[3] - render_context["footer_height"] + 10,
+            map_bounds[2] - (chrome_padding * 2),
+            max(32, render_context["footer_height"] - 20),
+        )
         return {
             "map_state": map_state,
             "status_message": map_state.get("status_message", ""),
@@ -166,7 +182,9 @@ class MapUI:
             "available_numbers": {node_id: index + 1 for index, node_id in enumerate(available)},
             "selected_node_id": selected,
             "focused_node_label": self._focused_node_label(focused_node_id, nodes),
-            "map_bounds": self._map_bounds(),
+            "map_bounds": map_bounds,
+            "header_rect": header_rect,
+            "info_rect": info_rect,
             "viewport_rect": viewport_rect,
             "high_contrast": map_state.get("presentation", {}).get("high_contrast", False),
             "map_name": map_state.get("map_name", "Map"),
@@ -177,7 +195,17 @@ class MapUI:
             "scroll_offset": self._scroll_offset,
             "max_scroll": max_scroll,
             "canvas_height": canvas_height,
-            "canvas_width": map_state.get("canvas_width", viewport_rect[2]),
+            "canvas_width": canvas_width,
+            "render_context": render_context,
+            "x_scale": x_scale,
+            "node_scale": node_scale,
+            "node_radius": max(24, int(MAP_NODE_RADIUS * node_scale)),
+            "node_hit_radius": max(26, int(MAP_NODE_HIT_RADIUS * node_scale)),
+            "badge_size": max(18, int(22 * node_scale)),
+            "badge_offset_x": max(14, int(24 * node_scale)),
+            "badge_offset_y": min(-18, int(-52 * node_scale)),
+            "scrollbar_width": scrollbar_width,
+            "scrollbar_gap": scrollbar_gap,
         }
 
     def render(self, surface: Any, map_state: dict[str, Any]) -> None:
@@ -193,22 +221,37 @@ class MapUI:
         available_set = set(map_state["available_node_ids"])
         selected_node_id = layout["selected_node_id"]
         high_contrast = layout["high_contrast"]
-
-        background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
         map_bounds = pygame.Rect(*layout["map_bounds"])
         viewport_rect = pygame.Rect(*layout["viewport_rect"])
-        header_rect = pygame.Rect(map_bounds.x + 12, map_bounds.y + 10, map_bounds.width - 24, MAP_HEADER_HEIGHT - 14)
-        info_rect = pygame.Rect(map_bounds.x + 16, map_bounds.bottom - 58, map_bounds.width - 32, 40)
+        header_rect = pygame.Rect(*layout["header_rect"])
+        info_rect = pygame.Rect(*layout["info_rect"])
+        render_context = layout["render_context"]
 
-        draw_background_stage(surface, background, veil_alpha=128, top_band_height=66, bottom_band_height=84, line_step=54, line_alpha=8)
-        draw_panel(surface, map_bounds, accent=COLOR_LINE, fill=(8, 12, 20), radius=RADIUS_LG, border_width=1, shadow_alpha=0)
-        draw_panel(surface, header_rect, accent=COLOR_LINE_SOFT, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        if render_context["draw_world_background"]:
+            background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
+            draw_background_stage(
+                surface,
+                background,
+                veil_alpha=128,
+                top_band_height=66,
+                bottom_band_height=84,
+                line_step=54,
+                line_alpha=8,
+            )
+
+        if render_context["draw_outer_panel"]:
+            draw_panel(surface, map_bounds, accent=COLOR_LINE, fill=(8, 12, 20), radius=18, border_width=1, shadow_alpha=0)
+        else:
+            pygame.draw.rect(surface, (8, 12, 20), map_bounds, border_radius=18)
+            pygame.draw.rect(surface, COLOR_LINE_SOFT, map_bounds, 1, border_radius=18)
+
+        draw_panel(surface, header_rect, accent=COLOR_LINE_SOFT, fill=COLOR_PANEL_ELEVATED, radius=14, border_width=1, shadow_alpha=0)
 
         self._draw_text(surface, layout["map_name"], (header_rect.x + 18, header_rect.y + 10), self._font)
         subtitle = f"Map {layout['map_index']}  |  {self._progress_label(layout, map_state)}"
         if layout["branch_faction"]:
             subtitle = f"{subtitle}  |  {str(layout['branch_faction']).title()} route"
-        self._draw_text(surface, subtitle, (header_rect.x + 18, header_rect.y + 38), self._tiny_font, width=680)
+        self._draw_text(surface, subtitle, (header_rect.x + 18, header_rect.y + 38), self._tiny_font, width=max(120, header_rect.width - 220))
         if layout["max_scroll"] > 0:
             self._draw_text(
                 surface,
@@ -221,6 +264,7 @@ class MapUI:
         clip_previous = surface.get_clip()
         surface.set_clip(viewport_rect)
 
+        visited_node_ids = set(map_state.get("visited_node_ids", []))
         for node_id, node in nodes.items():
             if node_id not in positions:
                 continue
@@ -229,19 +273,19 @@ class MapUI:
                 if next_node_id not in positions:
                     continue
                 line_color = (78, 88, 106)
-                width = 2
+                width = max(2, int(round(2 * layout["node_scale"])))
                 if next_node_id in available_set:
                     line_color = COLOR_GOLD
-                    width = 4
+                    width = max(3, int(round(4 * layout["node_scale"])))
                 elif node_id == selected_node_id or next_node_id == selected_node_id:
                     line_color = (224, 236, 250)
-                    width = 4
-                elif node_id in map_state.get("visited_node_ids", []) or next_node_id in map_state.get("visited_node_ids", []):
+                    width = max(3, int(round(4 * layout["node_scale"])))
+                elif node_id in visited_node_ids or next_node_id in visited_node_ids:
                     line_color = (108, 214, 170)
-                    width = 3
+                    width = max(2, int(round(3 * layout["node_scale"])))
                 elif node_id == focus_node_id or next_node_id == focus_node_id:
                     line_color = (190, 205, 230) if high_contrast else (132, 156, 190)
-                    width = 3
+                    width = max(2, int(round(3 * layout["node_scale"])))
                 pygame.draw.line(surface, line_color, start, positions[next_node_id], width)
 
         for node_id, node in nodes.items():
@@ -253,6 +297,7 @@ class MapUI:
                 surface=surface,
                 node=node,
                 center=center,
+                layout=layout,
                 status=status,
                 is_hovered=node_id == layout["hovered_node_id"],
                 is_focused=node_id == focus_node_id,
@@ -263,7 +308,7 @@ class MapUI:
 
         surface.set_clip(clip_previous)
 
-        self._draw_scrollbar(surface, viewport_rect, layout["scroll_offset"], layout["max_scroll"])
+        self._draw_scrollbar(surface, layout)
         draw_hint_row(
             surface,
             info_rect,
@@ -279,6 +324,7 @@ class MapUI:
         surface: Any,
         node: dict[str, Any],
         center: tuple[int, int],
+        layout: dict[str, Any],
         status: str,
         is_hovered: bool,
         is_focused: bool,
@@ -286,7 +332,7 @@ class MapUI:
         shortcut_label: int | None,
         high_contrast: bool,
     ) -> None:
-        radius = MAP_NODE_RADIUS
+        radius = int(layout["node_radius"])
         outline_color = {
             "selected": (255, 255, 255),
             "available": (255, 226, 112),
@@ -300,13 +346,14 @@ class MapUI:
             "inactive": (70, 74, 88, 36) if high_contrast else (50, 54, 68, 20),
         }[status]
 
-        pulse_radius = radius + (8 if is_hovered else 4)
+        pulse_radius = radius + (max(4, int(8 * layout["node_scale"])) if is_hovered else max(3, int(4 * layout["node_scale"])))
         if is_focused:
-            pulse_radius += 6
-        pygame.draw.circle(surface, outline_color, center, pulse_radius, 3)
+            pulse_radius += max(4, int(6 * layout["node_scale"]))
+        pygame.draw.circle(surface, outline_color, center, pulse_radius, max(2, int(round(3 * layout["node_scale"]))))
 
-        glow = pygame.Surface((radius * 3, radius * 3), pygame.SRCALPHA)
-        pygame.draw.circle(glow, fill_color, (glow.get_width() // 2, glow.get_height() // 2), radius + 10)
+        glow_size = radius * 3
+        glow = pygame.Surface((glow_size, glow_size), pygame.SRCALPHA)
+        pygame.draw.circle(glow, fill_color, (glow.get_width() // 2, glow.get_height() // 2), radius + max(8, int(10 * layout["node_scale"])))
         surface.blit(glow, (center[0] - glow.get_width() // 2, center[1] - glow.get_height() // 2))
 
         image_path = resolve_asset_path("ui", f"node_{node['node_type']}.png")
@@ -323,9 +370,15 @@ class MapUI:
             pygame.draw.circle(surface, (255, 255, 255), center, radius + 2, 2)
 
         if shortcut_label is not None:
-            badge_rect = pygame.Rect(center[0] + 24, center[1] - 52, 22, 22)
-            pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=12)
-            pygame.draw.rect(surface, COLOR_GOLD, badge_rect, 2, border_radius=12)
+            badge_size = int(layout["badge_size"])
+            badge_rect = pygame.Rect(
+                center[0] + int(layout["badge_offset_x"]),
+                center[1] + int(layout["badge_offset_y"]),
+                badge_size,
+                badge_size,
+            )
+            pygame.draw.rect(surface, (18, 24, 36), badge_rect, border_radius=max(8, badge_size // 2))
+            pygame.draw.rect(surface, COLOR_GOLD, badge_rect, 2, border_radius=max(8, badge_size // 2))
             shortcut = self._tiny_font.render(str(shortcut_label), True, COLOR_GOLD)
             shortcut_rect = shortcut.get_rect(center=badge_rect.center)
             surface.blit(shortcut, shortcut_rect)
@@ -378,24 +431,41 @@ class MapUI:
         layout: dict[str, Any],
     ) -> dict[str, tuple[int, int]]:
         viewport_rect = layout["viewport_rect"]
+        x_scale = float(layout["x_scale"])
         positions: dict[str, tuple[int, int]] = {}
         for node_id, node in nodes.items():
             positions[node_id] = (
-                viewport_rect[0] + int(node["render_x"]),
+                viewport_rect[0] + int(round(node["render_x"] * x_scale)),
                 viewport_rect[1] + int(node["render_y"]) - int(layout["scroll_offset"]),
             )
         return positions
 
-    def _map_bounds(self) -> tuple[int, int, int, int]:
-        return MAP_PANEL_BOUNDS
+    def _render_context(self, map_state: dict[str, Any]) -> dict[str, Any]:
+        raw_context = map_state.get("render_context") or {}
+        raw_bounds = raw_context.get("bounds", MAP_PANEL_BOUNDS)
+        bounds = tuple(int(value) for value in raw_bounds)
+        return {
+            "bounds": bounds if len(bounds) == 4 else MAP_PANEL_BOUNDS,
+            "header_height": max(54, int(raw_context.get("header_height", MAP_HEADER_HEIGHT))),
+            "footer_height": max(52, int(raw_context.get("footer_height", MAP_FOOTER_HEIGHT))),
+            "viewport_padding": max(8, int(raw_context.get("viewport_padding", MAP_VIEWPORT_PADDING))),
+            "draw_world_background": bool(raw_context.get("draw_world_background", True)),
+            "draw_outer_panel": bool(raw_context.get("draw_outer_panel", True)),
+            "scale_canvas_to_viewport": bool(raw_context.get("scale_canvas_to_viewport", False)),
+        }
 
-    def _viewport_rect(self) -> tuple[int, int, int, int]:
-        bounds = self._map_bounds()
+    def _viewport_rect(
+        self,
+        bounds: tuple[int, int, int, int],
+        render_context: dict[str, Any],
+        scrollbar_width: int,
+        scrollbar_gap: int,
+    ) -> tuple[int, int, int, int]:
         return (
-            bounds[0] + MAP_VIEWPORT_PADDING,
-            bounds[1] + MAP_HEADER_HEIGHT,
-            bounds[2] - (MAP_VIEWPORT_PADDING * 2),
-            bounds[3] - MAP_HEADER_HEIGHT - 70,
+            bounds[0] + render_context["viewport_padding"],
+            bounds[1] + render_context["header_height"],
+            max(1, bounds[2] - (render_context["viewport_padding"] * 2) - scrollbar_width - scrollbar_gap - 2),
+            max(1, bounds[3] - render_context["header_height"] - render_context["footer_height"]),
         )
 
     def _ensure_focus_visible(self, node: dict[str, Any], viewport_height: int, max_scroll: int) -> None:
@@ -422,17 +492,23 @@ class MapUI:
             return f"Boss | F{layout['route_floor_count']}/{layout['route_floor_count']}"
         return f"F{selected_node['route_floor']}/{layout['route_floor_count']} | {selected_node['node_type'].title()}"
 
-    def _draw_scrollbar(self, surface: Any, viewport_rect: pygame.Rect, scroll_offset: int, max_scroll: int) -> None:
-        if max_scroll <= 0:
+    def _draw_scrollbar(self, surface: Any, layout: dict[str, Any]) -> None:
+        if layout["max_scroll"] <= 0:
             return
-        track_rect = pygame.Rect(viewport_rect.right + 8, viewport_rect.y, 10, viewport_rect.height)
-        pygame.draw.rect(surface, (18, 26, 38), track_rect, border_radius=5)
-        pygame.draw.rect(surface, (72, 88, 112), track_rect, 1, border_radius=5)
-        thumb_height = max(48, int((viewport_rect.height / (viewport_rect.height + max_scroll)) * viewport_rect.height))
+        viewport_rect = pygame.Rect(*layout["viewport_rect"])
+        track_rect = pygame.Rect(
+            viewport_rect.right + int(layout["scrollbar_gap"]),
+            viewport_rect.y,
+            int(layout["scrollbar_width"]),
+            viewport_rect.height,
+        )
+        pygame.draw.rect(surface, (18, 26, 38), track_rect, border_radius=max(4, track_rect.width // 2))
+        pygame.draw.rect(surface, (72, 88, 112), track_rect, 1, border_radius=max(4, track_rect.width // 2))
+        thumb_height = max(40, int((viewport_rect.height / (viewport_rect.height + layout["max_scroll"])) * viewport_rect.height))
         thumb_range = track_rect.height - thumb_height
-        thumb_y = track_rect.y + int((scroll_offset / max_scroll) * thumb_range)
-        thumb_rect = pygame.Rect(track_rect.x + 1, thumb_y, track_rect.width - 2, thumb_height)
-        pygame.draw.rect(surface, (92, 198, 240), thumb_rect, border_radius=5)
+        thumb_y = track_rect.y + int((layout["scroll_offset"] / layout["max_scroll"]) * thumb_range)
+        thumb_rect = pygame.Rect(track_rect.x + 1, thumb_y, max(2, track_rect.width - 2), thumb_height)
+        pygame.draw.rect(surface, (92, 198, 240), thumb_rect, border_radius=max(4, track_rect.width // 2))
 
     def _node_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:  # type: ignore[override]
         viewport_rect = pygame.Rect(*layout["viewport_rect"])
@@ -440,8 +516,10 @@ class MapUI:
             return None
         nodes = layout["map_state"]["nodes"]
         positions = self._screen_positions(nodes, layout)
+        hit_radius = int(layout["node_hit_radius"])
+        hit_radius_sq = hit_radius * hit_radius
         for node_id, center in positions.items():
-            if (position[0] - center[0]) ** 2 + (position[1] - center[1]) ** 2 <= MAP_NODE_HIT_RADIUS ** 2:
+            if (position[0] - center[0]) ** 2 + (position[1] - center[1]) ** 2 <= hit_radius_sq:
                 return node_id
         return None
 
@@ -562,4 +640,5 @@ def simulate_map_ui() -> dict[str, Any]:
         "map_name": layout["map_name"],
         "route_floor_count": layout["route_floor_count"],
         "max_scroll": layout["max_scroll"],
+        "viewport_rect": layout["viewport_rect"],
     }
