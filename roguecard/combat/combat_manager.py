@@ -15,6 +15,7 @@ from config import (
 from core.grayspine_content_library import GrayspineContentLibrary
 
 DIRECT_DAMAGE_TYPES = {"damage", "multi_damage", "lifesteal_damage"}
+FEEDBACK_EVENT_LIMIT = 48
 
 
 class CombatManager:
@@ -46,6 +47,8 @@ class CombatManager:
         self._last_player_card_type: str | None = None
         self._enemy_attacks_this_round: dict[str, int] = {}
         self._blackwire_command_net_used = False
+        self._feedback_events: list[dict[str, Any]] = []
+        self._feedback_sequence = 0
 
     def start_combat(self) -> dict[str, Any]:
         if self.player.deck_manager is None:
@@ -66,6 +69,8 @@ class CombatManager:
         self._last_player_card_type = None
         self._enemy_attacks_this_round = {}
         self._blackwire_command_net_used = False
+        self._feedback_events = []
+        self._feedback_sequence = 0
         for enemy in self.enemies:
             enemy.reset_for_combat()
             self._apply_enemy_spawn_rules(enemy)
@@ -283,8 +288,17 @@ class CombatManager:
         self._process_drawn_cards(target, drawn_cards)
         return drawn_cards
 
-    def apply_damage(self, source: Any, target: Any, amount: int, *, emit_event: bool = True) -> int:
+    def apply_damage(
+        self,
+        source: Any,
+        target: Any,
+        amount: int,
+        *,
+        emit_event: bool = True,
+        feedback_context: dict[str, Any] | None = None,
+    ) -> int:
         target_statuses_before = self._combat_status_ids(target)
+        target_block_before = max(0, int(getattr(target, "block", 0) or 0))
         adjusted = self._adjust_attack_amount(source, target, amount)
         if getattr(source, "faction_id", None) == "blackwire_directorate" and hasattr(target, "marked"):
             adjusted += getattr(target, "marked", 0) * 2
@@ -295,6 +309,41 @@ class CombatManager:
         applied = target.take_damage(adjusted)
         bleed_bonus = self._apply_bleed_bonus(target)
         total_applied = applied + bleed_bonus
+        blocked_amount = min(target_block_before, adjusted)
+        if blocked_amount > 0:
+            block_feedback = {
+                **self._feedback_source_payload(source),
+                **self._feedback_target_payload(target),
+                "type": "block_spent",
+                "amount": blocked_amount,
+                "reason": "damage_absorbed",
+            }
+            if feedback_context:
+                block_feedback.update(feedback_context)
+            self.emit_feedback_event(block_feedback)
+            shield_feedback = {
+                **self._feedback_target_payload(target),
+                "type": "shield_flash",
+                "amount": blocked_amount,
+                "reason": "damage_absorbed",
+            }
+            if feedback_context:
+                shield_feedback.update(feedback_context)
+            self.emit_feedback_event(shield_feedback)
+        if total_applied > 0 or blocked_amount > 0:
+            damage_feedback = {
+                **self._feedback_source_payload(source),
+                **self._feedback_target_payload(target),
+                "type": "damage_applied",
+                "amount": total_applied,
+                "hp_damage": total_applied,
+                "incoming_damage": adjusted,
+                "blocked_amount": blocked_amount,
+                "bleed_bonus": bleed_bonus,
+            }
+            if feedback_context:
+                damage_feedback.update(feedback_context)
+            self.emit_feedback_event(damage_feedback)
         if hasattr(source, "get_status") and source.get_status("momentum") > 0:
             source.clear_status("momentum")
         if (
@@ -338,6 +387,7 @@ class CombatManager:
             "living_enemy_ids": [enemy.id for enemy in self._living_enemies()],
             "event_log": list(self.event_log),
             "active_bark": None if self.active_bark is None else dict(self.active_bark),
+            "feedback_events": list(self._feedback_events),
         }
 
     def get_enemy(self, enemy_id: str) -> Any | None:
@@ -351,6 +401,133 @@ class CombatManager:
 
     def set_event_sink(self, sink: Any) -> None:
         self._event_sink = sink
+
+    def emit_feedback_event(self, event: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(event, dict):
+            raise ValueError("Feedback events must be dictionaries.")
+        self._feedback_sequence += 1
+        payload = {**event, "sequence": self._feedback_sequence}
+        self._feedback_events.append(payload)
+        if len(self._feedback_events) > FEEDBACK_EVENT_LIMIT:
+            self._feedback_events = self._feedback_events[-FEEDBACK_EVENT_LIMIT:]
+        return payload
+
+    def grant_block(
+        self,
+        target: Any,
+        amount: int,
+        *,
+        source: Any | None = None,
+        feedback_context: dict[str, Any] | None = None,
+    ) -> int:
+        applied = target.gain_block(amount)
+        if applied > 0:
+            block_feedback = {
+                **self._feedback_source_payload(source),
+                **self._feedback_target_payload(target),
+                "type": "block_gained",
+                "amount": applied,
+            }
+            if feedback_context:
+                block_feedback.update(feedback_context)
+            self.emit_feedback_event(block_feedback)
+            shield_feedback = {
+                **self._feedback_target_payload(target),
+                "type": "shield_flash",
+                "amount": applied,
+                "reason": "block_gain",
+            }
+            if feedback_context:
+                shield_feedback.update(feedback_context)
+            self.emit_feedback_event(shield_feedback)
+        return applied
+
+    def restore_health(
+        self,
+        target: Any,
+        amount: int,
+        *,
+        source: Any | None = None,
+        feedback_context: dict[str, Any] | None = None,
+    ) -> int:
+        applied = target.heal(amount)
+        if applied > 0:
+            heal_feedback = {
+                **self._feedback_source_payload(source),
+                **self._feedback_target_payload(target),
+                "type": "heal_applied",
+                "amount": applied,
+            }
+            if feedback_context:
+                heal_feedback.update(feedback_context)
+            self.emit_feedback_event(heal_feedback)
+        return applied
+
+    def lose_hp_with_feedback(
+        self,
+        target: Any,
+        amount: int,
+        *,
+        source: Any | None = None,
+        feedback_context: dict[str, Any] | None = None,
+    ) -> int:
+        applied = target.lose_hp(amount)
+        if applied > 0:
+            damage_feedback = {
+                **self._feedback_source_payload(source),
+                **self._feedback_target_payload(target),
+                "type": "damage_applied",
+                "amount": applied,
+                "hp_damage": applied,
+                "incoming_damage": applied,
+                "blocked_amount": 0,
+                "bleed_bonus": 0,
+                "ignore_block": True,
+            }
+            if feedback_context:
+                damage_feedback.update(feedback_context)
+            self.emit_feedback_event(damage_feedback)
+        return applied
+
+    def _feedback_source_payload(self, source: Any | None) -> dict[str, Any]:
+        if source is None:
+            return {}
+        if source is self.player:
+            return {
+                "source_id": "player",
+                "source_name": getattr(self.player, "character_id", "player"),
+                "source_type": "player",
+            }
+        if source in self.enemies:
+            return {
+                "source_id": getattr(source, "id", "enemy"),
+                "source_name": getattr(source, "name", "Enemy"),
+                "source_type": "enemy",
+                "source_enemy_ref": self._enemy_ref(source),
+            }
+        return {
+            "source_id": getattr(source, "id", getattr(source, "name", "unknown")),
+            "source_name": getattr(source, "name", getattr(source, "id", "Unknown")),
+            "source_type": "unknown",
+        }
+
+    def _feedback_target_payload(self, target: Any | None) -> dict[str, Any]:
+        if target is self.player:
+            return {"target_id": "player", "target_name": "Player", "target_type": "player"}
+        if target in self.enemies:
+            return {
+                "target_id": getattr(target, "id", "enemy"),
+                "target_name": getattr(target, "name", "Enemy"),
+                "target_type": "enemy",
+                "target_enemy_ref": self._enemy_ref(target),
+            }
+        if target is None:
+            return {}
+        return {
+            "target_id": getattr(target, "id", getattr(target, "name", "unknown")),
+            "target_name": getattr(target, "name", getattr(target, "id", "Unknown")),
+            "target_type": "unknown",
+        }
 
     def _enemy_ref(self, enemy: Any) -> str:
         try:
@@ -670,17 +847,32 @@ class CombatManager:
         if effect_type == "enemy_damage":
             hit_count = int(effect.get("count", 1))
             for _ in range(hit_count):
-                applied = self.apply_damage(enemy, target, value)
+                applied = self.apply_damage(
+                    enemy,
+                    target,
+                    value,
+                    feedback_context={"source_intent": getattr(enemy, "current_intent", None)},
+                )
                 results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_block":
-            applied = target.gain_block(value)
+            applied = self.grant_block(
+                target,
+                value,
+                source=enemy,
+                feedback_context={"source_intent": getattr(enemy, "current_intent", None)},
+            )
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
         if effect_type == "enemy_heal_ally":
-            applied = target.heal(value)
+            applied = self.restore_health(
+                target,
+                value,
+                source=enemy,
+                feedback_context={"source_intent": getattr(enemy, "current_intent", None)},
+            )
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
             return results
 
@@ -786,7 +978,12 @@ class CombatManager:
             applied = 0
             for ally in self._allies_for(enemy):
                 if ally.is_alive():
-                    ally.gain_block(value)
+                    self.grant_block(
+                        ally,
+                        value,
+                        source=enemy,
+                        feedback_context={"source_intent": getattr(enemy, "current_intent", None)},
+                    )
                     applied += 1
             results.append(self._resolution_record(effect_type, value, applied, enemy, echoed=False))
             return results
@@ -794,7 +991,12 @@ class CombatManager:
         if effect_type == "enemy_trigger_infection_burst":
             applied = 0
             if hasattr(target, "infect") and getattr(target, "infect", 0) >= max(1, value):
-                target.lose_hp(4)
+                self.lose_hp_with_feedback(
+                    target,
+                    4,
+                    source=enemy,
+                    feedback_context={"source_intent": getattr(enemy, "current_intent", None), "source_status_id": "infect_burst"},
+                )
                 target.infect = 3
                 applied = 4
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
@@ -804,7 +1006,29 @@ class CombatManager:
             stolen = min(max(0, int(value)), max(0, getattr(target, "block", 0)))
             if stolen > 0:
                 target.block -= stolen
-                enemy.gain_block(stolen)
+                self.emit_feedback_event(
+                    {
+                        **self._feedback_source_payload(enemy),
+                        **self._feedback_target_payload(target),
+                        "type": "block_spent",
+                        "amount": stolen,
+                        "reason": "steal_block",
+                    }
+                )
+                self.emit_feedback_event(
+                    {
+                        **self._feedback_target_payload(target),
+                        "type": "shield_flash",
+                        "amount": stolen,
+                        "reason": "steal_block",
+                    }
+                )
+                self.grant_block(
+                    enemy,
+                    stolen,
+                    source=enemy,
+                    feedback_context={"source_intent": getattr(enemy, "current_intent", None)},
+                )
             results.append(self._resolution_record(effect_type, value, stolen, target, echoed=False))
             return results
 
@@ -821,7 +1045,12 @@ class CombatManager:
         if effect_type == "enemy_self_destruct":
             applied = 0
             if hasattr(target, "is_alive") and target.is_alive():
-                applied = target.lose_hp(max(1, getattr(target, "current_hp", 0)))
+                applied = self.lose_hp_with_feedback(
+                    target,
+                    max(1, getattr(target, "current_hp", 0)),
+                    source=enemy,
+                    feedback_context={"source_intent": getattr(enemy, "current_intent", None), "source_status_id": "self_destruct"},
+                )
                 if hasattr(target, "is_alive") and not target.is_alive():
                     self._handle_enemy_defeat(target)
             results.append(self._resolution_record(effect_type, value, applied, target, echoed=False))
@@ -854,12 +1083,12 @@ class CombatManager:
 
     def _apply_summon_overflow_fallback(self, source_enemy: Any) -> None:
         if source_enemy.faction_id == "helix_ward":
-            source_enemy.heal(8)
+            self.restore_health(source_enemy, 8, source=source_enemy)
             return
         if source_enemy.faction_id == "blackwire_directorate":
             for ally in self._allies_for(source_enemy):
                 if ally.is_alive() and ally.id in {"patrol_drone", "sentry_node"}:
-                    ally.gain_block(4)
+                    self.grant_block(ally, 4, source=source_enemy)
             return
         source_enemy.adjust_strength(2)
 
@@ -872,13 +1101,13 @@ class CombatManager:
 
     def _resolve_player_end_of_turn_statuses(self) -> None:
         if self.player.infect > 0:
-            self.player.lose_hp(self.player.infect)
+            self.lose_hp_with_feedback(self.player, self.player.infect, source=self.player, feedback_context={"source_status_id": "infect"})
             if self.player.infect >= 6:
-                self.player.lose_hp(4)
+                self.lose_hp_with_feedback(self.player, 4, source=self.player, feedback_context={"source_status_id": "infect_burst"})
                 self.player.infect = 3
         if self.player.burn > 0:
             burn_amount = self.player.burn
-            self.player.lose_hp(burn_amount)
+            self.lose_hp_with_feedback(self.player, burn_amount, source=self.player, feedback_context={"source_status_id": "burn"})
             self._emit_runtime_event({"hook": "on_player_burn_tick", "amount": burn_amount})
             self.player.burn = max(0, self.player.burn - 1)
         self.player.tick_marked_turns()
@@ -891,27 +1120,32 @@ class CombatManager:
     def _resolve_enemy_turn_start_effects(self, enemy: Any) -> None:
         fortified = enemy.get_status("fortified")
         if fortified > 0:
-            enemy.gain_block(min(12, fortified))
+            self.grant_block(enemy, min(12, fortified), source=enemy, feedback_context={"source_status_id": "fortified"})
         regenerate = enemy.get_status("regenerate")
         if regenerate > 0:
-            enemy.heal(regenerate)
+            self.restore_health(enemy, regenerate, source=enemy, feedback_context={"source_status_id": "regenerate"})
             enemy.consume_status("regenerate", 1)
         if enemy.id == "graft_saint":
-            enemy.heal(10 if enemy.get_status("mutated") > 0 else 6)
+            self.restore_health(
+                enemy,
+                10 if enemy.get_status("mutated") > 0 else 6,
+                source=enemy,
+                feedback_context={"source_status_id": "graft_saint"},
+            )
 
     def _resolve_enemy_end_of_turn_effects(self, enemy: Any) -> None:
         if not enemy.is_alive():
             return
         infect = enemy.get_status("infect")
         if infect > 0:
-            enemy.lose_hp(infect)
+            self.lose_hp_with_feedback(enemy, infect, source=enemy, feedback_context={"source_status_id": "infect"})
             if infect >= 6:
-                enemy.lose_hp(4)
+                self.lose_hp_with_feedback(enemy, 4, source=enemy, feedback_context={"source_status_id": "infect_burst"})
                 enemy.set_status("infect", 3)
                 self._emit_runtime_event({"hook": "on_infect_burst", "target_id": enemy.id})
         burn = enemy.get_status("burn")
         if burn > 0:
-            enemy.lose_hp(burn)
+            self.lose_hp_with_feedback(enemy, burn, source=enemy, feedback_context={"source_status_id": "burn"})
             enemy.consume_status("burn", 1)
         enemy.clear_status("momentum")
         if enemy.id == "furnace_hound":
@@ -925,7 +1159,7 @@ class CombatManager:
         elif enemy.id == "sentry_node":
             enemy.apply_status("fortified", 3)
         elif enemy.id == "compliance_engine_ax9":
-            enemy.gain_block(20)
+            self.grant_block(enemy, 20, source=enemy, feedback_context={"source_status_id": "spawn_rule"})
             enemy.apply_status("fortified", 8)
         elif enemy.id == "junction_9_sentinel":
             enemy.apply_status("fortified", 6)
@@ -934,12 +1168,12 @@ class CombatManager:
         if hasattr(target, "bleed") and getattr(target, "bleed", 0) > 0:
             bonus = int(target.bleed)
             target.bleed = max(0, target.bleed - 1)
-            target.lose_hp(bonus)
+            self.lose_hp_with_feedback(target, bonus, source=target, feedback_context={"source_status_id": "bleed"})
             return bonus
         if hasattr(target, "get_status") and target.get_status("bleed") > 0:
             bonus = target.get_status("bleed")
             target.consume_status("bleed", 1)
-            target.lose_hp(bonus)
+            self.lose_hp_with_feedback(target, bonus, source=target, feedback_context={"source_status_id": "bleed"})
             if hasattr(target, "id"):
                 self._emit_runtime_event({"hook": "on_bleed_trigger", "target_id": target.id, "amount": bonus})
             if not target.is_alive():
@@ -1059,7 +1293,12 @@ class CombatManager:
         if effect_type == "damage":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
             base_value = self._player_effect_damage(card, effect["value"], damage_bonus)
-            applied = self.apply_damage(self.player, target, base_value)
+            applied = self.apply_damage(
+                self.player,
+                target,
+                base_value,
+                feedback_context={"source_card_id": getattr(card, "id", None), "source_card_type": getattr(card, "type", None)},
+            )
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             return results, block_penalty
 
@@ -1067,15 +1306,21 @@ class CombatManager:
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
             base_value = self._player_effect_damage(card, effect["value"], damage_bonus)
             for _ in range(effect["count"]):
-                applied = self.apply_damage(self.player, target, base_value)
+                applied = self.apply_damage(
+                    self.player,
+                    target,
+                    base_value,
+                    feedback_context={"source_card_id": getattr(card, "id", None), "source_card_type": getattr(card, "type", None)},
+                )
                 results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             return results, block_penalty
 
         if effect_type == "lifesteal_damage":
             target = self._resolve_effect_target(effect, explicit_target, default_target="enemy")
             base_value = self._player_effect_damage(card, effect["value"], damage_bonus)
-            applied = self.apply_damage(self.player, target, base_value)
-            healed = self.player.heal(applied)
+            feedback_context = {"source_card_id": getattr(card, "id", None), "source_card_type": getattr(card, "type", None)}
+            applied = self.apply_damage(self.player, target, base_value, feedback_context=feedback_context)
+            healed = self.restore_health(self.player, applied, source=self.player, feedback_context=feedback_context)
             if healed > 0:
                 self._emit_runtime_event(
                     {"hook": "on_heal", "amount": healed, "source_card_id": getattr(card, "id", None)}
@@ -1094,7 +1339,12 @@ class CombatManager:
                 reduction = min(block_penalty, value)
                 value = max(0, value - reduction)
                 block_penalty -= reduction
-            applied = target.gain_block(value)
+            applied = self.grant_block(
+                target,
+                value,
+                source=self.player,
+                feedback_context={"source_card_id": getattr(card, "id", None), "source_card_type": getattr(card, "type", None)},
+            )
             if target is self.player and applied > 0:
                 self._player_block_cards_this_turn += 1
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
@@ -1102,7 +1352,12 @@ class CombatManager:
 
         if effect_type == "heal":
             target = self._resolve_effect_target(effect, explicit_target, default_target="self")
-            applied = target.heal(effect["value"])
+            applied = self.restore_health(
+                target,
+                effect["value"],
+                source=self.player,
+                feedback_context={"source_card_id": getattr(card, "id", None), "source_card_type": getattr(card, "type", None)},
+            )
             if target is self.player and applied > 0:
                 self._emit_runtime_event(
                     {"hook": "on_heal", "amount": applied, "source_card_id": getattr(card, "id", None)}
@@ -1123,7 +1378,12 @@ class CombatManager:
             return results, block_penalty
 
         if effect_type == "self_damage":
-            applied = self.player.lose_hp(effect["value"])
+            applied = self.lose_hp_with_feedback(
+                self.player,
+                effect["value"],
+                source=self.player,
+                feedback_context={"source_card_id": getattr(card, "id", None), "source_card_type": getattr(card, "type", None)},
+            )
             results.append(self._resolution_record(effect_type, effect["value"], applied, self.player, echoed=echoed))
             if applied > 0:
                 self._emit_runtime_event(

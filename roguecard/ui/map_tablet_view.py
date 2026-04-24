@@ -39,6 +39,16 @@ MAP_TO_COMBAT_OFFSET_DISTANCE = SCREEN_HEIGHT + 240
 MAP_ENTER_DURATION = 0.48
 MAP_ENTER_OFFSET_DISTANCE = SCREEN_HEIGHT + 140
 
+MAP_TO_SHOP_DURATION = 2.05
+MAP_TO_SHOP_TABLET_DROP_END = 0.48
+MAP_TO_SHOP_APPROACH_START = 0.10
+MAP_TO_SHOP_STEP_TIMES = (0.58, 1.02, 1.46)
+
+MERCHANT_TRANSITION_SFX = {
+    "walk_start": "merchant_walk_start",
+    "walk_step": "merchant_walk_step",
+}
+
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
@@ -64,13 +74,15 @@ def _ease_in_out_cubic(progress: float) -> float:
 
 
 class MapTabletView:
-    def __init__(self, map_ui: Any, combat_ui: Any) -> None:
+    def __init__(self, map_ui: Any, combat_ui: Any, shop_ui: Any) -> None:
         self.map_ui = map_ui
         self.combat_ui = combat_ui
+        self.shop_ui = shop_ui
         self._image_cache: dict[str, Any] = {}
         self._sway_time = 0.0
         self._last_pointer_pos = (-1, -1)
         self._transition: dict[str, Any] | None = None
+        self._sfx_callback = None
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -84,7 +96,13 @@ class MapTabletView:
         if self._transition is None:
             self._sway_time += delta_time
             return
+        previous_elapsed = float(self._transition.get("elapsed", 0.0))
         self._transition["elapsed"] = float(self._transition.get("elapsed", 0.0)) + delta_time
+        if self._transition["kind"] == "map_to_shop":
+            for index, trigger_time in enumerate(MAP_TO_SHOP_STEP_TIMES):
+                if previous_elapsed < trigger_time <= float(self._transition["elapsed"]):
+                    self._emit_sfx("walk_step")
+                    self._transition["step_index"] = index + 1
         if self._transition["elapsed"] >= float(self._transition["duration"]):
             self._transition = None
 
@@ -146,6 +164,7 @@ class MapTabletView:
         surface: Any,
         map_state: dict[str, Any] | None,
         combat_state: dict[str, Any] | None = None,
+        shop_state: dict[str, Any] | None = None,
     ) -> None:
         if pygame is None or surface is None:
             return
@@ -157,6 +176,9 @@ class MapTabletView:
             return
         if self._transition["kind"] == "map_to_combat":
             self._render_map_to_combat_transition(surface, combat_state or self._transition.get("combat_state"))
+            return
+        if self._transition["kind"] == "map_to_shop":
+            self._render_map_to_shop_transition(surface, shop_state or self._transition.get("shop_state"))
             return
         if self._transition["kind"] == "map_enter":
             active_map_state = map_state or self._transition.get("map_state")
@@ -180,6 +202,21 @@ class MapTabletView:
             "map_state": copy.deepcopy(map_state),
             "combat_state": copy.deepcopy(combat_state),
         }
+
+    def begin_map_to_shop_transition(
+        self,
+        map_state: dict[str, Any],
+        shop_state: dict[str, Any],
+    ) -> None:
+        self._transition = {
+            "kind": "map_to_shop",
+            "elapsed": 0.0,
+            "duration": MAP_TO_SHOP_DURATION,
+            "map_state": copy.deepcopy(map_state),
+            "shop_state": copy.deepcopy(shop_state),
+            "step_index": 0,
+        }
+        self._emit_sfx("walk_start")
 
     def begin_map_enter_transition(self, map_state: dict[str, Any]) -> None:
         self._transition = {
@@ -234,6 +271,33 @@ class MapTabletView:
                 self.combat_ui.render_foreground(foreground_surface, combat_state)
                 foreground_surface.set_alpha(foreground_alpha)
                 surface.blit(foreground_surface, (0, 0))
+
+    def _render_map_to_shop_transition(self, surface: Any, shop_state: dict[str, Any] | None) -> None:
+        transition = self._transition
+        if transition is None:
+            return
+        active_shop_state = shop_state or transition.get("shop_state")
+        if active_shop_state is None:
+            surface.fill((10, 12, 18))
+            return
+
+        approach_progress = self._map_to_shop_approach_progress()
+        sway_phase = approach_progress * math.pi * 3.5
+        sway_decay = 1.0 - (approach_progress * 0.35)
+        sway_x = math.sin(sway_phase) * 8.0 * sway_decay
+        sway_y = abs(math.cos(sway_phase + 0.6)) * 6.0 * sway_decay
+        self.shop_ui.render_transition_scene(surface, active_shop_state, approach_progress, sway_x=sway_x, sway_y=sway_y)
+
+        map_state = transition.get("map_state")
+        if map_state is not None:
+            assembly = self._tablet_assembly(map_state)
+            tablet_progress = _clamp(float(transition["elapsed"]) / MAP_TO_SHOP_TABLET_DROP_END, 0.0, 1.0)
+            alpha = int(round(255 * (1.0 - _ease_out_cubic(tablet_progress))))
+            self._blit_transformed_assembly(surface, assembly, self._map_to_shop_tablet_transform(), alpha=alpha)
+
+        fade = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+        fade.fill((0, 0, 0, int(round(22 * (1.0 - approach_progress)))))
+        surface.blit(fade, (0, 0))
 
     def _render_world_background(self, surface: Any) -> None:
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
@@ -358,6 +422,30 @@ class MapTabletView:
             "rotation": remaining * 0.3,
         }
 
+    def _map_to_shop_tablet_transform(self) -> dict[str, float]:
+        transition = self._transition
+        if transition is None:
+            return self._map_transform()
+        drop_progress = _clamp(float(transition["elapsed"]) / MAP_TO_SHOP_TABLET_DROP_END, 0.0, 1.0)
+        eased = _ease_in_cubic(drop_progress)
+        settle = math.sin(min(1.0, drop_progress * 1.25) * math.pi) * 3.0 if drop_progress < 1.0 else 0.0
+        return {
+            "offset_x": 0.0,
+            "offset_y": settle + (eased * (SCREEN_HEIGHT + 260)),
+            "rotation": eased * 0.42,
+        }
+
+    def _map_to_shop_approach_progress(self) -> float:
+        transition = self._transition
+        if transition is None:
+            return 0.0
+        elapsed = float(transition["elapsed"])
+        return _clamp(
+            (elapsed - MAP_TO_SHOP_APPROACH_START) / max(0.001, MAP_TO_SHOP_DURATION - MAP_TO_SHOP_APPROACH_START),
+            0.0,
+            1.0,
+        )
+
     def _window_alpha(self, elapsed: float, start: float, end: float) -> int:
         if elapsed <= start:
             return 0
@@ -365,14 +453,18 @@ class MapTabletView:
             return 255
         return int(round(_ease_in_out_cubic((elapsed - start) / max(0.001, end - start)) * 255))
 
-    def _blit_transformed_assembly(self, surface: Any, assembly: Any, transform: dict[str, float]) -> None:
+    def _blit_transformed_assembly(self, surface: Any, assembly: Any, transform: dict[str, float], *, alpha: int = 255) -> None:
         offset_x = float(transform.get("offset_x", 0.0))
         offset_y = float(transform.get("offset_y", 0.0))
         rotation = float(transform.get("rotation", 0.0))
+        source = assembly
+        if alpha < 255:
+            source = assembly.copy()
+            source.set_alpha(max(0, min(255, alpha)))
         if abs(rotation) < 0.001:
-            surface.blit(assembly, (int(round(offset_x)), int(round(offset_y))))
+            surface.blit(source, (int(round(offset_x)), int(round(offset_y))))
             return
-        rotated = pygame.transform.rotozoom(assembly, rotation, 1.0)
+        rotated = pygame.transform.rotozoom(source, rotation, 1.0)
         center = (int(round((SCREEN_WIDTH / 2) + offset_x)), int(round((SCREEN_HEIGHT / 2) + offset_y)))
         surface.blit(rotated, rotated.get_rect(center=center))
 
@@ -434,3 +526,11 @@ class MapTabletView:
         overlay.fill((0, 0, 0, 0), pygame.Rect(*TABLET_SCREEN_RECT_ART))
         self._image_cache[cache_key] = overlay
         return overlay
+
+    def set_sfx_callback(self, callback: Any) -> None:
+        self._sfx_callback = callback
+
+    def _emit_sfx(self, cue_id: str) -> None:
+        if self._sfx_callback is None:
+            return
+        self._sfx_callback(MERCHANT_TRANSITION_SFX.get(cue_id, cue_id))

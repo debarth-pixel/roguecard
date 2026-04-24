@@ -62,6 +62,7 @@ def capture_visual_audit(
 
         if manager.current_state == "combat":
             _capture_combat_status_icon_showcase(ui_manager, surface, snapshot, output_path, captured_paths)
+            _capture_combat_relic_tray_showcase(manager, ui_manager, surface, snapshot, output_path, captured_paths)
             _play_simple_combat(manager)
             continue
 
@@ -194,6 +195,7 @@ def _capture_combat_status_icon_showcase(
     if "combat_status_icons" in captured_paths:
         return
 
+    ui_manager.combat_ui._reset_feedback_state()
     showcase = copy.deepcopy(snapshot)
     showcase["status_message"] = "Combat status icon showcase."
     showcase["combat"]["turn_number"] = 5
@@ -298,6 +300,80 @@ def _capture_combat_status_icon_showcase(
     _capture_screen(ui_manager, surface, showcase, output_path, captured_paths, force_name="combat_status_icons")
 
 
+def _capture_combat_relic_tray_showcase(
+    manager: StateManager,
+    ui_manager: UIManager,
+    surface: Any,
+    snapshot: dict[str, Any],
+    output_path: Path,
+    captured_paths: dict[str, str],
+) -> None:
+    if snapshot.get("current_state") != "combat" or snapshot.get("combat") is None:
+        return
+    if "combat_relic_tray" in captured_paths:
+        return
+
+    ui_manager.combat_ui._reset_feedback_state()
+    showcase = copy.deepcopy(snapshot)
+    showcase["status_message"] = "Combat relic tray showcase."
+    showcase["combat"]["turn_number"] = 4
+    showcase["combat"]["turn_owner"] = "player"
+    showcase["combat"]["active_bark"] = None
+    showcase["combat"]["player"] = {
+        **showcase["combat"]["player"],
+        "current_hp": 49,
+        "max_hp": 70,
+        "block": 7,
+        "energy": 4,
+        "max_energy": 4,
+        "draw_pile": 9,
+        "discard_pile": 5,
+        "exhaust_pile": 1,
+    }
+    active_modifiers = [
+        manager.run_modifier_engine.create_modifier_record("carbon_weave", source="audit"),
+        manager.run_modifier_engine.create_modifier_record("flash_cache", source="audit"),
+        manager.run_modifier_engine.create_modifier_record("signal_router", source="audit"),
+        manager.run_modifier_engine.create_modifier_record("overclock_relay", source="audit"),
+        manager.run_modifier_engine.create_modifier_record("salvage_license", source="audit"),
+    ]
+    active_modifiers[-1]["remaining"] = 2
+    active_modifiers[-1]["active_in_current_combat"] = True
+    showcase["run_modifiers"] = manager.run_modifier_engine.snapshot(active_modifiers)
+    showcase["combat"]["feedback_events"] = [
+        {
+            "type": "relic_triggered",
+            "sequence": 1,
+            "combo_index": 1,
+            "relic_id": "carbon_weave",
+            "relic_name": "Carbon Weave",
+            "trigger_hook": "combat_start",
+        },
+        {
+            "type": "relic_triggered",
+            "sequence": 2,
+            "combo_index": 2,
+            "relic_id": "flash_cache",
+            "relic_name": "Flash Cache",
+            "trigger_hook": "turn_one",
+        },
+        {
+            "type": "relic_triggered",
+            "sequence": 3,
+            "combo_index": 3,
+            "relic_id": "signal_router",
+            "relic_name": "Signal Router",
+            "trigger_hook": "after_card_played",
+            "card_id": "hemorrhage_01",
+        },
+    ]
+    before_showcase = copy.deepcopy(showcase)
+    before_showcase["combat"]["feedback_events"] = []
+    ui_manager.apply_snapshot_feedback("visual_audit", before_showcase, showcase)
+    _capture_screen(ui_manager, surface, showcase, output_path, captured_paths, force_name="combat_relic_tray")
+    ui_manager.combat_ui._reset_feedback_state()
+
+
 def _resolve_modifier_draft(manager: StateManager) -> None:
     draft_state = manager.get_state_snapshot()["modifier_draft"]
     preferred_ids = (
@@ -350,6 +426,14 @@ def _resolve_shop(
 ) -> None:
     snapshot = _presentation_snapshot(manager.get_state_snapshot())
     shop_state = snapshot["shop"]
+
+    manager.open_shop_menu("purge")
+    purge_targets = manager.get_state_snapshot()["shop"].get("purge_targets", [])
+    if purge_targets:
+        manager.select_shop_offer(f"purge_target:{purge_targets[0]['deck_index']}")
+    if "shop_purge" not in captured_paths:
+        _capture_screen(ui_manager, surface, _presentation_snapshot(manager.get_state_snapshot()), output_path, captured_paths, force_name="shop_purge")
+    manager.open_shop_menu("main_menu")
 
     card_offers = [offer for offer in shop_state["inventory"] if offer["type"] == "card" and not offer["sold_out"]]
     if card_offers:
