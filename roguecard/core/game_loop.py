@@ -125,7 +125,7 @@ class GameLoop:
 
             animation_speed = FAST_MODE_MULTIPLIER if self._fast_mode else 1.0
             self.animator.update(delta_time * animation_speed)
-            self.ui_manager.update(delta_time * animation_speed)
+            self.ui_manager.update(delta_time * animation_speed, self._snapshot_with_hand())
             self._render_frame(screen)
             pygame.display.flip()
 
@@ -216,8 +216,16 @@ class GameLoop:
                 self.state_manager.continue_from_reward()
             elif action_type == "select_shop_offer":
                 self.state_manager.select_shop_offer(action["offer_id"])
+            elif action_type == "open_shop_menu":
+                self.state_manager.open_shop_menu(action["menu_id"])
+            elif action_type == "clear_shop_selection":
+                self.state_manager.clear_shop_selection()
+            elif action_type == "purchase_shop_offer":
+                self.state_manager.purchase_shop_offer(action["offer_id"])
             elif action_type == "confirm_shop_purchase":
                 self.state_manager.confirm_shop_purchase()
+            elif action_type == "confirm_shop_cleanse":
+                self.state_manager.confirm_shop_cleanse()
             elif action_type == "reroll_shop_inventory":
                 self.state_manager.reroll_shop_inventory()
             elif action_type == "leave_shop":
@@ -235,10 +243,12 @@ class GameLoop:
         except (IndexError, ValueError, KeyError) as exc:
             LOGGER.warning("Action rejected: %s", exc)
             self._trigger_denial_feedback(str(exc))
+            self.ui_manager.handle_action_denied(action_type, before_snapshot)
             return screen
         except Exception:  # pragma: no cover - defensive runtime guard.
             LOGGER.exception("Unexpected error while dispatching action %s", action_type)
             self._trigger_denial_feedback("An unexpected error interrupted that action.")
+            self.ui_manager.handle_action_denied(action_type, before_snapshot)
             return screen
 
         after_snapshot = self._snapshot_with_hand()
@@ -445,7 +455,23 @@ class GameLoop:
             self.animator.trigger("select")
             self.audio_manager.trigger("node_select")
             self._set_notice(after_snapshot["status_message"], duration=1.6)
+        elif action_type == "open_shop_menu":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], duration=1.4)
+        elif action_type == "clear_shop_selection":
+            self.animator.trigger("select")
+            self.audio_manager.trigger("menu_open")
+            self._set_notice(after_snapshot["status_message"], duration=1.2)
+        elif action_type == "purchase_shop_offer":
+            self.animator.trigger("card_play")
+            self.audio_manager.trigger("card_play")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
         elif action_type == "confirm_shop_purchase":
+            self.animator.trigger("card_play")
+            self.audio_manager.trigger("card_play")
+            self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
+        elif action_type == "confirm_shop_cleanse":
             self.animator.trigger("card_play")
             self.audio_manager.trigger("card_play")
             self._set_notice(after_snapshot["status_message"], level="success", duration=2.0)
@@ -525,6 +551,8 @@ class GameLoop:
             before_snapshot["current_state"] != "shop"
             and after_snapshot["current_state"] == "shop"
         ):
+            if before_snapshot["current_state"] == "map":
+                self.ui_manager.begin_map_to_shop_transition(after_snapshot)
             self.animator.trigger("select")
             self.audio_manager.trigger("menu_open")
             self._set_notice(after_snapshot["status_message"], level="success", duration=2.4)
@@ -1256,10 +1284,12 @@ class GameLoop:
             "confirm_run_modifier_selection",
             "play_card",
             "end_turn",
+            "purchase_shop_offer",
             "confirm_reward_selection",
             "skip_reward_section",
             "continue_from_reward",
             "confirm_shop_purchase",
+            "confirm_shop_cleanse",
             "reroll_shop_inventory",
             "leave_shop",
             "confirm_event_choice",

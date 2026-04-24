@@ -67,10 +67,10 @@ class UIManager:
         self.event_ui = EventUI()
         self.grayspine_intel_ui = GrayspineIntelUI()
         self.map_ui = MapUI()
-        self.map_tablet_view = MapTabletView(self.map_ui, self.combat_ui)
         self.modifier_draft_ui = ModifierDraftUI()
         self.reward_ui = RewardUI()
         self.shop_ui = ShopUI()
+        self.map_tablet_view = MapTabletView(self.map_ui, self.combat_ui, self.shop_ui)
         self.title_ui = TitleUI()
         self._font = None
         self._small_font = None
@@ -92,13 +92,13 @@ class UIManager:
         status_icon_assets.preload()
         self.character_select_ui.preload_assets()
         self.map_ui.preload_assets()
-        self.map_tablet_view.preload_assets()
         self.combat_ui.preload_assets()
         self.event_ui.preload_assets()
         self.grayspine_intel_ui.preload_assets()
         self.modifier_draft_ui.preload_assets()
         self.reward_ui.preload_assets()
         self.shop_ui.preload_assets()
+        self.map_tablet_view.preload_assets()
         self.title_ui.preload_assets()
         if pygame is None:
             return
@@ -190,8 +190,12 @@ class UIManager:
             return self.combat_ui.poll_action(self._combat_view_state(state_snapshot))
         return None
 
-    def update(self, delta_time: float) -> None:
+    def update(self, delta_time: float, state_snapshot: dict[str, Any] | None = None) -> None:
         self.map_tablet_view.update(delta_time)
+        shop_view_state = None
+        if isinstance(state_snapshot, dict) and state_snapshot.get("shop") is not None:
+            shop_view_state = self._shop_view_state(state_snapshot)
+        self.shop_ui.update(delta_time, shop_view_state, transition_active=self.map_tablet_view.is_transition_active())
 
     def apply_snapshot_feedback(
         self,
@@ -202,6 +206,9 @@ class UIManager:
         before_combat = None if before_snapshot.get("combat") is None else self._combat_view_state(before_snapshot)
         after_combat = None if after_snapshot.get("combat") is None else self._combat_view_state(after_snapshot)
         self.combat_ui.apply_snapshot_feedback(action_type, before_combat, after_combat)
+        before_shop = None if before_snapshot.get("shop") is None else self._shop_view_state(before_snapshot)
+        after_shop = None if after_snapshot.get("shop") is None else self._shop_view_state(after_snapshot)
+        self.shop_ui.handle_snapshot_feedback(action_type, before_shop, after_shop)
 
     def begin_map_to_combat_transition(self, state_snapshot: dict[str, Any]) -> None:
         if state_snapshot.get("map") is None or state_snapshot.get("combat") is None:
@@ -211,10 +218,22 @@ class UIManager:
             self._combat_view_state(state_snapshot),
         )
 
+    def begin_map_to_shop_transition(self, state_snapshot: dict[str, Any]) -> None:
+        if state_snapshot.get("map") is None or state_snapshot.get("shop") is None:
+            return
+        self.map_tablet_view.begin_map_to_shop_transition(
+            self._map_view_state(state_snapshot),
+            self._shop_view_state(state_snapshot),
+        )
+
     def begin_map_enter_transition(self, state_snapshot: dict[str, Any]) -> None:
         if state_snapshot.get("map") is None:
             return
         self.map_tablet_view.begin_map_enter_transition(self._map_view_state(state_snapshot))
+
+    def handle_action_denied(self, action_type: str, state_snapshot: dict[str, Any]) -> None:
+        if state_snapshot.get("shop") is not None:
+            self.shop_ui.handle_action_denied(action_type)
 
     def is_transition_active(self) -> bool:
         return self.map_tablet_view.is_transition_active()
@@ -227,9 +246,10 @@ class UIManager:
         current_state = state_snapshot["current_state"]
         map_view_state = None if state_snapshot.get("map") is None else self._map_view_state(state_snapshot)
         combat_view_state = None if state_snapshot.get("combat") is None else self._combat_view_state(state_snapshot)
+        shop_view_state = None if state_snapshot.get("shop") is None else self._shop_view_state(state_snapshot)
 
         if self.map_tablet_view.is_transition_active():
-            self.map_tablet_view.render(surface, map_view_state, combat_view_state)
+            self.map_tablet_view.render(surface, map_view_state, combat_view_state, shop_view_state)
         elif current_state == "title" and state_snapshot.get("title") is not None:
             self.title_ui.render(surface, self._title_view_state(state_snapshot))
         elif current_state == "character_select" and state_snapshot.get("character_select") is not None:
@@ -243,7 +263,7 @@ class UIManager:
         elif current_state == "reward" and state_snapshot["reward"] is not None:
             self.reward_ui.render(surface, self._reward_view_state(state_snapshot))
         elif current_state == "shop" and state_snapshot["shop"] is not None:
-            self.shop_ui.render(surface, self._shop_view_state(state_snapshot))
+            self.shop_ui.render(surface, shop_view_state)
         elif current_state == "map" and state_snapshot["map"] is not None:
             self.map_tablet_view.render(surface, map_view_state)
         elif current_state in {"victory", "game_over"}:
@@ -309,6 +329,7 @@ class UIManager:
             "living_enemy_ids": combat_state.get("living_enemy_ids", []),
             "enemy_phase": combat_state.get("enemy_phase", {}),
             "event_log": combat_state.get("event_log", []),
+            "feedback_events": combat_state.get("feedback_events", []),
             "active_bark": combat_state.get("active_bark"),
             "player_hand": hand,
             "run_modifiers": list((state_snapshot.get("run_modifiers") or {}).get("active", [])),
@@ -411,13 +432,20 @@ class UIManager:
         presentation = state_snapshot.get("presentation", {})
         high_contrast = presentation.get("high_contrast", False)
         layout = self._top_bar_layout(state_snapshot)
+        is_combat = state_snapshot.get("current_state") == "combat"
         accent = (220, 230, 255) if high_contrast else COLOR_CYAN
         state_rect = pygame.Rect(*layout["state_rect"])
         summary_rect = pygame.Rect(*layout["summary_rect"])
-        draw_panel(surface, state_rect, accent=COLOR_LINE, fill=COLOR_PANEL_ELEVATED, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
+        state_fill = COLOR_PANEL_ELEVATED if not is_combat else (12, 18, 30)
+        summary_fill = COLOR_PANEL if not is_combat else (9, 14, 24)
+        summary_accent = COLOR_LINE if not is_combat else (88, 120, 168)
+        if is_combat:
+            draw_focus_glow(surface, state_rect, accent=(72, 108, 156), alpha=18, inflate_x=12, inflate_y=12, radius=RADIUS_MD)
+            draw_focus_glow(surface, summary_rect, accent=(72, 108, 156), alpha=14, inflate_x=18, inflate_y=12, radius=RADIUS_LG)
+        draw_panel(surface, state_rect, accent=summary_accent, fill=state_fill, radius=RADIUS_MD, border_width=1, shadow_alpha=0)
         self._draw_text(surface, layout["state_label"], (state_rect.x + 14, state_rect.y + 9), self._tiny_font, width=state_rect.width - 28)
 
-        draw_panel(surface, summary_rect, accent=COLOR_LINE, fill=COLOR_PANEL, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
+        draw_panel(surface, summary_rect, accent=summary_accent, fill=summary_fill, radius=RADIUS_LG, border_width=1, shadow_alpha=0)
         for index, segment in enumerate(layout["segments"]):
             rect = pygame.Rect(*segment["rect"])
             if segment.get("active"):

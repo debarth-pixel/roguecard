@@ -1,0 +1,65 @@
+# Refresh Roguecard Master References From Live Content
+
+## Summary
+- Treat `roguecard/roguecard/reference` as the canonical reference folder and update the generator so the references are rebuilt from current live data, not from any older stray docs.
+- Regenerate the existing card, enemy, and relic references from current content, then add the missing catalogs for blessings and curses as new markdown files in the same style/flair as the current master references.
+- Enrich the enemy reference so each enemy documents where it currently appears by route/map/floor band, including boss-route appearances, summon-only appearances, and the three placeholder enemies as clearly labeled unplaced/internal entries.
+- Do not change gameplay, runtime data, encounter selection, or save formats.
+
+## Implementation Changes
+- Extend `tools/generate_master_references.py` instead of hand-editing the markdown:
+  - Keep the current outputs for cards, enemies, relics, and statuses.
+  - Add new outputs for `blessings_master_reference.md` and `curses_master_reference.md`.
+  - Keep writing into the existing `reference` folder.
+- Use current repo data as the only source of truth:
+  - Cards from `data/cards.json`.
+  - Enemies from `data/enemies.json`.
+  - Relics, blessings, and curses from `data/run_modifiers.json` by `type`.
+  - Enemy route/floor placement from `data/outskirts_encounters.json`, `data/final_map_encounters.json`, and `data/campaign_maps.json`.
+- Update the enemy reference format to add a placement section per enemy:
+  - Outskirts route floors from the authored difficulty bands and encounter tables.
+  - Branch-route floors for `helix_ward_depths`, `blackwire_lockdown_sector`, and `cinder_jackals_edgeworks` from the Grayspine encounter bands.
+  - Boss appearances from map `boss_pool` entries.
+  - Summoned-only appearances from summon relationships in enemy definitions.
+  - `enemy_basic_01`, `enemy_elite_01`, and `enemy_boss_01` included but explicitly labeled as placeholder/unplaced.
+  - `city_streets` documented as boss-authored only for current live data; regular combat/elite routing should be called out as still placeholder-based rather than invented.
+- Keep the reference “flair” consistent with the current docs:
+  - Summary bullets, tags, hooks, notes/synergies where available, owner/faction grouping, and human-readable effect text.
+  - Blessing/curse docs should mirror the relic doc style, just filtered to their own modifier types.
+- Update the relic reference summary so it no longer silently hides the existence of blessings/curses:
+  - Keep the relic file focused on relics.
+  - Add a short note pointing readers to the new blessing/curse files.
+
+## Public Interfaces / Outputs
+- Tooling output changes only:
+  - `generate_master_references.py` will produce two additional reference files: `blessings_master_reference.md` and `curses_master_reference.md`.
+- No gameplay APIs, encounter logic, runtime state, or save schema changes.
+
+## Test Plan
+- Run the reference generator and verify the output files are regenerated in `roguecard/roguecard/reference`.
+- Verify catalog counts match live data:
+  - Cards: 63
+  - Enemies: 47
+  - Relics: 65
+  - Blessings: 8
+  - Curses: 9
+- Spot-check that the four status cards are still present in the cards reference and that blessings/curses are no longer missing from the reference set.
+- Spot-check enemy placement coverage for:
+  - An Outskirts normal enemy
+  - A branch-route normal enemy
+  - A route boss from `city_streets`
+  - A summon-only enemy like `sentry_node` or `burner_mite`
+  - A placeholder enemy entry
+- Verify `city_streets` regular-node content is documented as placeholder-based current state, not as fabricated authored encounters.
+- Confirm the generated markdown preserves the existing formatting tone and readable summaries.
+
+## Assumptions
+- `roguecard/roguecard/reference` remains the canonical folder; no parallel `references` directory will be created.
+- Placeholder enemies should stay in the catalog, but clearly marked as placeholder/unplaced/internal.
+- Older stray reference files, if found later, are style/input hints only; current JSON/content-library data remains authoritative.
+- Run-modifier `status` entries are out of scope unless they are needed incidentally to keep the new blessing/curse generation logic correct.
+
+
+#===============================================#
+additional info
+Yes, implement this all. However, for all entities you interact with (every thing) ensure it has a flavor text blurb to visually describe it. I intend to get all of the art for everything this weekend.

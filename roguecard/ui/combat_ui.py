@@ -9,17 +9,10 @@ try:
 except ImportError:  # pragma: no cover - pygame is optional for headless verification.
     pygame = None
 
-from config import (
-    CARD_HOVER_LIFT,
-    MAX_UI_SCALE,
-    MIN_UI_SCALE,
-    PROJECT_ROOT,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-    resolve_asset_path,
-)
+from config import CARD_HOVER_LIFT, MAX_UI_SCALE, MIN_UI_SCALE, PROJECT_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH, resolve_asset_path
 from ui.card_renderer import card_summary_lines, draw_card
 from ui.card_style import CARD_PORTRAIT_HEIGHT_RATIO
+from ui.encounter_backgrounds import resolve_encounter_background_path
 from ui.relic_assets import relic_assets
 from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
 from ui.status_icon_assets import status_icon_assets
@@ -38,13 +31,36 @@ COMBAT_MODIFIER_ORIGIN = (44, 118)
 COMBAT_MODIFIER_SLOT = 30
 COMBAT_MODIFIER_GAP = 10
 COMBAT_MODIFIER_LIMIT = 7
+RELIC_TRAY_ORIGIN = (44, 122)
+RELIC_TRAY_SLOT = 48
+RELIC_TRAY_GAP = 12
+RELIC_TRAY_LIMIT = 8
+TEMP_MODIFIER_SLOT = 28
+TEMP_MODIFIER_GAP = 8
+PROC_TICKER_ORIGIN = (44, 214)
+PROC_TICKER_WIDTH = 296
+DECK_STATS_ORIGIN = (818, 564)
+DECK_STAT_WIDTH = 78
+DECK_STAT_HEIGHT = 28
+DECK_STAT_GAP = 10
+CARD_FOCUS_LIFT = max(CARD_HOVER_LIFT, 40)
+CARD_HOVER_SCALE = 1.18
+CARD_DIMMED_ALPHA = 162
+CARD_FOCUS_RECESS_PX = 12
+RELIC_FLASH_TOTAL_MS = 360
+RELIC_FLASH_RAMP_MS = 70
+RELIC_FLASH_HOLD_MS = 140
+RELIC_FLASH_STAGGER_MS = 80
+FEEDBACK_NUMBER_MS = 760
+SHIELD_FLASH_MS = 260
+PROC_TICKER_MS = 1600
 PLAYER_FOOT = (214, 466)
 PLAYER_SCALE = 1.14
 GROUND_RING_HEIGHT = 28
-COMBAT_STATUS_ICON_SIZE = 20
+COMBAT_STATUS_ICON_SIZE = 24
 COMBAT_STATUS_COUNT_GAP = 2
 COMBAT_STATUS_ITEM_GAP = 6
-COMBAT_STATUS_LIMIT = 6
+COMBAT_STATUS_LIMIT = 7
 
 ENEMY_SLOT_MAP = {
     1: [(1016, 430, 1.14)],
@@ -150,19 +166,6 @@ DEBUFF_LABELS = {
 }
 
 ARTS_ROOT = PROJECT_ROOT / "arts"
-DEFAULT_COMBAT_BACKGROUND_PATH = resolve_asset_path("ui", "bg_combat.png")
-COMBAT_BACKGROUND_PATHS = {
-    "outskirts": ARTS_ROOT / "map_1_combat.png",
-    "city_streets": ARTS_ROOT / "map_2_combat.png",
-    "blackwire_lockdown_sector": ARTS_ROOT / "map_3_blackwire.png",
-    "cinder_jackals_edgeworks": ARTS_ROOT / "map_3_cinderjackal.png",
-    "helix_ward_depths": ARTS_ROOT / "map_3_helixware.png",
-}
-COMBAT_BACKGROUND_FACTION_PATHS = {
-    "blackwire_directorate": ARTS_ROOT / "map_3_blackwire.png",
-    "cinder_jackals": ARTS_ROOT / "map_3_cinderjackal.png",
-    "helix_ward": ARTS_ROOT / "map_3_helixware.png",
-}
 ENEMY_SPRITE_SCALE = 0.48
 ENEMY_ACTION_HOLD_MS = 180
 ENEMY_ACTION_RECOVER_MS = 100
@@ -172,6 +175,47 @@ ENEMY_HIT_REACTION_RETURN_MS = 110
 ENEMY_MELEE_LUNGE_PX = 16.0
 ENEMY_RANGED_LEAN_PX = 6.0
 ENEMY_HIT_RECOIL_PX = 12.0
+PLAYER_ART_REFS = {
+    "bio_hacker": {
+        "path": ARTS_ROOT / "refs" / "Biohacker_Combat_Ref.png",
+        "crop": (34, 86, 302, 562),
+        "scale": 1.06,
+        "colorkey": None,
+    },
+    "operator": {
+        "path": ARTS_ROOT / "refs" / "Operator_Combat_Ref.png",
+        "crop": (34, 72, 548, 882),
+        "scale": 1.02,
+        "colorkey": None,
+    },
+    "enforcer": {
+        "path": ARTS_ROOT / "refs" / "Enforcer_Combat_Ref.png",
+        "crop": (0, 0, 470, 860),
+        "scale": 1.02,
+        "colorkey": (255, 255, 255),
+    },
+}
+HOOK_LABELS = {
+    "combat_start": "Start of combat",
+    "turn_one": "Turn one",
+    "on_turn_start": "Turn start",
+    "turn_end": "Turn end",
+    "after_card_played": "After any card",
+    "on_attack_hit": "After attack hit",
+    "on_enemy_status_applied": "When enemy status lands",
+    "on_player_status_applied": "When player status lands",
+    "on_card_cost_reduced": "When card cost drops",
+    "on_card_exhausted": "When a card exhausts",
+    "on_self_damage": "When you lose HP",
+    "on_heal": "When you heal",
+    "on_bleed_trigger": "When bleed triggers",
+    "on_infect_burst": "When infection bursts",
+    "on_player_burn_tick": "When burn ticks",
+    "on_positive_gain_blocked_by_nullified": "When nullified blocks a gain",
+    "on_status_card_added_to_discard": "When a status card is added",
+    "on_enemy_death": "On enemy defeat",
+    "on_status_drawn": "When a status card is drawn",
+}
 
 def _enemy_sprite_definition(*move_ids: str) -> dict[str, Any]:
     return {
@@ -298,11 +342,24 @@ class CombatUI:
         self._resolved_enemy_phase_tokens: set[tuple[Any, ...]] = set()
         self._enemy_phase_queue_signature: tuple[str, ...] | None = None
         self._enemy_phase_gap_until = 0
+        self._last_feedback_sequence = 0
+        self._relic_flash_registry: dict[str, list[dict[str, int]]] = {}
+        self._shield_flash_registry: dict[str, list[dict[str, int]]] = {}
+        self._floating_feedback: list[dict[str, Any]] = []
+        self._proc_ticker_entries: list[dict[str, Any]] = []
 
     def preload_assets(self) -> None:
         if pygame is None:
             return
-        for path in [DEFAULT_COMBAT_BACKGROUND_PATH, *COMBAT_BACKGROUND_PATHS.values()]:
+        for path in [
+            resolve_asset_path("ui", "bg_combat.png"),
+            ARTS_ROOT / "map_1_combat.png",
+            ARTS_ROOT / "map_2_combat.png",
+            ARTS_ROOT / "map_3_blackwire.png",
+            ARTS_ROOT / "map_3_cinderjackal.png",
+            ARTS_ROOT / "map_3_helixware.png",
+            *(entry["path"] for entry in PLAYER_ART_REFS.values()),
+        ]:
             self._load_image(path)
 
     def poll_action(self, combat_state: dict[str, Any]) -> dict[str, Any] | None:
@@ -595,6 +652,7 @@ class CombatUI:
         enemy_actors = self._enemy_actor_layout(enemies, selected_card)
         for enemy_actor in enemy_actors:
             enemy_actor.update(self._enemy_actor_animation_state(enemy_actor))
+        self._prune_feedback_state()
         tooltip_regions = []
         player_status_items = self._status_items_for_player(player)
         player_actor["status_regions"] = self._status_regions(player_status_items, player_actor["status_origin"], anchor="left")
@@ -610,15 +668,16 @@ class CombatUI:
                     "text": self._intent_tooltip(enemy_actor["enemy"]),
                 }
             )
-        combat_modifiers = self._combat_modifier_items(combat_state.get("run_modifiers", []))
+        modifier_layout = self._combat_modifier_layout(combat_state.get("run_modifiers", []))
         tooltip_regions.extend(
             {
                 "rect": modifier["rect"],
                 "title": modifier["name"],
                 "text": self._modifier_tooltip_text(modifier),
             }
-            for modifier in combat_modifiers
+            for modifier in modifier_layout["items"]
         )
+        deck_stats = self._deck_stat_layout(player)
 
         return {
             "status_message": combat_state.get("status_message", ""),
@@ -634,15 +693,14 @@ class CombatUI:
             "end_turn_rect": END_TURN_RECT,
             "end_turn_hovered": self._hovered_end_turn,
             "any_playable": any(card["playable"] for card in hand_cards),
-            "helper_panel_rect": HELPER_PANEL_RECT,
-            "helper_summary": self._helper_summary(hand_cards, selected_card, combat_state.get("event_log", [])),
-            "helper_recent": self._build_recent_summary(combat_state.get("event_log", [])),
             "living_enemy_ids": living_enemy_ids,
             "enemy_phase": combat_state.get("enemy_phase", {}),
             "high_contrast": presentation.get("high_contrast", False),
             "tooltip": self._tooltip_at_position(tooltip_regions, self._mouse_pos),
             "targeting_active": selected_card is not None,
-            "combat_modifiers": combat_modifiers,
+            "relic_tray": modifier_layout["relics"],
+            "temp_modifier_tray": modifier_layout["temporary"],
+            "deck_stats": deck_stats,
         }
 
     def _build_recent_summary(self, event_log: list[dict[str, Any]]) -> str:
@@ -732,7 +790,7 @@ class CombatUI:
         else:
             width = 134
         height = int(width * CARD_PORTRAIT_HEIGHT_RATIO)
-        spread = min(760, max(0, hand_count - 1) * (width * 0.58))
+        spread = min(820, max(0, hand_count - 1) * (width * 0.64))
         offset = 0.0 if hand_count == 1 else (index / max(1, hand_count - 1)) * 2.0 - 1.0
         center_x = HAND_CENTER_X + (offset * (spread / 2))
         center_y = HAND_CENTER_Y + (abs(offset) ** 1.45) * 28
@@ -742,9 +800,11 @@ class CombatUI:
     def _hand_card_scale(self, index: int) -> float:
         if index == self._hovered_card_index and index != self._selected_card_index:
             hover_progress = _ease_out(self._animation_progress(self._hover_started_at, 90))
-            return 1.0 + (0.08 * hover_progress)
+            return _lerp(1.0, CARD_HOVER_SCALE, hover_progress)
         if index == self._selected_card_index:
             return 0.9
+        if self._hovered_card_index is not None and self._selected_card_index is None:
+            return 0.97
         return 1.0
 
     def _hand_card_hit_rect(
@@ -760,7 +820,7 @@ class CombatUI:
         radians = math.radians(abs(angle))
         rotated_width = abs(math.cos(radians) * width) + abs(math.sin(radians) * height)
         rotated_height = abs(math.cos(radians) * height) + abs(math.sin(radians) * width)
-        y_lift = CARD_HOVER_LIFT if scale > 1.0 else 0
+        y_lift = CARD_FOCUS_LIFT if scale > 1.0 else 0
         return _rect_from_center((center[0], center[1] - y_lift), (rotated_width, rotated_height))
 
     def _player_actor_layout(self, player: dict[str, Any], character: dict[str, Any]) -> dict[str, Any]:
@@ -768,6 +828,8 @@ class CombatUI:
         actor_width = int(96 * PLAYER_SCALE)
         actor_height = int(156 * PLAYER_SCALE)
         actor_rect = pygame.Rect(int(PLAYER_FOOT[0] - actor_width / 2), int(PLAYER_FOOT[1] - actor_height), actor_width, actor_height) if pygame is not None else None
+        hud_rect = (40, 446, 304, 66)
+        block_rect = (hud_rect[0] + 212, hud_rect[1] + 10, 78, 38)
         combat_statuses = player.get("combat_statuses", {})
         infect_value = combat_statuses.get("infect", 0) if isinstance(combat_statuses, dict) else 0
         infect_preview = self._infect_preview(player.get("current_hp", 0), infect_value)
@@ -777,8 +839,12 @@ class CombatUI:
             "accent": accent,
             "foot": PLAYER_FOOT,
             "actor_rect": actor_rect,
-            "hud_rect": (46, 452, 286, 58),
-            "status_origin": (56, 515),
+            "hud_rect": hud_rect,
+            "block_rect": block_rect,
+            "feedback_key": "player",
+            "feedback_anchor": (PLAYER_FOOT[0] + 6, PLAYER_FOOT[1] - 118),
+            "block_anchor": (block_rect[0] + (block_rect[2] // 2), block_rect[1] + (block_rect[3] // 2)),
+            "status_origin": (52, 520),
             "player": player,
             "infect_preview_damage": infect_preview["damage"],
             "infect_preview_lethal": infect_preview["lethal"],
@@ -800,6 +866,9 @@ class CombatUI:
             top_y = int(foot_y - height)
             rect = pygame.Rect(int(foot_x - width / 2), top_y, width, height) if pygame is not None else None
             accent = FACTION_COLORS.get(str(enemy.get("faction_id", "legacy")), FACTION_COLORS["legacy"])
+            hp_bar_rect = (int(foot_x - 70), int(foot_y + 14), 140, 14)
+            block_rect = (int(foot_x + 76), int(foot_y + 2), 48, 30)
+            intent_rect = (int(foot_x - 78), int(top_y - 48), 156, 34)
             raw_statuses = enemy.get("statuses", {})
             infect_value = raw_statuses.get("infect", 0) if isinstance(raw_statuses, dict) else 0
             infect_preview = self._infect_preview(enemy.get("current_hp", 0), infect_value)
@@ -813,10 +882,13 @@ class CombatUI:
                     "slot_scale": scale,
                     "actor_rect": rect,
                     "accent": accent,
-                    "hp_bar_rect": (int(foot_x - 62), int(foot_y + 14), 124, 12),
-                    "block_rect": (int(foot_x + 70), int(foot_y + 4), 42, 26),
-                    "intent_rect": (int(foot_x - 68), int(top_y - 40), 136, 28),
-                    "status_origin": (int(foot_x), int(foot_y + 34)),
+                    "hp_bar_rect": hp_bar_rect,
+                    "block_rect": block_rect,
+                    "intent_rect": intent_rect,
+                    "feedback_key": enemy_ref,
+                    "feedback_anchor": (int(foot_x), int(top_y + 24)),
+                    "block_anchor": (block_rect[0] + (block_rect[2] // 2), block_rect[1] + (block_rect[3] // 2)),
+                    "status_origin": (int(foot_x), int(foot_y + 40)),
                     "targeted": enemy["id"] == (selected_card["target_id"] if selected_card is not None else None),
                     "valid_target": enemy["id"] in valid_target_ids if selected_card is not None else True,
                     "dimmed": selected_card is not None and selected_card["target_mode"] in {"single_enemy", "all_enemies"} and enemy["id"] not in valid_target_ids,
@@ -957,9 +1029,9 @@ class CombatUI:
             cursor_x += spec["width"] + item_gap
         return regions
 
-    def _combat_modifier_items(self, run_modifiers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _combat_modifier_layout(self, run_modifiers: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
         if not isinstance(run_modifiers, list):
-            return []
+            return {"items": [], "relics": [], "temporary": []}
 
         filtered = [
             modifier
@@ -973,22 +1045,69 @@ class CombatUI:
             )
         )
 
+        relics: list[dict[str, Any]] = []
+        temporary: list[dict[str, Any]] = []
         items: list[dict[str, Any]] = []
-        start_x, start_y = COMBAT_MODIFIER_ORIGIN
-        for index, modifier in enumerate(filtered[:COMBAT_MODIFIER_LIMIT]):
-            slot_x = start_x + (index * (COMBAT_MODIFIER_SLOT + COMBAT_MODIFIER_GAP))
-            items.append(
+        relic_modifiers = [modifier for modifier in filtered if modifier.get("type") == "relic"][:RELIC_TRAY_LIMIT]
+        temporary_modifiers = [modifier for modifier in filtered if modifier.get("type") != "relic"][:6]
+
+        start_x, start_y = RELIC_TRAY_ORIGIN
+        for index, modifier in enumerate(relic_modifiers):
+            slot_x = start_x + (index * (RELIC_TRAY_SLOT + RELIC_TRAY_GAP))
+            item = {
+                **modifier,
+                "rect": (slot_x, start_y, RELIC_TRAY_SLOT, RELIC_TRAY_SLOT),
+                "accent": self._modifier_accent(modifier.get("type", modifier.get("kind", "status"))),
+                "abbrev": self._modifier_abbrev(str(modifier.get("name", "?"))),
+                "tray": "relic",
+            }
+            relics.append(item)
+            items.append(item)
+
+        temp_y = start_y + RELIC_TRAY_SLOT + 12
+        for index, modifier in enumerate(temporary_modifiers):
+            slot_x = start_x + (index * (TEMP_MODIFIER_SLOT + TEMP_MODIFIER_GAP))
+            item = {
+                **modifier,
+                "rect": (slot_x, temp_y, TEMP_MODIFIER_SLOT, TEMP_MODIFIER_SLOT),
+                "accent": self._modifier_accent(modifier.get("type", modifier.get("kind", "status"))),
+                "abbrev": self._modifier_abbrev(str(modifier.get("name", "?"))),
+                "tray": "temporary",
+            }
+            temporary.append(item)
+            items.append(item)
+
+        return {"items": items, "relics": relics, "temporary": temporary}
+
+    def _deck_stat_layout(self, player: dict[str, Any]) -> list[dict[str, Any]]:
+        stats = [
+            ("Draw", int(player.get("draw_pile", 0) or 0), (104, 216, 255)),
+            ("Discard", int(player.get("discard_pile", 0) or 0), (182, 198, 224)),
+            ("Exhaust", int(player.get("exhaust_pile", 0) or 0), (255, 174, 110)),
+        ]
+        entries: list[dict[str, Any]] = []
+        start_x, start_y = DECK_STATS_ORIGIN
+        for index, (label, value, accent) in enumerate(stats):
+            entries.append(
                 {
-                    **modifier,
-                    "rect": (slot_x, start_y, COMBAT_MODIFIER_SLOT, COMBAT_MODIFIER_SLOT),
-                    "accent": self._modifier_accent(modifier.get("type", modifier.get("kind", "status"))),
-                    "abbrev": self._modifier_abbrev(str(modifier.get("name", "?"))),
+                    "label": label,
+                    "value": value,
+                    "accent": accent,
+                    "rect": (
+                        start_x + (index * (DECK_STAT_WIDTH + DECK_STAT_GAP)),
+                        start_y,
+                        DECK_STAT_WIDTH,
+                        DECK_STAT_HEIGHT,
+                    ),
                 }
             )
-        return items
+        return entries
 
     def _modifier_tooltip_text(self, modifier: dict[str, Any]) -> str:
         parts = [str(modifier.get("description", ""))]
+        trigger_text = self._modifier_trigger_text(modifier)
+        if trigger_text:
+            parts.append(f"Trigger: {trigger_text}")
         duration_label = modifier.get("duration_label")
         if duration_label:
             parts.append(str(duration_label))
@@ -996,6 +1115,21 @@ class CombatUI:
         if downside:
             parts.append(f"Tradeoff: {downside}")
         return " ".join(part for part in parts if part).strip()
+
+    def _modifier_trigger_text(self, modifier: dict[str, Any]) -> str:
+        hooks = modifier.get("hooks", {})
+        if not isinstance(hooks, dict):
+            return ""
+        labels = [
+            HOOK_LABELS.get(str(hook_name), str(hook_name).replace("_", " ").title())
+            for hook_name, effects in hooks.items()
+            if effects
+        ]
+        if not labels:
+            return ""
+        if len(labels) <= 2:
+            return ", ".join(labels)
+        return ", ".join(labels[:2]) + ", ..."
 
     def _modifier_accent(self, modifier_type: str) -> tuple[int, int, int]:
         palettes = {
@@ -1021,6 +1155,25 @@ class CombatUI:
         if hovered is not None:
             return hovered["summary"] or hovered["footer_label"]
         return self._build_recent_summary(event_log)
+
+    def _prune_feedback_state(self) -> None:
+        now = self._now_ms()
+        self._floating_feedback = [
+            entry for entry in self._floating_feedback if (now - int(entry.get("started_at", now))) <= FEEDBACK_NUMBER_MS
+        ]
+        self._proc_ticker_entries = [
+            entry for entry in self._proc_ticker_entries if (now - int(entry.get("started_at", now))) <= PROC_TICKER_MS
+        ]
+        self._shield_flash_registry = {
+            key: [pulse for pulse in pulses if (now - int(pulse.get("started_at", now))) <= SHIELD_FLASH_MS]
+            for key, pulses in self._shield_flash_registry.items()
+            if any((now - int(pulse.get("started_at", now))) <= SHIELD_FLASH_MS for pulse in pulses)
+        }
+        self._relic_flash_registry = {
+            key: [pulse for pulse in pulses if (now - int(pulse.get("started_at", now))) <= RELIC_FLASH_TOTAL_MS]
+            for key, pulses in self._relic_flash_registry.items()
+            if any((now - int(pulse.get("started_at", now))) <= RELIC_FLASH_TOTAL_MS for pulse in pulses)
+        }
 
     def render(self, surface: Any, combat_state: dict[str, Any]) -> None:
         if pygame is None or surface is None:
@@ -1055,7 +1208,8 @@ class CombatUI:
         if layout["selected_card"] is not None:
             self._draw_target_focus_scrim(surface)
         self._draw_turn_header(surface, layout, high_contrast=high_contrast)
-        self._draw_combat_modifier_strip(surface, layout, high_contrast=high_contrast)
+        self._draw_combat_modifier_trays(surface, layout, high_contrast=high_contrast)
+        self._draw_proc_ticker(surface, high_contrast=high_contrast)
 
         self._draw_player_actor(surface, layout["player_actor"], high_contrast=high_contrast, targeted=layout["selected_card"] is not None and layout["selected_card"]["target_mode"] == "immediate_self")
 
@@ -1068,7 +1222,8 @@ class CombatUI:
         if layout["active_bark"] is not None:
             self._render_bark(surface, layout["active_bark"], layout["enemy_actors"])
 
-        self._draw_helper_panel(surface, layout, high_contrast=high_contrast)
+        self._draw_floating_feedback(surface, layout)
+        self._draw_deck_stats(surface, layout)
         self._draw_end_turn_button(surface, layout)
         self._draw_hand(surface, layout, high_contrast=high_contrast)
         if layout["selected_card"] is not None:
@@ -1123,33 +1278,149 @@ class CombatUI:
         owner_label = self._small_font.render(f"{layout['turn_owner_label']} Turn", True, owner_color)
         surface.blit(owner_label, (origin_x + 11, origin_y + 22))
 
-    def _draw_combat_modifier_strip(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
-        for modifier in layout["combat_modifiers"]:
+    def _draw_combat_modifier_trays(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
+        relics = list(layout.get("relic_tray", []))
+        temporary = list(layout.get("temp_modifier_tray", []))
+        if not relics and not temporary:
+            return
+
+        label_color = (218, 230, 248) if high_contrast else (186, 202, 226)
+        if relics:
+            self._draw_text(surface, "RELICS", (RELIC_TRAY_ORIGIN[0], RELIC_TRAY_ORIGIN[1] - 18), self._tiny_font)
+        if temporary:
+            temp_y = temporary[0]["rect"][1] - 16
+            self._draw_text(surface, "ACTIVE EFFECTS", (RELIC_TRAY_ORIGIN[0], temp_y), self._tiny_font, width=180)
+
+        for modifier in relics + temporary:
             rect = pygame.Rect(*modifier["rect"])
             accent = modifier["accent"]
             if high_contrast:
-                accent = tuple(min(255, channel + 16) for channel in accent)
-            if modifier.get("type") == "relic":
-                art = relic_assets.get_relic_art(modifier["id"], rect.size)
+                accent = tuple(min(255, channel + 18) for channel in accent)
+
+            flash_intensity = self._relic_flash_intensity(str(modifier.get("id", ""))) if modifier.get("tray") == "relic" else 0.0
+            scale_boost = 1.0 + (0.08 * flash_intensity)
+            animated_rect = pygame.Rect(0, 0, max(1, int(rect.width * scale_boost)), max(1, int(rect.height * scale_boost)))
+            animated_rect.center = rect.center
+
+            if flash_intensity > 0.0:
+                glow_rect = animated_rect.inflate(18, 16)
+                glow = pygame.Surface(glow_rect.size, pygame.SRCALPHA)
+                pygame.draw.ellipse(glow, (255, 255, 255, int(_lerp(0, 112, flash_intensity))), glow.get_rect())
+                surface.blit(glow, glow_rect.topleft)
+
+            fill = (10, 16, 26, 228) if modifier.get("tray") == "relic" else (12, 16, 24, 196)
+            border = tuple(min(255, int(_lerp(channel, 255, flash_intensity * 0.75))) for channel in accent)
+            self._draw_panel(surface, animated_rect, fill=fill, border=border, radius=14 if modifier.get("tray") == "relic" else 10)
+
+            if modifier.get("tray") == "relic":
+                art = relic_assets.get_relic_art(str(modifier.get("id", "")), animated_rect.size)
                 if art is not None:
-                    art_rect = art.get_rect(center=rect.center)
+                    art_rect = art.get_rect(center=animated_rect.center)
                     surface.blit(art, art_rect.topleft)
                 else:
-                    label = self._tiny_font.render(modifier["abbrev"], True, accent)
-                    surface.blit(label, label.get_rect(center=rect.center))
+                    label = self._small_font.render(modifier["abbrev"], True, accent)
+                    surface.blit(label, label.get_rect(center=animated_rect.center))
+                if flash_intensity > 0.0:
+                    flash_overlay = pygame.Surface(animated_rect.size, pygame.SRCALPHA)
+                    pygame.draw.rect(
+                        flash_overlay,
+                        (255, 255, 255, int(_lerp(0, 148, flash_intensity))),
+                        flash_overlay.get_rect(),
+                        border_radius=14,
+                    )
+                    surface.blit(flash_overlay, animated_rect.topleft)
             else:
                 label = self._tiny_font.render(modifier["abbrev"], True, accent)
-                surface.blit(label, label.get_rect(center=rect.center))
-                pygame.draw.line(surface, accent, (rect.x + 4, rect.bottom - 3), (rect.right - 4, rect.bottom - 3), 2)
+                surface.blit(label, label.get_rect(center=animated_rect.center))
+                pygame.draw.line(surface, accent, (animated_rect.x + 4, animated_rect.bottom - 3), (animated_rect.right - 4, animated_rect.bottom - 3), 2)
 
             if modifier.get("temporary") and isinstance(modifier.get("remaining"), int):
-                badge_rect = pygame.Rect(rect.right - 9, rect.y - 3, 16, 16)
-                pygame.draw.rect(surface, (255, 214, 110), badge_rect, border_radius=8)
+                badge_rect = pygame.Rect(animated_rect.right - 10, animated_rect.y - 5, 18, 18)
+                pygame.draw.rect(surface, (255, 214, 110), badge_rect, border_radius=9)
                 badge = self._tiny_font.render(str(modifier["remaining"]), True, (18, 24, 36))
                 surface.blit(badge, badge.get_rect(center=badge_rect.center))
             if self._mouse_pos != (-1, -1) and point_in_rect(self._mouse_pos, modifier["rect"]):
-                underline_y = rect.bottom + 4
-                pygame.draw.line(surface, (255, 214, 110), (rect.x + 2, underline_y), (rect.right - 2, underline_y), 2)
+                hover_rect = animated_rect.inflate(8, 8)
+                pygame.draw.rect(surface, (255, 214, 110), hover_rect, 2, border_radius=16)
+
+    def _draw_proc_ticker(self, surface: Any, *, high_contrast: bool) -> None:
+        del high_contrast
+        now = self._now_ms()
+        visible_entries = [
+            entry
+            for entry in self._proc_ticker_entries
+            if int(entry.get("started_at", now)) <= now and (now - int(entry.get("started_at", now))) <= PROC_TICKER_MS
+        ]
+        if not visible_entries:
+            return
+        visible_entries = visible_entries[-3:]
+        origin_x, origin_y = PROC_TICKER_ORIGIN
+        for index, entry in enumerate(visible_entries):
+            elapsed = max(0, now - int(entry.get("started_at", now)))
+            progress = max(0.0, min(1.0, elapsed / max(1, PROC_TICKER_MS)))
+            alpha = int(_lerp(255, 0, progress ** 1.45))
+            row_y = origin_y + (index * 42) - int(_lerp(0, 8, progress))
+            row_rect = pygame.Rect(origin_x, row_y, PROC_TICKER_WIDTH, 36)
+            panel = pygame.Surface(row_rect.size, pygame.SRCALPHA)
+            pygame.draw.rect(panel, (10, 16, 26, min(208, alpha)), panel.get_rect(), border_radius=12)
+            pygame.draw.rect(panel, (132, 170, 220, min(230, alpha)), panel.get_rect(), 1, border_radius=12)
+            surface.blit(panel, row_rect.topleft)
+
+            combo_index = max(0, int(entry.get("combo_index", 0) or 0))
+            if combo_index > 0:
+                badge_rect = pygame.Rect(row_rect.x + 8, row_rect.y + 8, 22, 20)
+                badge = pygame.Surface(badge_rect.size, pygame.SRCALPHA)
+                pygame.draw.rect(badge, (104, 216, 255, min(220, alpha)), badge.get_rect(), border_radius=8)
+                surface.blit(badge, badge_rect.topleft)
+                badge_text = self._tiny_font.render(str(combo_index), True, (12, 18, 28))
+                badge_text.set_alpha(alpha)
+                surface.blit(badge_text, badge_text.get_rect(center=badge_rect.center))
+
+            label_x = row_rect.x + (40 if combo_index > 0 else 12)
+            label_surface = self._small_font.render(str(entry.get("label", "")), True, (244, 248, 255))
+            label_surface.set_alpha(alpha)
+            surface.blit(label_surface, (label_x, row_rect.y + 4))
+            detail_surface = self._tiny_font.render(str(entry.get("detail", "")), True, (176, 194, 220))
+            detail_surface.set_alpha(alpha)
+            surface.blit(detail_surface, (label_x, row_rect.y + 20))
+
+    def _draw_floating_feedback(self, surface: Any, layout: dict[str, Any]) -> None:
+        now = self._now_ms()
+        actor_lookup = self._feedback_actor_lookup(layout)
+        for entry in self._floating_feedback:
+            started_at = int(entry.get("started_at", now))
+            if started_at > now:
+                continue
+            elapsed = max(0, now - started_at)
+            progress = max(0.0, min(1.0, elapsed / max(1, FEEDBACK_NUMBER_MS)))
+            anchor = self._feedback_anchor(actor_lookup, str(entry.get("target_key", "")))
+            if anchor is None:
+                continue
+            drift_phase = float(entry.get("phase", 0.0) or 0.0)
+            drift_x = math.sin((elapsed / 95.0) + drift_phase) * 10.0 * (1.0 - progress)
+            drift_y = _lerp(0.0, -48.0, _ease_out(progress))
+            alpha = int(_lerp(255, 0, progress ** 1.5))
+            label = str(entry.get("label", ""))
+            color = entry.get("color", (240, 244, 255))
+            shadow = self._small_font.render(label, True, (0, 0, 0))
+            shadow.set_alpha(max(0, int(alpha * 0.65)))
+            glyph = self._small_font.render(label, True, color)
+            glyph.set_alpha(alpha)
+            draw_pos = (
+                int(anchor[0] + drift_x - (glyph.get_width() / 2)),
+                int(anchor[1] + drift_y),
+            )
+            surface.blit(shadow, (draw_pos[0] + 2, draw_pos[1] + 2))
+            surface.blit(glyph, draw_pos)
+
+    def _draw_deck_stats(self, surface: Any, layout: dict[str, Any]) -> None:
+        for entry in layout.get("deck_stats", []):
+            rect = pygame.Rect(*entry["rect"])
+            accent = entry["accent"]
+            self._draw_panel(surface, rect, fill=(8, 12, 20, 210), border=accent, radius=12)
+            self._draw_text(surface, str(entry["label"]), (rect.x + 9, rect.y + 6), self._tiny_font, width=44)
+            value_surface = self._small_font.render(str(entry["value"]), True, (244, 248, 255))
+            surface.blit(value_surface, value_surface.get_rect(midright=(rect.right - 10, rect.centery + 1)))
 
     def _draw_player_actor(self, surface: Any, actor: dict[str, Any], *, high_contrast: bool, targeted: bool) -> None:
         accent = actor["accent"]
@@ -1158,18 +1429,31 @@ class CombatUI:
         pulse = 0.76 + (0.12 * math.sin(self._now_ms() / 180.0))
         ring_color = tuple(min(255, int(channel * (1.15 if targeted else pulse))) for channel in accent)
         self._draw_ground_plate(surface, foot=(foot_x, foot_y), accent=ring_color, targeted=targeted)
-
-        body_surface = pygame.Surface((rect.width + 22, rect.height + 22), pygame.SRCALPHA)
-        self._draw_player_standee_body(body_surface, body_surface.get_rect().inflate(-22, -22).move(11, 11), actor["character_id"], accent=accent)
-        surface.blit(body_surface, (rect.x - 11, rect.y - 11))
+        art_surface = self._player_reference_art(actor["character_id"])
+        if art_surface is not None:
+            base_scale = float(PLAYER_ART_REFS.get(actor["character_id"], {}).get("scale", 1.0) or 1.0)
+            target_height = max(1, int(rect.height * 1.26 * base_scale))
+            target_width = max(1, int(art_surface.get_width() * (target_height / max(1, art_surface.get_height()))))
+            scaled_art = pygame.transform.smoothscale(art_surface, (target_width, target_height))
+            if high_contrast:
+                glow_rect = scaled_art.get_rect(midbottom=(foot_x + 8, foot_y + 8)).inflate(24, 18)
+                glow = pygame.Surface(glow_rect.size, pygame.SRCALPHA)
+                pygame.draw.ellipse(glow, (*accent, 34), glow.get_rect())
+                surface.blit(glow, glow_rect.topleft)
+            art_rect = scaled_art.get_rect(midbottom=(foot_x - 2, foot_y + 10))
+            surface.blit(scaled_art, art_rect.topleft)
+        else:
+            body_surface = pygame.Surface((rect.width + 22, rect.height + 22), pygame.SRCALPHA)
+            self._draw_player_standee_body(body_surface, body_surface.get_rect().inflate(-22, -22).move(11, 11), actor["character_id"], accent=accent)
+            surface.blit(body_surface, (rect.x - 11, rect.y - 11))
         self._draw_player_hud(surface, actor, high_contrast=high_contrast, targeted=targeted)
 
     def _draw_player_standee_body(self, surface: Any, rect: Any, character_id: str, *, accent: tuple[int, int, int]) -> None:
-        outline = tuple(min(255, int(channel * 1.18)) for channel in accent)
-        shadow = (*accent, 90)
+        outline = tuple(max(74, min(210, int((channel * 0.52) + 28))) for channel in accent)
+        shadow = (18, 26, 38, 88)
         pygame.draw.ellipse(surface, shadow, pygame.Rect(rect.x + 12, rect.y + rect.height - 26, rect.width - 24, 20))
-        body_color = (28, 34, 46)
-        panel_color = tuple(max(44, int(channel * 0.38)) for channel in accent)
+        body_color = (20, 26, 36)
+        panel_color = tuple(max(42, min(124, int((channel * 0.24) + 18))) for channel in accent)
 
         if character_id == "operator":
             torso = [(rect.centerx, rect.y + 20), (rect.x + rect.width - 14, rect.y + 74), (rect.centerx + 18, rect.bottom - 8), (rect.centerx - 24, rect.bottom - 18), (rect.x + 16, rect.y + 82)]
@@ -1199,16 +1483,54 @@ class CombatUI:
         pygame.draw.line(surface, outline, (rect.centerx - 10, rect.bottom - 16), (rect.centerx - 22, rect.bottom + 10), 4)
         pygame.draw.line(surface, outline, (rect.centerx + 4, rect.bottom - 12), (rect.centerx + 18, rect.bottom + 10), 4)
 
+    def _player_reference_art(self, character_id: str) -> Any | None:
+        ref = PLAYER_ART_REFS.get(character_id)
+        if pygame is None or ref is None:
+            return None
+        path = ref.get("path")
+        if not isinstance(path, Path) or not path.exists():
+            return None
+        cache_key = f"player_ref::{character_id}"
+        cached = self._image_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        image = self._load_image(path).copy()
+        crop = ref.get("crop")
+        if isinstance(crop, tuple) and len(crop) == 4:
+            crop_rect = pygame.Rect(*crop)
+            crop_rect.clamp_ip(image.get_rect())
+            image = image.subsurface(crop_rect).copy()
+        colorkey = ref.get("colorkey")
+        if isinstance(colorkey, tuple) and len(colorkey) == 3:
+            image.set_colorkey(colorkey)
+        self._strip_reference_background(image)
+        self._image_cache[cache_key] = image
+        return image
+
+    def _strip_reference_background(self, image: Any) -> None:
+        if pygame is None or image is None:
+            return
+        width, height = image.get_size()
+        for x in range(width):
+            for y in range(height):
+                color = image.get_at((x, y))
+                if color.a <= 0:
+                    continue
+                brightness_floor = min(color.r, color.g, color.b)
+                brightness_ceiling = max(color.r, color.g, color.b)
+                if brightness_floor >= 180 and (brightness_ceiling - brightness_floor) <= 40:
+                    image.set_at((x, y), (color.r, color.g, color.b, 0))
+
     def _draw_player_hud(self, surface: Any, actor: dict[str, Any], *, high_contrast: bool, targeted: bool) -> None:
         player = actor["player"]
         hud_rect = pygame.Rect(*actor["hud_rect"])
         accent = actor["accent"]
         border = tuple(min(255, channel + 24) for channel in accent) if high_contrast else tuple(min(255, channel + 10) for channel in accent)
-        self._draw_panel(surface, hud_rect, fill=(9, 14, 22, 212), border=border, radius=16)
+        self._draw_panel(surface, hud_rect, fill=(7, 12, 20, 226), border=border, radius=18)
         if targeted:
             pygame.draw.rect(surface, (*accent, 56), hud_rect.inflate(6, 6), 1, border_radius=18)
 
-        hp_bar_rect = pygame.Rect(hud_rect.x + 12, hud_rect.y + 10, 168, 14)
+        hp_bar_rect = pygame.Rect(hud_rect.x + 14, hud_rect.y + 10, 176, 15)
         self._draw_meter(
             surface,
             hp_bar_rect,
@@ -1223,11 +1545,23 @@ class CombatUI:
             preview_fill=INFECT_PREVIEW_FILL,
             show_skull=bool(actor.get("infect_preview_lethal", False)),
         )
-        self._draw_energy_row(surface, rect=(hud_rect.x + 12, hud_rect.y + 30, 168, 16), current=int(player["energy"]), maximum=max(1, int(player["max_energy"])))
+        self._draw_energy_row(surface, rect=(hud_rect.x + 14, hud_rect.y + 34, 176, 16), current=int(player["energy"]), maximum=max(1, int(player["max_energy"])))
 
         if int(player.get("block", 0) or 0) > 0:
-            self._draw_block_chip(surface, rect=(hud_rect.right - 82, hud_rect.y + 10, 68, 34), value=int(player["block"]), accent=(104, 190, 255))
-        self._draw_text(surface, actor["name"], (hud_rect.right - 150, hud_rect.y + 36), self._tiny_font, width=138)
+            self._draw_block_chip(
+                surface,
+                rect=actor["block_rect"],
+                value=int(player["block"]),
+                accent=(104, 190, 255),
+                flash_key=actor.get("feedback_key"),
+            )
+        self._draw_text(
+            surface,
+            actor["name"],
+            (hud_rect.x + 14, hud_rect.y + 50),
+            self._tiny_font,
+            width=178,
+        )
         self._draw_status_row(surface, actor["status_regions"])
 
     def _draw_enemy_actor(self, surface: Any, actor: dict[str, Any], *, high_contrast: bool) -> None:
@@ -1254,10 +1588,16 @@ class CombatUI:
             surface.blit(body_surface, (body_x, body_y))
 
         self._draw_intent_banner(surface, actor, high_contrast=high_contrast)
-        self._draw_text(surface, actor["name"], (rect.x - 12, actor["hp_bar_rect"][1] - 16), self._tiny_font, width=rect.width + 24)
+        self._draw_text(surface, actor["name"], (rect.x - 12, actor["hp_bar_rect"][1] - 18), self._small_font, width=rect.width + 24)
         self._draw_enemy_hp(surface, actor)
         if int(enemy.get("block", 0) or 0) > 0:
-            self._draw_block_chip(surface, rect=actor["block_rect"], value=int(enemy["block"]), accent=(112, 188, 255))
+            self._draw_block_chip(
+                surface,
+                rect=actor["block_rect"],
+                value=int(enemy["block"]),
+                accent=(112, 188, 255),
+                flash_key=actor.get("feedback_key"),
+            )
         self._draw_status_row(surface, actor["status_regions"])
 
         if actor["targeted"]:
@@ -1321,10 +1661,26 @@ class CombatUI:
             self._resolved_enemy_phase_tokens.clear()
             self._enemy_phase_queue_signature = None
             self._enemy_phase_gap_until = 0
+            self._reset_feedback_state()
             return
 
         enemies = list(after_combat.get("enemies", []))
         self._sync_enemy_visual_registry(enemies)
+
+        feedback_events = [
+            event for event in after_combat.get("feedback_events", [])
+            if isinstance(event, dict)
+        ]
+        max_sequence = max((int(event.get("sequence", 0) or 0) for event in feedback_events), default=0)
+        if before_combat is None or max_sequence < self._last_feedback_sequence:
+            self._reset_feedback_state()
+        new_feedback = [
+            event
+            for event in feedback_events
+            if int(event.get("sequence", 0) or 0) > self._last_feedback_sequence
+        ]
+        self._consume_feedback_events(new_feedback)
+        self._last_feedback_sequence = max_sequence
         if before_combat is None:
             return
 
@@ -1348,6 +1704,228 @@ class CombatUI:
                 }
                 if current_hp <= 0 and self._enemy_action_clip is not None and self._enemy_action_clip.get("enemy_ref") == enemy_ref:
                     self._enemy_action_clip = None
+
+    def _reset_feedback_state(self) -> None:
+        self._last_feedback_sequence = 0
+        self._relic_flash_registry.clear()
+        self._shield_flash_registry.clear()
+        self._floating_feedback.clear()
+        self._proc_ticker_entries.clear()
+
+    def _consume_feedback_events(self, events: list[dict[str, Any]]) -> None:
+        if not events:
+            return
+        ordered_events = sorted(events, key=lambda event: int(event.get("sequence", 0) or 0))
+        now = self._now_ms()
+        pending_relic_start = self._latest_relic_flash_start(now)
+
+        for event in ordered_events:
+            event_type = str(event.get("type", "")).strip().lower()
+            if event_type == "relic_triggered":
+                if pending_relic_start < now:
+                    start_at = now
+                else:
+                    start_at = pending_relic_start + RELIC_FLASH_STAGGER_MS
+                pending_relic_start = start_at
+                self._queue_relic_flash(event, start_at)
+                self._queue_proc_ticker(event, start_at)
+                continue
+
+            if event_type == "damage_applied":
+                hp_damage = max(0, int(event.get("hp_damage", event.get("amount", 0)) or 0))
+                blocked_amount = max(0, int(event.get("blocked_amount", 0) or 0))
+                if hp_damage > 0:
+                    self._queue_floating_feedback(
+                        target_key=self._feedback_actor_key(event, "target"),
+                        label=f"-{hp_damage}",
+                        color=(236, 92, 106),
+                        started_at=now,
+                        sequence=int(event.get("sequence", 0) or 0),
+                    )
+                elif blocked_amount > 0:
+                    self._queue_floating_feedback(
+                        target_key=self._feedback_actor_key(event, "target"),
+                        label=f"-{blocked_amount}",
+                        color=(172, 178, 192),
+                        started_at=now,
+                        sequence=int(event.get("sequence", 0) or 0),
+                    )
+                continue
+
+            if event_type == "heal_applied":
+                amount = max(0, int(event.get("amount", 0) or 0))
+                if amount > 0:
+                    self._queue_floating_feedback(
+                        target_key=self._feedback_actor_key(event, "target"),
+                        label=f"+{amount}",
+                        color=(110, 230, 150),
+                        started_at=now,
+                        sequence=int(event.get("sequence", 0) or 0),
+                    )
+                continue
+
+            if event_type == "block_gained":
+                amount = max(0, int(event.get("amount", 0) or 0))
+                if amount > 0:
+                    self._queue_floating_feedback(
+                        target_key=self._feedback_actor_key(event, "target"),
+                        label=f"+{amount}",
+                        color=(108, 196, 255),
+                        started_at=now,
+                        sequence=int(event.get("sequence", 0) or 0),
+                    )
+                continue
+
+            if event_type == "block_spent" and str(event.get("reason", "")) != "damage_absorbed":
+                amount = max(0, int(event.get("amount", 0) or 0))
+                if amount > 0:
+                    self._queue_floating_feedback(
+                        target_key=self._feedback_actor_key(event, "target"),
+                        label=f"-{amount}",
+                        color=(172, 178, 192),
+                        started_at=now,
+                        sequence=int(event.get("sequence", 0) or 0),
+                    )
+                continue
+
+            if event_type == "shield_flash":
+                self._queue_shield_flash(self._feedback_actor_key(event, "target"), started_at=now)
+
+    def _latest_relic_flash_start(self, default_start: int) -> int:
+        latest = default_start - RELIC_FLASH_STAGGER_MS
+        for pulses in self._relic_flash_registry.values():
+            for pulse in pulses:
+                latest = max(latest, int(pulse.get("started_at", latest)))
+        return latest
+
+    def _queue_relic_flash(self, event: dict[str, Any], started_at: int) -> None:
+        relic_id = str(event.get("relic_id", "")).strip()
+        if not relic_id:
+            return
+        self._relic_flash_registry.setdefault(relic_id, []).append(
+            {
+                "started_at": int(started_at),
+                "sequence": int(event.get("sequence", 0) or 0),
+            }
+        )
+
+    def _queue_proc_ticker(self, event: dict[str, Any], started_at: int) -> None:
+        relic_name = str(event.get("relic_name", "Relic")).strip() or "Relic"
+        trigger_hook = str(event.get("trigger_hook", "")).strip()
+        trigger_text = HOOK_LABELS.get(trigger_hook, trigger_hook.replace("_", " ").title()).strip() if trigger_hook else "Trigger"
+        detail = trigger_text
+        card_id = str(event.get("card_id", "")).strip()
+        if card_id:
+            detail = f"{detail} · {card_id.replace('_', ' ').title()}"
+        self._proc_ticker_entries.append(
+            {
+                "label": relic_name,
+                "detail": detail,
+                "combo_index": max(0, int(event.get("combo_index", 0) or 0)),
+                "started_at": int(started_at),
+            }
+        )
+
+    def _queue_floating_feedback(
+        self,
+        *,
+        target_key: str | None,
+        label: str,
+        color: tuple[int, int, int],
+        started_at: int,
+        sequence: int,
+    ) -> None:
+        if target_key is None or not label:
+            return
+        self._floating_feedback.append(
+            {
+                "target_key": target_key,
+                "label": label,
+                "color": color,
+                "started_at": int(started_at),
+                "sequence": int(sequence),
+                "phase": (int(sequence) % 7) * 0.58,
+            }
+        )
+
+    def _queue_shield_flash(self, target_key: str | None, *, started_at: int) -> None:
+        if target_key is None:
+            return
+        self._shield_flash_registry.setdefault(target_key, []).append({"started_at": int(started_at)})
+
+    def _feedback_actor_key(self, event: dict[str, Any], prefix: str) -> str | None:
+        enemy_ref = event.get(f"{prefix}_enemy_ref")
+        if isinstance(enemy_ref, str) and enemy_ref:
+            return enemy_ref
+        actor_id = event.get(f"{prefix}_id")
+        actor_type = event.get(f"{prefix}_type")
+        if actor_type == "player" or actor_id == "player":
+            return "player"
+        if isinstance(actor_id, str) and actor_id:
+            return actor_id
+        return None
+
+    def _feedback_actor_lookup(self, layout: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        lookup: dict[str, dict[str, Any]] = {}
+        player_actor = layout.get("player_actor")
+        if isinstance(player_actor, dict):
+            lookup["player"] = player_actor
+        for actor in layout.get("enemy_actors", []):
+            if not isinstance(actor, dict):
+                continue
+            enemy_ref = actor.get("enemy_ref")
+            enemy_id = actor.get("id")
+            feedback_key = actor.get("feedback_key")
+            for key in (feedback_key, enemy_ref, enemy_id):
+                if isinstance(key, str) and key and key not in lookup:
+                    lookup[key] = actor
+        return lookup
+
+    def _feedback_anchor(self, actor_lookup: dict[str, dict[str, Any]], actor_key: str) -> tuple[int, int] | None:
+        actor = actor_lookup.get(actor_key)
+        if actor is None and "#" in actor_key:
+            actor = actor_lookup.get(actor_key.split("#", 1)[0])
+        if actor is None:
+            return None
+        anchor = actor.get("feedback_anchor")
+        if isinstance(anchor, tuple) and len(anchor) == 2:
+            return int(anchor[0]), int(anchor[1])
+        actor_rect = actor.get("actor_rect")
+        if actor_rect is not None:
+            return actor_rect.centerx, actor_rect.y
+        return None
+
+    def _shield_flash_intensity(self, actor_key: str) -> float:
+        now = self._now_ms()
+        intensity = 0.0
+        for pulse in self._shield_flash_registry.get(actor_key, []):
+            elapsed = now - int(pulse.get("started_at", now))
+            if elapsed < 0 or elapsed > SHIELD_FLASH_MS:
+                continue
+            if elapsed <= 90:
+                local_intensity = elapsed / 90.0
+            else:
+                local_intensity = 1.0 - ((elapsed - 90) / max(1, SHIELD_FLASH_MS - 90))
+            intensity = max(intensity, max(0.0, min(1.0, local_intensity)))
+        return intensity
+
+    def _relic_flash_intensity(self, relic_id: str) -> float:
+        now = self._now_ms()
+        intensity = 0.0
+        for pulse in self._relic_flash_registry.get(relic_id, []):
+            elapsed = now - int(pulse.get("started_at", now))
+            if elapsed < 0 or elapsed > RELIC_FLASH_TOTAL_MS:
+                continue
+            if elapsed <= RELIC_FLASH_RAMP_MS:
+                local_intensity = elapsed / max(1, RELIC_FLASH_RAMP_MS)
+            elif elapsed <= RELIC_FLASH_HOLD_MS:
+                local_intensity = 1.0
+            else:
+                local_intensity = 1.0 - (
+                    (elapsed - RELIC_FLASH_HOLD_MS) / max(1, RELIC_FLASH_TOTAL_MS - RELIC_FLASH_HOLD_MS)
+                )
+            intensity = max(intensity, max(0.0, min(1.0, local_intensity)))
+        return intensity
 
     def _enemy_ref_from_snapshot(self, enemy: dict[str, Any], index: int) -> str:
         return str(enemy.get("enemy_ref") or f"{enemy.get('id', 'enemy')}#{index}")
@@ -1771,10 +2349,33 @@ class CombatUI:
             pygame.draw.ellipse(surface, color, pip_rect)
             pygame.draw.ellipse(surface, border, pip_rect, 2)
 
-    def _draw_block_chip(self, surface: Any, *, rect: tuple[int, int, int, int], value: int, accent: tuple[int, int, int]) -> None:
+    def _draw_block_chip(
+        self,
+        surface: Any,
+        *,
+        rect: tuple[int, int, int, int],
+        value: int,
+        accent: tuple[int, int, int],
+        flash_key: str | None = None,
+    ) -> None:
         chip_rect = pygame.Rect(*rect)
-        self._draw_panel(surface, chip_rect, fill=(12, 18, 28, 232), border=accent, radius=14)
-        self._draw_shield_icon(surface, pygame.Rect(chip_rect.x + 8, chip_rect.y + 6, 18, 18), accent)
+        flash_intensity = 0.0 if flash_key is None else self._shield_flash_intensity(flash_key)
+        if flash_intensity > 0.0:
+            glow_rect = chip_rect.inflate(14, 12)
+            glow = pygame.Surface(glow_rect.size, pygame.SRCALPHA)
+            glow_alpha = int(_lerp(0, 130, flash_intensity))
+            pygame.draw.ellipse(glow, (120, 204, 255, glow_alpha), glow.get_rect())
+            surface.blit(glow, glow_rect.topleft)
+        fill = (
+            int(_lerp(12, 68, flash_intensity)),
+            int(_lerp(18, 108, flash_intensity)),
+            int(_lerp(28, 166, flash_intensity)),
+            232,
+        )
+        border = tuple(min(255, int(_lerp(channel, 255, flash_intensity * 0.75))) for channel in accent)
+        self._draw_panel(surface, chip_rect, fill=fill, border=border, radius=14)
+        icon_color = tuple(min(255, int(_lerp(channel, 248, flash_intensity * 0.65))) for channel in accent)
+        self._draw_shield_icon(surface, pygame.Rect(chip_rect.x + 8, chip_rect.y + 6, 18, 18), icon_color)
         self._draw_text(surface, str(value), (chip_rect.x + 30, chip_rect.y + 6), self._small_font, width=chip_rect.width - 34)
 
     def _draw_enemy_hp(self, surface: Any, actor: dict[str, Any]) -> None:
@@ -1801,9 +2402,9 @@ class CombatUI:
         intent = actor["enemy"].get("intent_display", {})
         rect = pygame.Rect(*actor["intent_rect"])
         border = (222, 236, 255) if high_contrast else actor["accent"]
-        self._draw_panel(surface, rect, fill=(10, 18, 28, 236), border=border, radius=14)
+        self._draw_panel(surface, rect, fill=(8, 14, 24, 238), border=border, radius=16)
         kind = intent.get("kind", "wait")
-        icon_rect = pygame.Rect(rect.x + 8, rect.y + 4, 18, 18)
+        icon_rect = pygame.Rect(rect.x + 10, rect.y + 7, 20, 20)
         icon_effects = [
             effect
             for effect in intent.get("icon_effects", [])
@@ -1815,22 +2416,22 @@ class CombatUI:
             hit_count = int(intent.get("hit_count", 0))
             icon_count = min(3, hit_count)
             for index in range(icon_count):
-                self._draw_sword_icon(surface, pygame.Rect(icon_rect.x + (index * 14), icon_rect.y, 16, 16), (255, 112, 112))
-            damage_x = rect.x + 30 + ((icon_count - 1) * 14)
-            self._draw_text(surface, str(intent.get("damage_per_hit", 0)), (damage_x, rect.y + 4), self._small_font)
+                self._draw_sword_icon(surface, pygame.Rect(icon_rect.x + (index * 15), icon_rect.y + 1, 17, 17), (255, 112, 112))
+            damage_x = rect.x + 34 + ((icon_count - 1) * 15)
+            self._draw_text(surface, str(intent.get("damage_per_hit", 0)), (damage_x, rect.y + 5), self._small_font)
             if hit_count > 1:
-                self._draw_text(surface, f"x{hit_count}", (damage_x + 24, rect.y + 6), self._tiny_font)
+                self._draw_text(surface, f"x{hit_count}", (damage_x + 28, rect.y + 8), self._tiny_font)
         elif kind == "defend":
             self._draw_shield_icon(surface, icon_rect, (116, 198, 255))
-            self._draw_text(surface, str(intent.get("block", 0)), (rect.x + 28, rect.y + 4), self._small_font)
+            self._draw_text(surface, str(intent.get("block", 0)), (rect.x + 34, rect.y + 5), self._small_font)
         elif kind == "summon":
             self._draw_summon_icon(surface, icon_rect, (202, 146, 255))
-            self._draw_text(surface, str(intent.get("summon_count", 0)), (rect.x + 28, rect.y + 4), self._small_font)
+            self._draw_text(surface, str(intent.get("summon_count", 0)), (rect.x + 34, rect.y + 5), self._small_font)
         elif kind == "buff":
             self._draw_buff_icon(surface, icon_rect, (106, 234, 170))
         elif primary_icon_effect is not None:
             self._blit_status_icon(surface, str(primary_icon_effect["icon_id"]), icon_rect)
-            self._draw_text(surface, str(primary_icon_effect.get("count", 1)), (rect.x + 28, rect.y + 4), self._small_font)
+            self._draw_text(surface, str(primary_icon_effect.get("count", 1)), (rect.x + 34, rect.y + 5), self._small_font)
         elif kind == "debuff":
             self._draw_debuff_icon(surface, icon_rect, (255, 156, 96))
         else:
@@ -1861,16 +2462,16 @@ class CombatUI:
         if kind == "mixed" and int(intent.get("summon_count", 0)) > 0:
             chip_entries.append({"chip_type": "glyph", "label": f"+{intent['summon_count']}", "color": (202, 146, 255), "glyph_kind": "summon"})
 
-        chip_x = rect.right - 6
-        for chip in reversed(chip_entries[:2]):
+        chip_x = rect.right - 8
+        for chip in reversed(chip_entries[:3]):
             if chip["chip_type"] == "icon":
-                chip_width = max(30, 20 + self._tiny_font.size(str(chip["count"]))[0])
-                chip_rect = pygame.Rect(chip_x - chip_width, rect.y + 5, chip_width, 18)
+                chip_width = max(34, 22 + self._tiny_font.size(str(chip["count"]))[0])
+                chip_rect = pygame.Rect(chip_x - chip_width, rect.y + 7, chip_width, 20)
                 self._draw_intent_icon_chip(surface, chip_rect, str(chip["icon_id"]), int(chip["count"]))
             else:
                 label = str(chip["label"])
-                chip_width = 34 if len(label) <= 2 else 40
-                chip_rect = pygame.Rect(chip_x - chip_width, rect.y + 5, chip_width, 18)
+                chip_width = 36 if len(label) <= 2 else 42
+                chip_rect = pygame.Rect(chip_x - chip_width, rect.y + 7, chip_width, 20)
                 self._draw_intent_glyph_chip(surface, chip_rect, label, chip["color"], str(chip["glyph_kind"]))
             chip_x = chip_rect.x - 6
 
@@ -1907,13 +2508,18 @@ class CombatUI:
     def _draw_hand(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
         cards = list(layout["hand_cards"])
         cards.sort(key=lambda card: (card["index"] == self._hovered_card_index, card["index"]))
+        focus_active = self._hovered_card_index is not None and layout["selected_card"] is None
         for card in cards:
             if card["index"] == self._selected_card_index:
                 continue
             scale = self._hand_card_scale(card["index"])
             center = card["center"]
+            alpha = 128 if layout["selected_card"] is not None else 255
             if card["index"] == self._hovered_card_index:
-                center = (center[0], center[1] - CARD_HOVER_LIFT)
+                center = (center[0], center[1] - CARD_FOCUS_LIFT)
+            elif focus_active:
+                center = (center[0], center[1] + CARD_FOCUS_RECESS_PX)
+                alpha = CARD_DIMMED_ALPHA
             self._draw_card_sprite(
                 surface,
                 card["card"],
@@ -1929,7 +2535,7 @@ class CombatUI:
                 disabled=not card["playable"],
                 selected=False,
                 high_contrast=high_contrast,
-                alpha=128 if layout["selected_card"] is not None else 255,
+                alpha=alpha,
             )
 
     def _draw_selected_card(self, surface: Any, selected_card: dict[str, Any], *, high_contrast: bool) -> None:
@@ -2053,6 +2659,11 @@ class CombatUI:
             rect = pygame.Rect(*region["rect"])
             item = region["item"]
             icon_size = int(region["icon_size"])
+            pill_rect = rect.inflate(10, 6)
+            pill = pygame.Surface(pill_rect.size, pygame.SRCALPHA)
+            pygame.draw.rect(pill, (10, 16, 26, 168), pill.get_rect(), border_radius=10)
+            pygame.draw.rect(pill, (98, 120, 154, 152), pill.get_rect(), 1, border_radius=10)
+            surface.blit(pill, pill_rect.topleft)
             icon_rect = pygame.Rect(rect.x, rect.y, icon_size, icon_size)
             self._blit_status_icon(surface, item["icon_id"], icon_rect)
             count_text = region["count_label"]
@@ -2072,15 +2683,27 @@ class CombatUI:
 
     def _draw_end_turn_button(self, surface: Any, layout: dict[str, Any]) -> None:
         button_rect = pygame.Rect(*layout["end_turn_rect"])
-        fill = (30, 58, 92) if layout["any_playable"] else (42, 78, 118)
+        fill = (28, 56, 90) if layout["any_playable"] else (34, 52, 72)
         if layout["end_turn_hovered"]:
-            fill = (48, 94, 148)
+            fill = (52, 96, 148)
         if self._pressed_end_turn:
             fill = (255, 214, 110)
-        border = (180, 198, 224) if not self._pressed_end_turn else (255, 214, 110)
+        border = (188, 208, 234) if not self._pressed_end_turn else (255, 214, 110)
+        if layout["end_turn_hovered"] and not self._pressed_end_turn:
+            glow_rect = button_rect.inflate(18, 16)
+            glow = pygame.Surface(glow_rect.size, pygame.SRCALPHA)
+            pygame.draw.ellipse(glow, (104, 180, 255, 54), glow.get_rect())
+            surface.blit(glow, glow_rect.topleft)
         self._draw_panel(surface, button_rect, fill=fill, border=border, radius=16)
+        if not self._pressed_end_turn:
+            sheen = pygame.Surface((button_rect.width - 8, max(8, button_rect.height // 2)), pygame.SRCALPHA)
+            pygame.draw.rect(sheen, (255, 255, 255, 20), sheen.get_rect(), border_radius=12)
+            surface.blit(sheen, (button_rect.x + 4, button_rect.y + 4))
         label_color = (240, 245, 255) if not self._pressed_end_turn else (20, 28, 40)
-        surface.blit(self._small_font.render("End Turn", True, label_color), self._small_font.render("End Turn", True, label_color).get_rect(center=button_rect.center))
+        label = self._small_font.render("End Turn", True, label_color)
+        hint = self._tiny_font.render("Space", True, label_color if self._pressed_end_turn else (200, 216, 236))
+        surface.blit(label, label.get_rect(center=(button_rect.centerx, button_rect.centery - 6)))
+        surface.blit(hint, hint.get_rect(center=(button_rect.centerx, button_rect.centery + 12)))
 
     def _render_bark(self, surface: Any, bark: dict[str, Any], enemy_actors: list[dict[str, Any]]) -> None:
         speaker = next((enemy for enemy in enemy_actors if enemy["id"] == bark.get("speaker_id")), None)
@@ -2206,10 +2829,14 @@ class CombatUI:
 
     def _enemy_id_at_position(self, layout: dict[str, Any], position: tuple[int, int]) -> str | None:
         for enemy in layout["enemy_actors"]:
-            actor_rect = enemy["actor_rect"].inflate(24, 28)
+            actor_rect = enemy["actor_rect"].inflate(30, 34)
             if point_in_rect(position, (actor_rect.x, actor_rect.y, actor_rect.width, actor_rect.height)):
                 return enemy["id"]
-            if point_in_rect(position, enemy["intent_rect"]) or point_in_rect(position, enemy["hp_bar_rect"]):
+            if (
+                point_in_rect(position, enemy["intent_rect"])
+                or point_in_rect(position, enemy["hp_bar_rect"])
+                or point_in_rect(position, enemy["block_rect"])
+            ):
                 return enemy["id"]
         return None
 
@@ -2257,17 +2884,10 @@ class CombatUI:
         return pygame.transform.smoothscale(self._load_image(path), size)
 
     def _combat_background_path(self, combat_state: dict[str, Any]) -> Path:
-        map_id = combat_state.get("map_id")
-        if isinstance(map_id, str):
-            background_path = COMBAT_BACKGROUND_PATHS.get(map_id)
-            if background_path is not None and background_path.exists():
-                return background_path
-        branch_faction = combat_state.get("branch_faction")
-        if isinstance(branch_faction, str):
-            background_path = COMBAT_BACKGROUND_FACTION_PATHS.get(branch_faction)
-            if background_path is not None and background_path.exists():
-                return background_path
-        return DEFAULT_COMBAT_BACKGROUND_PATH
+        return resolve_encounter_background_path(
+            map_id=combat_state.get("map_id"),
+            branch_faction=combat_state.get("branch_faction"),
+        )
 
     def _load_image(self, path: Path) -> Any:
         cache_key = str(path)

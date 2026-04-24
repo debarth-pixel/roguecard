@@ -24,6 +24,8 @@ from config import (
     REWARD_CARD_CHOICE_COUNT,
     SAVE_FORMAT_VERSION,
     SHOP_CARD_OFFER_COUNT,
+    SHOP_CLEANSE_OFFER_ID,
+    SHOP_CLEANSE_PRICE_MULTIPLIER,
     SHOP_HEAL_AMOUNT,
     SHOP_HEAL_ENABLED,
     SHOP_HEAL_OFFER_ID,
@@ -48,6 +50,13 @@ from map.map_generator import MapGenerator
 from map.node import Node
 
 CARD_SHOP_PRICE_OVERRIDES: dict[str, int] = {}
+SHOP_MERCHANT_MENUS = {"main_menu", "purchase", "purge", "cleanse"}
+SHOP_MENU_STATUS_MESSAGES = {
+    "main_menu": "Merchant terminal idle.",
+    "purchase": "Purchase catalog open.",
+    "purge": "Purge channel active. Choose a deck card to remove.",
+    "cleanse": "Cleanse channel active.",
+}
 
 
 class StateManager:
@@ -402,8 +411,91 @@ class StateManager:
         self.active_shop["selected_offer_id"] = offer_id
         if offer["type"] != "purge":
             self.active_shop["selected_purge_index"] = None
+        if offer["type"] == "card":
+            self.active_shop["merchant_menu"] = "purchase"
+        elif offer["type"] == "purge":
+            self.active_shop["merchant_menu"] = "purge"
+        elif offer["type"] in {"heal", "cleanse"}:
+            self.active_shop["merchant_menu"] = "cleanse"
         self.status_message = f"Selected {offer['label']}."
         return self.get_state_snapshot()
+
+    def open_shop_menu(self, menu_id: str) -> dict[str, Any]:
+        self._require_shop()
+        if menu_id not in SHOP_MERCHANT_MENUS:
+            raise ValueError(f"Unknown merchant menu: {menu_id}")
+
+        self.active_shop["merchant_menu"] = menu_id
+        if menu_id == "main_menu":
+            self.active_shop["selected_offer_id"] = None
+        elif menu_id == "purchase":
+            if self.active_shop.get("selected_offer_id") not in {
+                offer["offer_id"]
+                for offer in self.active_shop["inventory"]
+                if offer["type"] == "card"
+            }:
+                self.active_shop["selected_offer_id"] = None
+            self.active_shop["selected_purge_index"] = None
+        elif menu_id == "purge":
+            self.active_shop["selected_offer_id"] = SHOP_PURGE_OFFER_ID
+        elif menu_id == "cleanse":
+            if self.active_shop.get("selected_offer_id") not in {SHOP_HEAL_OFFER_ID, SHOP_CLEANSE_OFFER_ID}:
+                self.active_shop["selected_offer_id"] = None
+            self.active_shop["selected_purge_index"] = None
+
+        self.status_message = SHOP_MENU_STATUS_MESSAGES[menu_id]
+        return self.get_state_snapshot()
+
+    def clear_shop_selection(self) -> dict[str, Any]:
+        self._require_shop()
+        menu_id = self.active_shop.get("merchant_menu", "main_menu")
+
+        if menu_id == "purchase":
+            self.active_shop["selected_offer_id"] = None
+            self.active_shop["selected_purge_index"] = None
+            self.status_message = SHOP_MENU_STATUS_MESSAGES["purchase"]
+            return self.get_state_snapshot()
+
+        if menu_id == "purge":
+            purge_offer = next(
+                (
+                    offer
+                    for offer in self.active_shop["inventory"]
+                    if offer.get("offer_id") == SHOP_PURGE_OFFER_ID and not offer.get("sold_out")
+                ),
+                None,
+            )
+            self.active_shop["selected_offer_id"] = None if purge_offer is None else SHOP_PURGE_OFFER_ID
+            self.active_shop["selected_purge_index"] = None
+            self.status_message = SHOP_MENU_STATUS_MESSAGES["purge"]
+            return self.get_state_snapshot()
+
+        self.active_shop["selected_offer_id"] = None
+        self.active_shop["selected_purge_index"] = None
+        self.status_message = SHOP_MENU_STATUS_MESSAGES.get(menu_id, "Selection cleared.")
+        return self.get_state_snapshot()
+
+    def purchase_shop_offer(self, offer_id: str) -> dict[str, Any]:
+        self._require_shop()
+        previous_offer_id = self.active_shop.get("selected_offer_id")
+        previous_purge_index = self.active_shop.get("selected_purge_index")
+        previous_menu = self.active_shop.get("merchant_menu", "main_menu")
+        try:
+            self.select_shop_offer(offer_id)
+            if offer_id == SHOP_CLEANSE_OFFER_ID:
+                return self.confirm_shop_cleanse()
+            return self.confirm_shop_purchase()
+        except Exception:
+            self.active_shop["selected_offer_id"] = previous_offer_id
+            self.active_shop["selected_purge_index"] = previous_purge_index
+            self.active_shop["merchant_menu"] = previous_menu
+            raise
+
+    def confirm_shop_cleanse(self) -> dict[str, Any]:
+        self._require_shop()
+        if self.active_shop.get("selected_offer_id") != SHOP_CLEANSE_OFFER_ID:
+            self.active_shop["selected_offer_id"] = SHOP_CLEANSE_OFFER_ID
+        return self.confirm_shop_purchase()
 
     def confirm_shop_purchase(self) -> dict[str, Any]:
         self._require_shop()
@@ -446,11 +538,13 @@ class StateManager:
         elif offer["type"] == "heal":
             healed = self.player.heal(offer["heal_amount"])
             summary = f"Recovered {healed} HP for {price} credits."
+        elif offer["type"] == "cleanse":
+            summary = self._apply_shop_cleanse_purchase(offer, price)
         else:
             self.player.gain_credits(price)
             raise ValueError(f"Unsupported shop offer type: {offer['type']}")
 
-        if offer["type"] != "heal":
+        if offer["type"] not in {"heal", "cleanse"}:
             offer["sold_out"] = True
         self.active_shop["selected_offer_id"] = None
         self._refresh_shop_prices()
@@ -998,11 +1092,28 @@ class StateManager:
 
         self._refresh_shop_prices()
         can_reroll, reroll_disabled_reason = self._shop_reroll_availability()
+        inventory = copy.deepcopy(self.active_shop["inventory"])
+        card_offers = [offer for offer in inventory if offer.get("type") == "card"]
+        relic_offers = [offer for offer in inventory if offer.get("type") == "relic"]
+        purge_offer = next((offer for offer in inventory if offer.get("offer_id") == SHOP_PURGE_OFFER_ID), None)
+        heal_offer = next((offer for offer in inventory if offer.get("offer_id") == SHOP_HEAL_OFFER_ID), None)
+        cleanse_offer = next((offer for offer in inventory if offer.get("offer_id") == SHOP_CLEANSE_OFFER_ID), None)
         return {
-            "inventory": copy.deepcopy(self.active_shop["inventory"]),
+            "shop_node_id": self.active_shop.get("shop_node_id"),
+            "map_id": None if self.map_graph is None else self.map_graph.get("map_id"),
+            "branch_faction": None if self.map_graph is None else self.map_graph.get("branch_faction"),
+            "inventory": inventory,
+            "card_offers": card_offers,
+            "relic_offers": relic_offers,
+            "purge_offer": purge_offer,
+            "heal_offer": heal_offer,
+            "cleanse_offer": cleanse_offer,
+            "active_curses": self._active_curse_snapshots(),
+            "merchant_menu": self.active_shop.get("merchant_menu", "main_menu"),
             "selected_offer_id": self.active_shop.get("selected_offer_id"),
             "selected_purge_index": self.active_shop.get("selected_purge_index"),
             "reroll_count": self.active_shop.get("reroll_count", 0),
+            "cleanse_count": self.active_shop.get("cleanse_count", 0),
             "reroll_price": self._shop_reroll_price(),
             "can_reroll": can_reroll,
             "reroll_disabled_reason": reroll_disabled_reason,
@@ -1630,6 +1741,51 @@ class StateManager:
         ]
         return [f"Removed: {modifier['name']}."]
 
+    def _apply_shop_cleanse_purchase(self, offer: dict[str, Any], price: int) -> str:
+        curse_records = self._active_curse_records()
+        if not curse_records:
+            self.player.gain_credits(price)
+            raise ValueError("No curses are active to cleanse.")
+
+        cleanse_count = int(self.active_shop.get("cleanse_count", 0))
+        cleanse_rng = self._state_rng(
+            f"shop_cleanse:{self.active_shop.get('shop_node_id', self.selected_node_id)}:{cleanse_count}"
+        )
+        chosen_record = cleanse_rng.choice(sorted(curse_records, key=lambda record: str(record.get("id"))))
+        curse_id = chosen_record["id"]
+        curse = self.run_modifier_library.get_modifier(curse_id)
+
+        reversal_details = self._reverse_curse_on_acquire_penalties(curse)
+        removal_details = self._remove_run_modifier(curse_id)
+        self.active_shop["cleanse_count"] = cleanse_count + 1
+        self.active_shop["merchant_menu"] = "cleanse"
+        self._refresh_shop_prices()
+
+        detail_text = " ".join([*reversal_details, *removal_details]).strip()
+        if detail_text:
+            return f"Cleanse completed for {price} credits. {detail_text}"
+        return f"Cleanse completed for {price} credits. Removed {curse['name']}."
+
+    def _reverse_curse_on_acquire_penalties(self, curse: dict[str, Any]) -> list[str]:
+        details: list[str] = []
+        effects = list(curse.get("hooks", {}).get("on_acquire", []))
+        for effect in reversed(effects):
+            effect_type = effect.get("type")
+            value = effect.get("value")
+            if effect_type == "modify_max_hp" and isinstance(value, int) and value < 0:
+                restored = self.player.adjust_max_hp(-value)
+                if restored > 0:
+                    details.append(f"Restored {restored} max HP.")
+            elif effect_type == "modify_healing_multiplier_percent" and isinstance(value, int) and value < 0:
+                updated_multiplier = self.player.adjust_healing_multiplier(-value)
+                details.append(f"Healing efficiency restored to {int(round(updated_multiplier * 100))}%.")
+            elif effect_type == "damage" and isinstance(value, int) and value > 0:
+                restored_hp = min(self.player.max_hp - self.player.current_hp, value)
+                if restored_hp > 0:
+                    self.player.current_hp += restored_hp
+                    details.append(f"Recovered {restored_hp} HP.")
+        return details
+
     def _refresh_run_modifier(
         self,
         modifier_id: str,
@@ -1662,7 +1818,15 @@ class StateManager:
                 self.player.spend_credits(lost)
             return [f"Lost {lost} credits."]
         if effect_type == "damage":
+            block_before = max(0, int(self.player.block))
             damage = self.player.take_damage(effect["value"])
+            blocked_amount = min(block_before, int(effect["value"]))
+            self._emit_player_damage_feedback(
+                incoming_damage=int(effect["value"]),
+                hp_damage=damage,
+                blocked_amount=blocked_amount,
+                feedback_context=self._modifier_feedback_context(effect, event),
+            )
             if damage > 0 and self.current_state == "combat":
                 self._handle_combat_runtime_event(
                     {
@@ -1687,7 +1851,14 @@ class StateManager:
         if effect_type == "gain_block":
             if self._player_positive_gain_blocked("block", effect["value"]):
                 return ["Gained 0 Block."]
-            gained = self.player.gain_block(effect["value"])
+            if self.current_state == "combat" and self.combat_manager is not None:
+                gained = self.combat_manager.grant_block(
+                    self.player,
+                    effect["value"],
+                    feedback_context=self._modifier_feedback_context(effect, event),
+                )
+            else:
+                gained = self.player.gain_block(effect["value"])
             return [f"Gained {gained} Block."]
         if effect_type == "lose_block":
             lost = min(effect["value"], self.player.block)
@@ -1715,7 +1886,14 @@ class StateManager:
             )
             return [f"Banked {effect['value']} Energy for next turn."]
         if effect_type == "heal":
-            healed = self.player.heal(effect["value"])
+            if self.current_state == "combat" and self.combat_manager is not None:
+                healed = self.combat_manager.restore_health(
+                    self.player,
+                    effect["value"],
+                    feedback_context=self._modifier_feedback_context(effect, event),
+                )
+            else:
+                healed = self.player.heal(effect["value"])
             if healed > 0 and self.current_state == "combat":
                 self._handle_combat_runtime_event({"hook": "on_heal", "amount": healed})
             return [f"Recovered {healed} HP."]
@@ -1726,19 +1904,37 @@ class StateManager:
             enemy = self._event_target_enemy(event)
             if enemy is None:
                 return []
-            applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
+            applied = self.combat_manager.apply_damage(
+                self.player,
+                enemy,
+                effect["value"],
+                emit_event=False,
+                feedback_context=self._modifier_feedback_context(effect, event),
+            )
             return [] if applied <= 0 else [f"{enemy.name} took {applied} bonus damage."]
         if effect_type == "damage_random_enemy":
             enemy = self._random_living_enemy()
             if enemy is None:
                 return []
-            applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
+            applied = self.combat_manager.apply_damage(
+                self.player,
+                enemy,
+                effect["value"],
+                emit_event=False,
+                feedback_context=self._modifier_feedback_context(effect, event),
+            )
             return [] if applied <= 0 else [f"{enemy.name} took {applied} random damage."]
         if effect_type == "damage_highest_status_enemy":
             enemy = self._highest_status_enemy(effect["status_id"])
             if enemy is None:
                 return []
-            applied = self.combat_manager.apply_damage(self.player, enemy, effect["value"], emit_event=False)
+            applied = self.combat_manager.apply_damage(
+                self.player,
+                enemy,
+                effect["value"],
+                emit_event=False,
+                feedback_context=self._modifier_feedback_context(effect, event),
+            )
             return [] if applied <= 0 else [f"{enemy.name} took {applied} bonus damage."]
         if effect_type == "apply_status_all_enemies":
             if self.combat_manager is None:
@@ -1791,7 +1987,11 @@ class StateManager:
                 for enemy in self.combat_manager.enemies
             ):
                 return []
-            healed = self.player.heal(effect["value"])
+            healed = self.combat_manager.restore_health(
+                self.player,
+                effect["value"],
+                feedback_context=self._modifier_feedback_context(effect, event),
+            )
             if healed > 0 and self.current_state == "combat":
                 self._handle_combat_runtime_event({"hook": "on_heal", "amount": healed})
             return [] if healed <= 0 else [f"Recovered {healed} HP."]
@@ -1882,12 +2082,115 @@ class StateManager:
             return nested_details
         return []
 
+    def _modifier_feedback_context(
+        self,
+        effect: dict[str, Any],
+        event: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        context: dict[str, Any] = {}
+        modifier_id = effect.get("modifier_id")
+        modifier_name = effect.get("modifier_name")
+        modifier_type = effect.get("modifier_type")
+        if isinstance(modifier_id, str) and modifier_id:
+            context["source_modifier_id"] = modifier_id
+            context["source_id"] = modifier_id
+        if isinstance(modifier_name, str) and modifier_name:
+            context["source_name"] = modifier_name
+        if isinstance(modifier_type, str) and modifier_type:
+            context["source_type"] = modifier_type
+        if not isinstance(event, dict):
+            return context
+        if isinstance(event.get("source_modifier_id"), str):
+            context["trigger_source_modifier_id"] = event["source_modifier_id"]
+        card_id = event.get("card_id") or event.get("source_card_id")
+        if isinstance(card_id, str) and card_id:
+            context["card_id"] = card_id
+        card_type = event.get("card_type")
+        if isinstance(card_type, str) and card_type:
+            context["card_type"] = card_type
+        target_id = event.get("target_id") or event.get("enemy_id")
+        if isinstance(target_id, str) and target_id:
+            context["target_id"] = target_id
+            context.setdefault("target_type", "enemy")
+        return context
+
+    def _emit_player_damage_feedback(
+        self,
+        *,
+        incoming_damage: int,
+        hp_damage: int,
+        blocked_amount: int,
+        feedback_context: dict[str, Any] | None = None,
+    ) -> None:
+        if self.current_state != "combat" or self.combat_manager is None:
+            return
+        if blocked_amount > 0:
+            block_feedback = {
+                "type": "block_spent",
+                "target_id": "player",
+                "target_type": "player",
+                "target_name": "Player",
+                "amount": blocked_amount,
+                "reason": "damage_absorbed",
+            }
+            if feedback_context:
+                block_feedback.update(feedback_context)
+            self.combat_manager.emit_feedback_event(block_feedback)
+            shield_feedback = {
+                "type": "shield_flash",
+                "target_id": "player",
+                "target_type": "player",
+                "target_name": "Player",
+                "amount": blocked_amount,
+                "reason": "damage_absorbed",
+            }
+            if feedback_context:
+                shield_feedback.update(feedback_context)
+            self.combat_manager.emit_feedback_event(shield_feedback)
+        if hp_damage > 0 or blocked_amount > 0:
+            damage_feedback = {
+                "type": "damage_applied",
+                "target_id": "player",
+                "target_type": "player",
+                "target_name": "Player",
+                "amount": hp_damage,
+                "hp_damage": hp_damage,
+                "incoming_damage": incoming_damage,
+                "blocked_amount": blocked_amount,
+                "bleed_bonus": 0,
+            }
+            if feedback_context:
+                damage_feedback.update(feedback_context)
+            self.combat_manager.emit_feedback_event(damage_feedback)
+
     def _apply_combat_modifier_effects(self, hook_name: str) -> None:
         event = {"hook": hook_name}
         if self.combat_manager is not None:
             event["turn_number"] = self.combat_manager.turn_manager.turn_number
+        seen_relic_ids: set[str] = set()
+        combo_index = 0
+        runtime_event_index = int(self._combat_runtime_flags().get("runtime_event_index", 0))
         for effect in self.run_modifier_engine.get_effects(self._active_modifiers_for_combat(), hook_name):
             if self._modifier_effect_matches_event(effect, event):
+                if (
+                    self.current_state == "combat"
+                    and self.combat_manager is not None
+                    and effect.get("modifier_type") == "relic"
+                    and effect.get("modifier_id") not in seen_relic_ids
+                ):
+                    seen_relic_ids.add(effect["modifier_id"])
+                    combo_index += 1
+                    self.combat_manager.emit_feedback_event(
+                        {
+                            "type": "relic_triggered",
+                            "runtime_event_index": runtime_event_index,
+                            "combo_index": combo_index,
+                            "relic_id": effect.get("modifier_id"),
+                            "relic_name": effect.get("modifier_name"),
+                            "trigger_hook": hook_name,
+                            "effect_types": [str(effect.get("type", ""))],
+                        }
+                    )
                 self._apply_modifier_effect(effect, event=event)
 
     def _handle_combat_runtime_event(self, event: dict[str, Any]) -> None:
@@ -1899,8 +2202,10 @@ class StateManager:
 
         combat_flags = self._combat_runtime_flags()
         combat_flags["runtime_event_index"] = int(combat_flags.get("runtime_event_index", 0)) + 1
+        runtime_event_index = int(combat_flags.get("runtime_event_index", 0))
         triggered_this_turn = set(combat_flags.get("triggered_modifier_ids_this_turn", []))
         triggered_this_combat = set(combat_flags.get("triggered_modifier_ids_this_combat", []))
+        combo_index = 0
 
         for record in self._active_modifiers_for_combat():
             hook_effects = self.run_modifier_engine.get_effects([record], hook_name)
@@ -1926,6 +2231,33 @@ class StateManager:
                     combat_gated_effects.setdefault(gate_key, []).append(effect)
                 else:
                     ungated_effects.append(effect)
+
+            allowed_effects = list(ungated_effects)
+            for gated_effects in turn_gated_effects.values():
+                allowed_effects.extend(gated_effects)
+            for gated_effects in combat_gated_effects.values():
+                allowed_effects.extend(gated_effects)
+            if not allowed_effects:
+                continue
+
+            hydrated_modifier = self.run_modifier_engine.hydrate_modifier(record)
+            if hydrated_modifier.get("type") == "relic":
+                combo_index += 1
+                feedback_payload = {
+                    "type": "relic_triggered",
+                    "runtime_event_index": runtime_event_index,
+                    "combo_index": combo_index,
+                    "relic_id": hydrated_modifier["id"],
+                    "relic_name": hydrated_modifier["name"],
+                    "trigger_hook": hook_name,
+                    "card_id": event.get("card_id") or event.get("source_card_id"),
+                    "card_type": event.get("card_type"),
+                    "target_id": event.get("target_id") or event.get("enemy_id"),
+                    "target_type": event.get("target_type") or ("enemy" if event.get("target_id") or event.get("enemy_id") else None),
+                    "trigger_source_modifier_id": event.get("source_modifier_id"),
+                    "effect_types": [str(effect.get("type", "")) for effect in allowed_effects if str(effect.get("type", ""))],
+                }
+                self.combat_manager.emit_feedback_event({key: value for key, value in feedback_payload.items() if value is not None})
 
             for effect in ungated_effects:
                 self._apply_modifier_effect(effect, event=event)
@@ -2375,6 +2707,8 @@ class StateManager:
                 offer["price"] = self._shop_price("relic", base_price, shop_node_id)
             elif offer["type"] == "heal":
                 offer["price"] = self._shop_price("heal", SHOP_HEAL_PRICE, shop_node_id)
+            elif offer["type"] == "cleanse":
+                offer["price"] = self._shop_cleanse_price(shop_node_id)
             elif offer["type"] == "purge":
                 offer["price"] = self._shop_price("purge", SHOP_PURGE_PRICE, shop_node_id)
 
@@ -2697,13 +3031,16 @@ class StateManager:
         inventory.extend(self._shop_relic_offer(relic_id, shop_node_id=shop_node_id) for relic_id in chosen_relic_ids)
         if SHOP_HEAL_ENABLED:
             inventory.append(self._shop_heal_offer(shop_node_id=shop_node_id))
+        inventory.append(self._shop_cleanse_offer(shop_node_id=shop_node_id))
         inventory.append(self._shop_purge_offer(shop_node_id=shop_node_id, purge_locked=purge_locked))
         return {
             "shop_node_id": shop_node_id,
             "inventory": inventory,
+            "merchant_menu": "main_menu",
             "selected_offer_id": None,
             "selected_purge_index": None,
             "reroll_count": 0,
+            "cleanse_count": 0,
             "seen_card_ids": list(chosen_card_ids),
             "seen_relic_ids": list(chosen_relic_ids),
         }
@@ -2745,6 +3082,16 @@ class StateManager:
             "sold_out": False,
         }
 
+    def _shop_cleanse_offer(self, shop_node_id: str | None = None) -> dict[str, Any]:
+        return {
+            "offer_id": SHOP_CLEANSE_OFFER_ID,
+            "type": "cleanse",
+            "label": "Deep Cleanse",
+            "description": "Remove one random active curse and reverse its tracked penalty.",
+            "price": self._shop_cleanse_price(shop_node_id),
+            "sold_out": False,
+        }
+
     def _shop_purge_offer(self, shop_node_id: str | None, purge_locked: bool) -> dict[str, Any]:
         return {
             "offer_id": SHOP_PURGE_OFFER_ID,
@@ -2778,7 +3125,16 @@ class StateManager:
                 return False, "Heal service is only available below max HP."
             return True, None
 
+        if offer["type"] == "cleanse":
+            if not self._active_curse_records():
+                return False, "No curses are active to cleanse."
+            return True, None
+
         return True, None
+
+    def _shop_cleanse_price(self, shop_node_id: str | None) -> int:
+        effective_heal_price = self._shop_price("heal", SHOP_HEAL_PRICE, shop_node_id)
+        return max(0, effective_heal_price * SHOP_CLEANSE_PRICE_MULTIPLIER)
 
     def _shop_reroll_price(self) -> int:
         if self.active_shop is None:
@@ -3108,6 +3464,32 @@ class StateManager:
             }
             for index, card in enumerate(self.player.deck_manager.starting_deck)
         ]
+
+    def _active_curse_records(self) -> list[dict[str, Any]]:
+        curse_records: list[dict[str, Any]] = []
+        for record in self.run_modifiers:
+            modifier_id = record.get("id")
+            if not isinstance(modifier_id, str):
+                continue
+            modifier = self.run_modifier_library.get_modifier(modifier_id)
+            if modifier.get("type") == "curse":
+                curse_records.append(record)
+        return curse_records
+
+    def _active_curse_snapshots(self) -> list[dict[str, Any]]:
+        snapshots: list[dict[str, Any]] = []
+        for record in self._active_curse_records():
+            hydrated = self.run_modifier_engine.hydrate_modifier(record)
+            snapshots.append(
+                {
+                    "id": hydrated["id"],
+                    "name": hydrated["name"],
+                    "description": hydrated["description"],
+                    "downside": hydrated.get("downside"),
+                    "duration_label": hydrated.get("duration_label"),
+                }
+            )
+        return snapshots
 
     def _card_shop_base_price(self, card_id: str) -> int:
         override = CARD_SHOP_PRICE_OVERRIDES.get(card_id)
@@ -3690,6 +4072,14 @@ class StateManager:
         restored_shop["seen_card_ids"] = list(dict.fromkeys(seen_card_ids))
         restored_shop["seen_relic_ids"] = list(dict.fromkeys(seen_relic_ids))
         restored_shop["shop_node_id"] = restored_shop.get("shop_node_id", self.selected_node_id)
+        merchant_menu = restored_shop.get("merchant_menu", "main_menu")
+        if merchant_menu not in SHOP_MERCHANT_MENUS:
+            merchant_menu = "main_menu"
+        restored_shop["merchant_menu"] = merchant_menu
+        cleanse_count = restored_shop.get("cleanse_count", 0)
+        if not isinstance(cleanse_count, int) or cleanse_count < 0:
+            raise ValueError("Shop cleanse_count must be a non-negative integer.")
+        restored_shop["cleanse_count"] = cleanse_count
         if SHOP_HEAL_ENABLED and not any(
             isinstance(offer, dict) and offer.get("offer_id") == SHOP_HEAL_OFFER_ID
             for offer in restored_shop["inventory"]
@@ -3705,6 +4095,22 @@ class StateManager:
             restored_shop["inventory"].insert(
                 purge_index,
                 self._shop_heal_offer(shop_node_id=restored_shop["shop_node_id"]),
+            )
+        if not any(
+            isinstance(offer, dict) and offer.get("offer_id") == SHOP_CLEANSE_OFFER_ID
+            for offer in restored_shop["inventory"]
+        ):
+            purge_index = next(
+                (
+                    index
+                    for index, offer in enumerate(restored_shop["inventory"])
+                    if isinstance(offer, dict) and offer.get("offer_id") == SHOP_PURGE_OFFER_ID
+                ),
+                len(restored_shop["inventory"]),
+            )
+            restored_shop["inventory"].insert(
+                purge_index,
+                self._shop_cleanse_offer(shop_node_id=restored_shop["shop_node_id"]),
             )
         self._refresh_shop_prices(restored_shop)
         return restored_shop
