@@ -3,6 +3,8 @@ from __future__ import annotations
 import random
 from typing import Any
 
+from core.protocol_drift import prefers_full_drift_pool
+
 from config import (
     EARLY_MID_LATE_RUN_WEIGHT_MODIFIERS,
     EVENT_RARITY_WEIGHTS,
@@ -33,6 +35,22 @@ class EventSelector:
         return weighted_candidates[-1]["event"]
 
     def weighted_candidates(
+        self,
+        events: list[dict[str, Any]],
+        context: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        if prefers_full_drift_pool(context.get("protocol_drift_pct", 0)):
+            full_drift_events = [
+                event
+                for event in events
+                if "full_drift_pool" in set(event.get("tags", []))
+            ]
+            prioritized = self._weighted_candidates_without_full_drift_overlay(full_drift_events, context)
+            if prioritized:
+                return prioritized
+        return self._weighted_candidates_without_full_drift_overlay(events, context)
+
+    def _weighted_candidates_without_full_drift_overlay(
         self,
         events: list[dict[str, Any]],
         context: dict[str, Any],

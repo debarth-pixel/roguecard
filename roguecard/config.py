@@ -244,6 +244,7 @@ EVENT_TAGS = (
     "zero_cost",
     "morality",
     "nullified",
+    "full_drift_pool",
 )
 STATUS_TAGS = (
     "economy",

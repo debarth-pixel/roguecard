@@ -126,7 +126,7 @@ class ModifierDraftUI:
         draw_screen_scrim(surface, alpha=190)
         surface.blit(top_panel, (24, 86))
 
-        self._draw_text(surface, "Choose Your Relic", (44, 108), self._title_font)
+        self._draw_text(surface, "Choose Your Starter Relic", (44, 108), self._title_font)
         self._draw_text(surface, layout["status_message"], (44, 148), self._small_font, width=860)
         self._draw_text(surface, layout["character_name"], (940, 118), self._small_font, width=240)
 
@@ -362,7 +362,7 @@ def simulate_modifier_draft_ui() -> dict[str, Any]:
     layout = ui.build_layout(
         {
             "current_state": "modifier_draft",
-            "status_message": "The Enforcer ready. Choose a relic.",
+            "status_message": "The Enforcer ready. Choose a starter relic.",
             "modifier_draft": {
                 "offers": [
                     {

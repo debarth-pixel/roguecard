@@ -186,6 +186,7 @@ class CombatManager:
             raise ValueError("Combat actions must be dictionaries.")
 
         card = action.get("card")
+        resolved_card = action.get("resolved_card")
         explicit_target = action.get("target")
         energy_cost = action.get("cost")
         damage_bonus = action.get("damage_bonus", 0)
@@ -194,6 +195,8 @@ class CombatManager:
 
         if card is None:
             raise ValueError("Combat actions require a card instance.")
+        if resolved_card is not None and not isinstance(resolved_card, dict):
+            raise ValueError("resolved_card must be a dictionary when provided.")
         if energy_cost is None:
             energy_cost = card.cost
         if not isinstance(energy_cost, int) or energy_cost < 0:
@@ -210,8 +213,12 @@ class CombatManager:
         resolutions: list[dict[str, Any]] = []
         logged_resolutions: list[dict[str, Any]] = []
 
+        resolved_effects = card.effects if resolved_card is None else list(resolved_card.get("effects", card.effects))
+        resolved_name = card.name if resolved_card is None else str(resolved_card.get("name", card.name))
+        resolved_type = card.type if resolved_card is None else str(resolved_card.get("type", card.type))
+
         for resolve_index in range(1 + repeat_count):
-            for effect in card.effects:
+            for effect in resolved_effects:
                 effect_results, remaining_block_penalty = self._resolve_card_effect(
                     effect=effect,
                     card=card,
@@ -225,7 +232,7 @@ class CombatManager:
 
         moved_card = self.player.deck_manager.remove_card_from_hand(card)
         moved_card.clear_temporary_cost_override()
-        if card.type == "power":
+        if resolved_type == "power":
             self.player.add_active_power(moved_card)
         elif card.has_keyword("exhaust"):
             self.player.deck_manager.exhaust_pile.append(moved_card)
@@ -236,34 +243,34 @@ class CombatManager:
         hook_context = {
             "played_card": card,
             "first_card_this_turn": first_card_this_turn,
-            "played_card_type": card.type,
+            "played_card_type": resolved_type,
         }
         hook_logs = self._resolve_hook_sources(self._hook_sources_for_play(card), "after_card_played", hook_context)
-        if card.type == "attack":
+        if resolved_type == "attack":
             hook_logs.extend(self._resolve_hook_sources(self._hook_sources_for_play(card), "after_attack_played", hook_context))
 
         self.player.consume_next_card_cost_delta()
-        if card.type == "attack":
+        if resolved_type == "attack":
             self.player.consume_next_attack_bonus()
 
         self.player.first_card_played = True
-        if card.type == "attack":
+        if resolved_type == "attack":
             self.player.first_attack_played = True
-        if self._last_player_card_type == card.type:
+        if self._last_player_card_type == resolved_type:
             for enemy in self._living_enemies():
                 if enemy.id == "spine_warden_null":
                     enemy.adjust_strength(1)
                     break
-        self._last_player_card_type = card.type
+        self._last_player_card_type = resolved_type
 
         event_entry = {
             "type": "card",
             "source": "player",
-            "label": card.name,
+            "label": resolved_name,
             "card_id": card.id,
-            "card_type": card.type,
+            "card_type": resolved_type,
             "resolutions": logged_resolutions,
-            "summary": self._summarize_event(label=card.name, resolutions=logged_resolutions, hook_logs=hook_logs),
+            "summary": self._summarize_event(label=resolved_name, resolutions=logged_resolutions, hook_logs=hook_logs),
         }
         self.event_log.append(event_entry)
         self.event_log.extend(hook_logs)
@@ -355,8 +362,12 @@ class CombatManager:
             self._emit_runtime_event(
                 {
                     "hook": "on_attack_hit",
+                    "source_card": getattr(source, "id", None),
+                    "target": target.id,
                     "target_id": target.id,
+                    "damage_dealt": total_applied,
                     "damage": total_applied,
+                    "target_statuses": target_statuses_before,
                     "target_status_ids": target_statuses_before,
                 }
             )
@@ -431,6 +442,16 @@ class CombatManager:
             if feedback_context:
                 block_feedback.update(feedback_context)
             self.emit_feedback_event(block_feedback)
+            if target is self.player:
+                self._emit_runtime_event(
+                    {
+                        "hook": "on_block_gained",
+                        "amount": applied,
+                        "source": None if source is None else getattr(source, "id", "player"),
+                        "source_card": None if feedback_context is None else feedback_context.get("source_card_id"),
+                        "card_type": None if feedback_context is None else feedback_context.get("source_card_type"),
+                    }
+                )
             shield_feedback = {
                 **self._feedback_target_payload(target),
                 "type": "shield_flash",
@@ -582,9 +603,11 @@ class CombatManager:
         self._emit_runtime_event(
             {
                 "hook": hook_name,
+                "target": getattr(target, "id", "player"),
                 "target_id": getattr(target, "id", "player"),
                 "status_id": status_id,
                 "amount": amount,
+                "target_statuses": self._combat_status_ids(target),
                 "target_status_ids": self._combat_status_ids(target),
             }
         )
@@ -595,6 +618,7 @@ class CombatManager:
                 "hook": "on_card_exhausted",
                 "card_id": getattr(card, "id", None),
                 "card_type": getattr(card, "type", None),
+                "source": getattr(card, "id", None),
             }
         )
 
@@ -1201,7 +1225,13 @@ class CombatManager:
         if enemy.id in self._defeated_enemy_ids:
             return
         self._defeated_enemy_ids.add(enemy.id)
-        self._emit_runtime_event({"hook": "on_enemy_death", "enemy_id": enemy.id})
+        self._emit_runtime_event(
+            {
+                "hook": "on_enemy_death",
+                "enemy_id": enemy.id,
+                "enemy_tags": list(getattr(enemy, "tags", [])),
+            }
+        )
         for effect in enemy.death_effects:
             target = self.player if effect.get("target") == "player" else enemy
             self._resolve_enemy_effect(enemy, effect, target, self.action_resolver)
@@ -1323,7 +1353,12 @@ class CombatManager:
             healed = self.restore_health(self.player, applied, source=self.player, feedback_context=feedback_context)
             if healed > 0:
                 self._emit_runtime_event(
-                    {"hook": "on_heal", "amount": healed, "source_card_id": getattr(card, "id", None)}
+                    {
+                        "hook": "on_heal",
+                        "amount": healed,
+                        "source": getattr(card, "id", None),
+                        "source_card_id": getattr(card, "id", None),
+                    }
                 )
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             results.append(self._resolution_record("heal", healed, healed, self.player, echoed=echoed))
@@ -1360,7 +1395,12 @@ class CombatManager:
             )
             if target is self.player and applied > 0:
                 self._emit_runtime_event(
-                    {"hook": "on_heal", "amount": applied, "source_card_id": getattr(card, "id", None)}
+                    {
+                        "hook": "on_heal",
+                        "amount": applied,
+                        "source": getattr(card, "id", None),
+                        "source_card_id": getattr(card, "id", None),
+                    }
                 )
             results.append(self._resolution_record(effect_type, effect["value"], applied, target, echoed=echoed))
             return results, block_penalty
@@ -1389,7 +1429,9 @@ class CombatManager:
                 self._emit_runtime_event(
                     {
                         "hook": "on_self_damage",
+                        "amount": applied,
                         "self_damage": applied,
+                        "source": getattr(card, "id", None),
                         "source_card_id": getattr(card, "id", None),
                     }
                 )
@@ -1532,7 +1574,9 @@ class CombatManager:
                 self._emit_runtime_event(
                     {
                         "hook": "on_card_cost_reduced",
-                        "amount": abs(effect["value"]),
+                        "old_cost": None,
+                        "new_cost": None,
+                        "source": getattr(card, "id", None),
                         "source_card_id": getattr(card, "id", None),
                     }
                 )
@@ -1619,6 +1663,7 @@ class CombatManager:
                         "card": card,
                         "card_id": getattr(card, "id", None),
                         "card_type": getattr(card, "type", None),
+                        "exhausted_by_trigger": False,
                     }
                 )
                 status_logs = self._resolve_hook_sources(

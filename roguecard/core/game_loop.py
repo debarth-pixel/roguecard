@@ -113,15 +113,23 @@ class GameLoop:
                 if consumed:
                     continue
 
+                current_snapshot = self._snapshot_with_hand()
+                self._sync_logical_surface(current_snapshot, screen.get_size())
                 translated_event = self._translate_event(event, screen)
                 if translated_event is None:
                     continue
 
-                action = self.ui_manager.handle_event(translated_event, self._snapshot_with_hand())
+                action = self.ui_manager.handle_event(
+                    translated_event,
+                    current_snapshot,
+                    surface_size=self._logical_surface.get_size(),
+                )
                 if action is not None:
                     screen = self._dispatch_action(action, screen)
 
-            polled_action = self.ui_manager.poll_action(self._snapshot_with_hand())
+            current_snapshot = self._snapshot_with_hand()
+            self._sync_logical_surface(current_snapshot, screen.get_size())
+            polled_action = self.ui_manager.poll_action(current_snapshot)
             if polled_action is not None:
                 screen = self._dispatch_action(polled_action, screen)
 
@@ -715,10 +723,8 @@ class GameLoop:
         if pygame is None:
             return
 
-        if self._logical_surface is None:
-            self._logical_surface = pygame.Surface(SCREEN_SIZE).convert()
-
         state_snapshot = self._snapshot_with_hand()
+        self._sync_logical_surface(state_snapshot, display_surface.get_size())
         self.ui_manager.render(self._logical_surface, state_snapshot)
         self._render_feedback_overlay(self._logical_surface)
         scaled_size, offset = self._presentation_layout(
@@ -778,7 +784,8 @@ class GameLoop:
         position: tuple[int, int],
         display_size: tuple[int, int],
     ) -> tuple[int, int] | None:
-        scaled_size, offset = self._presentation_layout(display_size, SCREEN_SIZE)
+        logical_size = SCREEN_SIZE if self._logical_surface is None else self._logical_surface.get_size()
+        scaled_size, offset = self._presentation_layout(display_size, logical_size)
         scaled_width, scaled_height = scaled_size
         offset_x, offset_y = offset
         x, y = position
@@ -787,8 +794,8 @@ class GameLoop:
 
         relative_x = (x - offset_x) / scaled_width
         relative_y = (y - offset_y) / scaled_height
-        logical_x = min(SCREEN_SIZE[0] - 1, max(0, int(relative_x * SCREEN_SIZE[0])))
-        logical_y = min(SCREEN_SIZE[1] - 1, max(0, int(relative_y * SCREEN_SIZE[1])))
+        logical_x = min(logical_size[0] - 1, max(0, int(relative_x * logical_size[0])))
+        logical_y = min(logical_size[1] - 1, max(0, int(relative_y * logical_size[1])))
         return logical_x, logical_y
 
     def _snapshot_with_hand(self) -> dict[str, Any]:
@@ -864,9 +871,28 @@ class GameLoop:
         self._notice_timer = duration
 
     def _windowed_size(self, display_info: Any) -> tuple[int, int]:
-        width = min(display_info.current_w, max(640, min(SCREEN_SIZE[0], int(display_info.current_w * 0.9))))
-        height = min(display_info.current_h, max(360, min(SCREEN_SIZE[1], int(display_info.current_h * 0.9))))
+        width = min(display_info.current_w, max(640, int(display_info.current_w * 0.9)))
+        height = min(display_info.current_h, max(360, int(display_info.current_h * 0.9)))
         return width, height
+
+    def _sync_logical_surface(self, state_snapshot: dict[str, Any], display_size: tuple[int, int]) -> None:
+        if pygame is None:
+            return
+        desired_size = self._logical_surface_size_for_state(state_snapshot, display_size)
+        if self._logical_surface is None or self._logical_surface.get_size() != desired_size:
+            self._logical_surface = pygame.Surface(desired_size).convert()
+
+    def _logical_surface_size_for_state(
+        self,
+        state_snapshot: dict[str, Any],
+        display_size: tuple[int, int],
+    ) -> tuple[int, int]:
+        if state_snapshot.get("current_state") == "combat":
+            return (
+                max(640, int(display_size[0])),
+                max(360, int(display_size[1])),
+            )
+        return SCREEN_SIZE
 
     def _enemy_hp_total(self, snapshot: dict[str, Any]) -> int:
         combat_state = snapshot.get("combat")

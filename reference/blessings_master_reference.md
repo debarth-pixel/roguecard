@@ -4,7 +4,7 @@ Generated from `data/run_modifiers.json`.
 
 - Total entries: **10**
 
-## common
+## Common
 
 ### Champion Contract (`champion_contract`)
 
@@ -12,7 +12,7 @@ Generated from `data/run_modifiers.json`.
 - Visual Flavor: A victor's contract slate signed in gold and pinned with a medal ribbon and a clean white seal.
 - Rarity: `common`
 - Base Weight: `7`
-- Draft Eligible: `True`
+- Draft Eligible: `False`
 - Source Types: `run_start`
 - Tags: `recovery`, `blessing`
 - Hooks:
@@ -25,7 +25,7 @@ Generated from `data/run_modifiers.json`.
 - Visual Flavor: A hardened chip wallet overstuffed with stacked credit slugs and zipper rings pulling at the seams.
 - Rarity: `common`
 - Base Weight: `6`
-- Draft Eligible: `True`
+- Draft Eligible: `False`
 - Source Types: `run_start`
 - Tags: `economy`, `blessing`
 - Hooks:
@@ -38,7 +38,7 @@ Generated from `data/run_modifiers.json`.
 - Visual Flavor: A clinic priority band or service token with green cross lights and fast-track chevrons.
 - Rarity: `common`
 - Base Weight: `7`
-- Draft Eligible: `True`
+- Draft Eligible: `False`
 - Source Types: `run_start`
 - Tags: `recovery`, `shop`, `blessing`
 - Hooks:
@@ -51,14 +51,14 @@ Generated from `data/run_modifiers.json`.
 - Visual Flavor: A stamped salvage permit card clipped to a chain, with brass corners and payout marks scratched into the surface.
 - Rarity: `common`
 - Base Weight: `8`
-- Draft Eligible: `True`
+- Draft Eligible: `False`
 - Source Types: `run_start`
 - Tags: `economy`, `blessing`
 - Hooks:
   - `post_victory`
     - Gain 6 credits after `combat`.
 
-## uncommon
+## Uncommon
 
 ### Adrenal Surge (`adrenal_surge`)
 
@@ -129,7 +129,7 @@ Generated from `data/run_modifiers.json`.
   - `on_event`
     - Heal 3 HP after each event.
 
-## special
+## Special
 
 ### Cassette Feed (`protocol_eclipse_cassette_feed`)
 

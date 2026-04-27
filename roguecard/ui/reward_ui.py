@@ -1158,9 +1158,21 @@ class RewardUI:
         return palettes.get(rarity, palettes["common"])
 
     def _relic_badge_label(self, relic: dict[str, Any]) -> str:
+        category = str(relic.get("category", "")).lower()
+        category_labels = {
+            "starter_relic": "Starter",
+            "common_relic": "Common",
+            "uncommon_relic": "Uncommon",
+            "rare_relic": "Rare",
+            "boss_relic": "Boss",
+            "shop_relic": "Shop",
+            "event_relic": "Event",
+        }
+        if category in category_labels:
+            return category_labels[category]
         rarity = str(relic.get("rarity", "common")).lower()
         if rarity == "boss":
-            return "BOS"
+            return "Boss"
         return rarity.title()
 
     def _selected_option(self, section: dict[str, Any]) -> dict[str, Any] | None:

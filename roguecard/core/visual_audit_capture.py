@@ -15,11 +15,20 @@ from config import DEFAULT_HIGH_CONTRAST, DEFAULT_UI_SCALE, SCREEN_SIZE
 from core.state_manager import StateManager
 from ui.ui_manager import UIManager
 
+COMBAT_LAYOUT_SWEEP_RESOLUTIONS: tuple[tuple[int, int], ...] = (
+    (1280, 720),
+    (1600, 900),
+    (1920, 1080),
+    (2048, 1128),
+    (2560, 1440),
+)
+
 
 def capture_visual_audit(
     output_dir: str | Path | None = None,
     seed: int = 29,
     max_steps: int = 240,
+    combat_surface_sizes: list[tuple[int, int]] | tuple[tuple[int, int], ...] | None = None,
 ) -> dict[str, Any]:
     if pygame is None:
         raise RuntimeError("Pygame is required to capture visual audit screenshots.")
@@ -63,6 +72,12 @@ def capture_visual_audit(
         if manager.current_state == "combat":
             _capture_combat_status_icon_showcase(ui_manager, surface, snapshot, output_path, captured_paths)
             _capture_combat_relic_tray_showcase(manager, ui_manager, surface, snapshot, output_path, captured_paths)
+            _capture_combat_layout_sweep(
+                ui_manager,
+                output_path,
+                captured_paths,
+                surface_sizes=tuple(combat_surface_sizes or COMBAT_LAYOUT_SWEEP_RESOLUTIONS),
+            )
             _play_simple_combat(manager)
             continue
 
@@ -89,6 +104,40 @@ def capture_visual_audit(
         "final_state": manager.current_state,
         "captured": captured_paths,
         "steps": step_count,
+    }
+
+
+def validate_combat_layout_sweep(
+    output_dir: str | Path | None = None,
+    surface_sizes: list[tuple[int, int]] | tuple[tuple[int, int], ...] | None = None,
+) -> dict[str, Any]:
+    if pygame is None:
+        raise RuntimeError("Pygame is required to validate combat layout screenshots.")
+
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+
+    pygame.init()
+    pygame.display.set_mode((1, 1))
+
+    output_path = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="roguecard_combat_layout_"))
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    ui_manager = UIManager()
+    ui_manager.preload_assets()
+    captured_paths: dict[str, str] = {}
+    failures = _capture_combat_layout_sweep(
+        ui_manager,
+        output_path,
+        captured_paths,
+        surface_sizes=tuple(surface_sizes or COMBAT_LAYOUT_SWEEP_RESOLUTIONS),
+    )
+    pygame.quit()
+    return {
+        "output_dir": str(output_path),
+        "captured": captured_paths,
+        "checked_resolutions": list(surface_sizes or COMBAT_LAYOUT_SWEEP_RESOLUTIONS),
+        "failures": failures,
     }
 
 
@@ -372,6 +421,195 @@ def _capture_combat_relic_tray_showcase(
     ui_manager.apply_snapshot_feedback("visual_audit", before_showcase, showcase)
     _capture_screen(ui_manager, surface, showcase, output_path, captured_paths, force_name="combat_relic_tray")
     ui_manager.combat_ui._reset_feedback_state()
+
+
+def _capture_combat_layout_sweep(
+    ui_manager: UIManager,
+    output_path: Path,
+    captured_paths: dict[str, str],
+    *,
+    surface_sizes: tuple[tuple[int, int], ...],
+) -> list[str]:
+    failures: list[str] = []
+    base_snapshot = _presentation_snapshot(_combat_layout_audit_snapshot())
+    variant_snapshots = {
+        "combat": base_snapshot,
+        "combat_large_hand": _presentation_snapshot(_combat_layout_audit_snapshot(hand_count=8)),
+        "combat_crowded": _presentation_snapshot(_combat_layout_audit_snapshot(enemy_count=4)),
+    }
+
+    for width, height in surface_sizes:
+        for variant_name, snapshot in variant_snapshots.items():
+            file_key = f"{variant_name}_{width}x{height}"
+            if file_key in captured_paths:
+                continue
+            _reset_combat_ui_interaction_state(ui_manager)
+            warnings = _assert_combat_layout(ui_manager, snapshot, (width, height), variant_name)
+            if warnings:
+                message = f"{file_key}: {' | '.join(warnings)}"
+                failures.append(message)
+                raise AssertionError(message)
+            surface = pygame.Surface((width, height)).convert_alpha()
+            ui_manager.render(surface, snapshot)
+            file_path = output_path / f"{file_key}.png"
+            pygame.image.save(surface, str(file_path))
+            captured_paths[file_key] = str(file_path)
+
+    hovered_key = f"combat_hovered_{surface_sizes[0][0]}x{surface_sizes[0][1]}"
+    if hovered_key not in captured_paths:
+        hovered_snapshot = _presentation_snapshot(_combat_layout_audit_snapshot())
+        _reset_combat_ui_interaction_state(ui_manager)
+        now = ui_manager.combat_ui._now_ms()
+        ui_manager.combat_ui._hovered_card_index = min(2, len(hovered_snapshot["player_hand"]) - 1)
+        ui_manager.combat_ui._hover_started_at = max(0, now - 120)
+        hover_warnings = _assert_combat_layout(ui_manager, hovered_snapshot, surface_sizes[0], "combat_hovered")
+        if hover_warnings:
+            message = f"{hovered_key}: {' | '.join(hover_warnings)}"
+            failures.append(message)
+            raise AssertionError(message)
+        hover_surface = pygame.Surface(surface_sizes[0]).convert_alpha()
+        ui_manager.render(hover_surface, hovered_snapshot)
+        hover_path = output_path / f"{hovered_key}.png"
+        pygame.image.save(hover_surface, str(hover_path))
+        captured_paths[hovered_key] = str(hover_path)
+        _reset_combat_ui_interaction_state(ui_manager)
+    return failures
+
+
+def _assert_combat_layout(
+    ui_manager: UIManager,
+    snapshot: dict[str, Any],
+    surface_size: tuple[int, int],
+    variant_name: str,
+) -> list[str]:
+    ui_manager._ensure_fonts(snapshot.get("presentation", {}).get("ui_scale", DEFAULT_UI_SCALE))
+    combat_view = ui_manager._combat_view_state(snapshot)
+    layout = ui_manager.combat_ui.build_layout(combat_view, surface_size)
+    warnings = list(ui_manager.combat_ui._layout_warnings(layout))
+    top_layout = ui_manager._top_bar_layout(snapshot, surface_size)
+    warnings.extend(ui_manager._combat_top_bar_warnings(top_layout))
+    if warnings:
+        return [f"{variant_name}: {warning}" for warning in warnings]
+    return []
+
+
+def _reset_combat_ui_interaction_state(ui_manager: UIManager) -> None:
+    ui_manager.combat_ui._hovered_card_index = None
+    ui_manager.combat_ui._hover_started_at = 0
+    ui_manager.combat_ui._pressed_card_index = None
+    ui_manager.combat_ui._selected_card_index = None
+    ui_manager.combat_ui._selected_card_id = None
+    ui_manager.combat_ui._selected_target_id = None
+    ui_manager.combat_ui._hovered_enemy_id = None
+    ui_manager.combat_ui._hovered_end_turn = False
+    ui_manager.combat_ui._pressed_end_turn = False
+    ui_manager.combat_ui._mouse_pos = (-1, -1)
+    ui_manager.combat_ui._pending_action = None
+
+
+def _combat_layout_audit_snapshot(hand_count: int = 5, enemy_count: int = 2) -> dict[str, Any]:
+    player = {
+        "current_hp": 70,
+        "max_hp": 70,
+        "energy": 3,
+        "max_energy": 3,
+        "block": 5,
+        "draw_pile": 5,
+        "discard_pile": 0,
+        "exhaust_pile": 0,
+        "strength": 0,
+        "weak": 0,
+        "vulnerable": 0,
+        "credits": 0,
+        "combat_statuses": {},
+    }
+    base_cards = [
+        {"name": "Needle Ping", "type": "attack", "effects": [{"type": "damage", "value": 4}, {"type": "apply_weak", "value": 1}]},
+        {"name": "Deflect Mesh", "type": "skill", "effects": [{"type": "block", "value": 6}, {"type": "draw", "value": 1}]},
+        {"name": "Quiet Cut", "type": "attack", "effects": [{"type": "damage", "value": 6}, {"type": "draw", "value": 1}]},
+        {"name": "Relay Shot", "type": "attack", "effects": [{"type": "damage", "value": 5}, {"type": "apply_vulnerable", "value": 1}]},
+        {"name": "Cold Read", "type": "skill", "effects": [{"type": "block", "value": 7}, {"type": "energy", "value": 1}]},
+        {"name": "Cache Cycle", "type": "skill", "effects": [{"type": "draw", "value": 2}, {"type": "block", "value": 4}]},
+        {"name": "Static Haze", "type": "skill", "effects": [{"type": "apply_weak", "value": 2}, {"type": "block", "value": 5}]},
+        {"name": "Backdoor", "type": "attack", "effects": [{"type": "damage", "value": 7}, {"type": "energy", "value": 1}]},
+    ]
+    hand = []
+    for index in range(hand_count):
+        template = dict(base_cards[index % len(base_cards)])
+        template["id"] = f"layout_card_{index}"
+        template["cost"] = 1
+        hand.append(template)
+
+    enemy_templates = [
+        ("enemy_layout_0", "Embersnout", "cinder_jackals", 22, 22, 4, {}),
+        ("enemy_layout_1", "Scrap Ticker", "legacy", 18, 18, 2, {}),
+        ("enemy_layout_2", "Signal Junker", "blackwire_directorate", 26, 26, 6, {"suppressed": 1}),
+        ("enemy_layout_3", "Salvage Bulwark", "helix_ward", 34, 34, 0, {"fortified": 2}),
+    ]
+    enemies = []
+    for index in range(enemy_count):
+        enemy_id, name, faction_id, current_hp, max_hp, damage, statuses = enemy_templates[index % len(enemy_templates)]
+        enemies.append(
+            {
+                "id": enemy_id,
+                "name": name,
+                "faction_id": faction_id,
+                "tier": "normal",
+                "current_hp": current_hp,
+                "max_hp": max_hp,
+                "block": 0 if index != 2 else 5,
+                "strength": 0,
+                "weak": 0,
+                "vulnerable": 0,
+                "current_intent": "attack",
+                "intent_value": damage,
+                "intent_summary": f"Attack for {damage}",
+                "intent_display": {
+                    "kind": "attack",
+                    "damage_per_hit": damage,
+                    "hit_count": 1,
+                    "total_damage": damage,
+                    "block": 0,
+                    "buffs": [],
+                    "debuffs": [],
+                    "summon_count": 0,
+                    "tooltip": f"Attack for {damage}",
+                },
+                "statuses": statuses,
+            }
+        )
+
+    return {
+        "current_state": "combat",
+        "status_message": "Entered combat encounter.",
+        "run_seed": 29,
+        "title": None,
+        "character_select": None,
+        "modifier_draft": None,
+        "map": None,
+        "event": None,
+        "reward": None,
+        "shop": None,
+        "player": player,
+        "character": {"id": "operator", "name": "The Operator", "accent_color": [104, 216, 255]},
+        "campaign": {"map_id": "outskirts", "map_index": 1, "map_name": "Outskirts", "branch_faction": "legacy"},
+        "run_state": {},
+        "run_modifiers": {"active": [], "count": 0, "primary_label": None},
+        "grayspine_intel": {},
+        "combat": {
+            "player": dict(player),
+            "enemies": enemies,
+            "turn_number": 1,
+            "turn_owner": "player",
+            "living_enemy_ids": [enemy["id"] for enemy in enemies],
+            "enemy_phase": {},
+            "event_log": [],
+            "feedback_events": [],
+            "active_bark": None,
+        },
+        "player_hand": hand,
+        "ui_notice": None,
+    }
 
 
 def _resolve_modifier_draft(manager: StateManager) -> None:

@@ -9,7 +9,20 @@ from cards.card_library import CardLibrary
 from config import RUN_MODIFIERS_DATA_PATH, STATUS_SOURCE_TYPES, STATUS_TAGS
 
 ALLOWED_MODIFIER_TYPES = {"relic", "blessing", "curse", "status"}
+ALLOWED_MODIFIER_CATEGORIES = {
+    "starter_relic",
+    "common_relic",
+    "uncommon_relic",
+    "rare_relic",
+    "boss_relic",
+    "shop_relic",
+    "event_relic",
+    "blessing",
+    "curse",
+    "run_modifier_status",
+}
 ALLOWED_MODIFIER_RARITIES = {"common", "uncommon", "rare", "boss", "cursed", "special"}
+ALLOWED_DEV_TRACK_VALUES = {"legacy", "drop_in", "advanced"}
 ALLOWED_DURATION_TYPES = {"permanent", "combat", "floor"}
 ALLOWED_ONCE_PER_VALUES = {"turn", "combat"}
 ALLOWED_STACK_BEHAVIORS = {
@@ -34,6 +47,7 @@ ALLOWED_MODIFIER_HOOKS = {
     "on_enemy_status_applied",
     "on_player_status_applied",
     "on_card_cost_reduced",
+    "on_block_gained",
     "on_card_exhausted",
     "on_self_damage",
     "on_heal",
@@ -96,10 +110,94 @@ ALLOWED_MODIFIER_EFFECT_TYPES = {
     "add_random_temporary_card_to_hand",
     "set_modifier_flag",
     "clear_modifier_flag",
+    "reduce_opening_hand_size",
 }
 SHOP_PRICE_TARGETS = {"all", "card", "relic", "purge", "heal", "reroll"}
 ALLOWED_MODIFIER_CARD_TYPES = {"attack", "skill", "power", "status"}
 ALLOWED_CARD_PILES = {"draw", "discard"}
+ALLOWED_TRIGGER_SCOPE_MODES = {
+    "once",
+    "once_per_combat",
+    "first_each_turn",
+    "every_n_this_turn",
+    "max_n_per_turn",
+    "per_card_type_each_turn",
+    "per_target_each_turn",
+    "uncapped_safe",
+}
+ACTION_TRIGGER_HOOKS = {
+    "on_turn_start",
+    "turn_end",
+    "after_card_played",
+    "on_status_drawn",
+    "on_enemy_status_applied",
+    "on_player_status_applied",
+    "on_card_cost_reduced",
+    "on_block_gained",
+    "on_card_exhausted",
+    "on_self_damage",
+    "on_heal",
+    "on_bleed_trigger",
+    "on_infect_burst",
+    "on_player_burn_tick",
+    "on_positive_gain_blocked_by_nullified",
+    "on_status_card_added_to_discard",
+    "on_enemy_death",
+    "on_attack_hit",
+}
+DANGEROUS_LOOP_EFFECT_TYPES = {
+    "draw_cards",
+    "gain_energy",
+    "gain_next_turn_energy",
+    "modify_next_card_cost",
+    "set_random_hand_card_cost_until_played",
+    "add_random_temporary_card_to_hand",
+}
+PLAYER_FACING_RELIC_CATEGORIES = {
+    "starter_relic",
+    "common_relic",
+    "uncommon_relic",
+    "rare_relic",
+    "boss_relic",
+    "shop_relic",
+    "event_relic",
+}
+CATEGORY_TO_TYPE = {
+    "starter_relic": "relic",
+    "common_relic": "relic",
+    "uncommon_relic": "relic",
+    "rare_relic": "relic",
+    "boss_relic": "relic",
+    "shop_relic": "relic",
+    "event_relic": "relic",
+    "blessing": "blessing",
+    "curse": "curse",
+    "run_modifier_status": "status",
+}
+CATEGORY_ALLOWED_RARITIES = {
+    "starter_relic": {"common", "uncommon", "rare", "boss"},
+    "common_relic": {"common"},
+    "uncommon_relic": {"uncommon"},
+    "rare_relic": {"rare"},
+    "boss_relic": {"boss"},
+    "shop_relic": {"common", "uncommon", "rare", "boss"},
+    "event_relic": {"common", "uncommon", "rare", "boss"},
+    "blessing": {"common", "uncommon", "rare", "special"},
+    "curse": {"cursed"},
+    "run_modifier_status": {"special"},
+}
+CATEGORY_ALLOWED_SOURCE_TYPES = {
+    "starter_relic": {"run_start"},
+    "common_relic": {"elite_reward", "shop", "event"},
+    "uncommon_relic": {"elite_reward", "shop", "event"},
+    "rare_relic": {"elite_reward", "shop", "event"},
+    "boss_relic": {"boss_reward", "event"},
+    "shop_relic": {"shop", "event"},
+    "event_relic": {"event"},
+    "blessing": {"run_start", "event"},
+    "curse": {"run_start", "event"},
+    "run_modifier_status": {"event"},
+}
 
 
 class RunModifierLibrary:
@@ -142,6 +240,8 @@ class RunModifierLibrary:
         *,
         draft_only: bool = False,
         source_type: str | None = None,
+        categories: list[str] | None = None,
+        modifier_types: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         if not self._modifiers:
             self.load_modifiers()
@@ -155,6 +255,12 @@ class RunModifierLibrary:
                 for modifier in modifiers
                 if source_type in modifier["source_types"]
             ]
+        if categories is not None:
+            allowed_categories = set(categories)
+            modifiers = [modifier for modifier in modifiers if modifier["category"] in allowed_categories]
+        if modifier_types is not None:
+            allowed_types = set(modifier_types)
+            modifiers = [modifier for modifier in modifiers if modifier["type"] in allowed_types]
         return modifiers
 
     def supported_tags(self) -> tuple[str, ...]:
@@ -169,6 +275,32 @@ class RunModifierLibrary:
         except KeyError as error:
             raise KeyError(f"Unknown run modifier id: {modifier_id}") from error
 
+    def is_player_facing_relic(self, modifier: dict[str, Any]) -> bool:
+        return str(modifier.get("category", "")).lower() in PLAYER_FACING_RELIC_CATEGORIES
+
+    def default_relic_categories_for_source(self, source_type: str) -> list[str]:
+        source_key = str(source_type).strip().lower()
+        if source_key == "run_start":
+            return ["starter_relic"]
+        if source_key == "elite_reward":
+            return ["common_relic", "uncommon_relic", "rare_relic"]
+        if source_key == "boss_reward":
+            return ["boss_relic"]
+        if source_key == "shop":
+            return ["common_relic", "uncommon_relic", "rare_relic", "shop_relic"]
+        if source_key == "event":
+            return ["event_relic"]
+        return []
+
+    def pool_eligible_for_source(self, modifier: dict[str, Any], source_type: str) -> bool:
+        source_key = str(source_type).strip().lower()
+        category = str(modifier.get("category", "")).lower()
+        if source_key in {"run_start", "elite_reward", "boss_reward", "shop"}:
+            return category in self.default_relic_categories_for_source(source_key)
+        if source_key == "event":
+            return category == "event_relic"
+        return source_key in modifier.get("source_types", [])
+
     def _validate_modifier(self, modifier_data: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(modifier_data, dict):
             raise ValueError("Run modifier definitions must be dictionaries.")
@@ -177,6 +309,7 @@ class RunModifierLibrary:
             "id",
             "name",
             "type",
+            "category",
             "draft_eligible",
             "description",
             "rarity",
@@ -202,11 +335,23 @@ class RunModifierLibrary:
         tags = self._validate_tags(modifier_data.get("tags"), modifier_id)
         source_types = self._validate_source_types(modifier_data.get("source_types"), modifier_id)
         hooks = modifier_data["hooks"]
+        category = self._validate_category(
+            modifier_data.get("category"),
+            modifier_id,
+            modifier_type,
+            rarity,
+            source_types,
+        )
         duration = self._validate_duration(
             modifier_data.get("duration", {"type": "permanent"}),
             modifier_id,
         )
         stack_behavior = modifier_data.get("stack_behavior")
+        dev_track = self._validate_dev_track(
+            modifier_data.get("dev_track", modifier_data.get("track")),
+            modifier_id,
+            category,
+        )
 
         if not isinstance(modifier_id, str) or not modifier_id:
             raise ValueError("Run modifier id must be a non-empty string.")
@@ -222,6 +367,15 @@ class RunModifierLibrary:
             raise ValueError(f"Run modifier {modifier_id} downside must be a non-empty string when provided.")
         if rarity not in ALLOWED_MODIFIER_RARITIES:
             raise ValueError(f"Run modifier {modifier_id} has unsupported rarity: {rarity}")
+        if modifier_type != CATEGORY_TO_TYPE[category]:
+            raise ValueError(
+                f"Run modifier {modifier_id} category {category} conflicts with type {modifier_type}."
+            )
+        if rarity not in CATEGORY_ALLOWED_RARITIES[category]:
+            raise ValueError(
+                f"Run modifier {modifier_id} category {category} cannot use rarity {rarity}."
+            )
+        self._validate_category_source_types(category, source_types, modifier_id)
         if not isinstance(base_weight, (int, float)) or base_weight < 0:
             raise ValueError(f"Run modifier {modifier_id} base_weight must be a non-negative number.")
         if not isinstance(hooks, dict) or not hooks:
@@ -242,7 +396,7 @@ class RunModifierLibrary:
             if not isinstance(effects, list) or not effects:
                 raise ValueError(f"Run modifier {modifier_id} hook {raw_hook_name} must be a non-empty list.")
             validated_hooks.setdefault(hook_name, []).extend(
-                self._validate_effect(effect, modifier_id, hook_name) for effect in effects
+                self._validate_effect(effect, modifier_id, hook_name, modifier_category=category) for effect in effects
             )
 
         return {
@@ -250,6 +404,7 @@ class RunModifierLibrary:
             "name": name,
             "type": modifier_type,
             "kind": modifier_type,
+            "category": category,
             "draft_eligible": draft_eligible,
             "description": description,
             "downside": downside,
@@ -262,7 +417,7 @@ class RunModifierLibrary:
             "duration_type": duration["type"],
             "stack_behavior": stack_behavior,
             "hooks": validated_hooks,
-            "track": modifier_data.get("track"),
+            "dev_track": dev_track,
             "synergies": self._validate_string_list(modifier_data.get("synergies"), modifier_id, "synergies"),
             "notes": self._validate_optional_string(modifier_data.get("notes"), modifier_id, "notes"),
         }
@@ -277,6 +432,81 @@ class RunModifierLibrary:
             if tag not in validated:
                 validated.append(tag)
         return validated
+
+    def _validate_category(
+        self,
+        raw_category: Any,
+        modifier_id: str,
+        modifier_type: str,
+        rarity: Any,
+        source_types: list[str],
+    ) -> str:
+        category = raw_category
+        if category is None:
+            category = self._infer_modifier_category(modifier_type, rarity, source_types)
+        if category not in ALLOWED_MODIFIER_CATEGORIES:
+            raise ValueError(f"Run modifier {modifier_id} has unsupported category: {category}")
+        return str(category)
+
+    def _infer_modifier_category(self, modifier_type: str, rarity: Any, source_types: list[str]) -> str:
+        source_type_set = set(source_types)
+        if modifier_type == "blessing":
+            return "blessing"
+        if modifier_type == "curse":
+            return "curse"
+        if modifier_type == "status":
+            return "run_modifier_status"
+        if source_type_set == {"run_start"}:
+            return "starter_relic"
+        if source_type_set == {"event"}:
+            return "event_relic"
+        if "boss_reward" in source_type_set or rarity == "boss":
+            return "boss_relic"
+        if source_type_set.issubset({"shop", "event"}) and "shop" in source_type_set:
+            return "shop_relic"
+        if rarity == "rare":
+            return "rare_relic"
+        if rarity == "uncommon":
+            return "uncommon_relic"
+        return "common_relic"
+
+    def _validate_dev_track(
+        self,
+        raw_dev_track: Any,
+        modifier_id: str,
+        category: str,
+    ) -> str | None:
+        if raw_dev_track is None:
+            return None
+        if raw_dev_track not in ALLOWED_DEV_TRACK_VALUES:
+            raise ValueError(f"Run modifier {modifier_id} has unsupported dev_track: {raw_dev_track}")
+        if category in PLAYER_FACING_RELIC_CATEGORIES and "track" in str(raw_dev_track):
+            return str(raw_dev_track)
+        return str(raw_dev_track)
+
+    def _validate_category_source_types(
+        self,
+        category: str,
+        source_types: list[str],
+        modifier_id: str,
+    ) -> None:
+        allowed_source_types = CATEGORY_ALLOWED_SOURCE_TYPES[category]
+        source_type_set = set(source_types)
+        if not source_type_set.issubset(allowed_source_types):
+            raise ValueError(
+                f"Run modifier {modifier_id} category {category} cannot use source types: "
+                f"{', '.join(sorted(source_type_set.difference(allowed_source_types)))}"
+            )
+        if category == "starter_relic" and source_type_set != {"run_start"}:
+            raise ValueError(f"Run modifier {modifier_id} starter_relic source_types must be run_start only.")
+        if category in {"common_relic", "uncommon_relic", "rare_relic"} and not source_type_set.intersection({"elite_reward", "shop"}):
+            raise ValueError(f"Run modifier {modifier_id} {category} must include elite_reward or shop.")
+        if category == "boss_relic" and "boss_reward" not in source_type_set:
+            raise ValueError(f"Run modifier {modifier_id} boss_relic must include boss_reward.")
+        if category == "shop_relic" and "shop" not in source_type_set:
+            raise ValueError(f"Run modifier {modifier_id} shop_relic must include shop.")
+        if category == "event_relic" and source_type_set != {"event"}:
+            raise ValueError(f"Run modifier {modifier_id} event_relic source_types must be event only.")
 
     def _validate_source_types(self, raw_source_types: Any, modifier_id: str) -> list[str]:
         if not isinstance(raw_source_types, list) or not raw_source_types:
@@ -345,6 +575,7 @@ class RunModifierLibrary:
         hook_name: str,
         *,
         allow_random: bool = True,
+        modifier_category: str,
     ) -> dict[str, Any]:
         if not isinstance(effect_data, dict):
             raise ValueError(f"Run modifier {modifier_id} hook {hook_name} effects must be dictionaries.")
@@ -363,7 +594,13 @@ class RunModifierLibrary:
                 raise ValueError(f"Run modifier {modifier_id} add_card effects must define card_id.")
             self.card_library.get_card(card_id)
             validated["card_id"] = card_id
-            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+            return self._apply_common_effect_metadata(
+                validated,
+                effect_data,
+                modifier_id,
+                hook_name,
+                modifier_category=modifier_category,
+            )
 
         if effect_type in {
             "free_first_purge_run",
@@ -372,14 +609,26 @@ class RunModifierLibrary:
             "repeat_first_card",
             "exhaust_drawn_card",
         }:
-            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+            return self._apply_common_effect_metadata(
+                validated,
+                effect_data,
+                modifier_id,
+                hook_name,
+                modifier_category=modifier_category,
+            )
 
         if effect_type in {"set_modifier_flag", "clear_modifier_flag"}:
             flag_id = effect_data.get("flag_id")
             if not isinstance(flag_id, str) or not flag_id:
                 raise ValueError(f"Run modifier {modifier_id} {effect_type} effects must define flag_id.")
             validated["flag_id"] = flag_id
-            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+            return self._apply_common_effect_metadata(
+                validated,
+                effect_data,
+                modifier_id,
+                hook_name,
+                modifier_category=modifier_category,
+            )
 
         if effect_type == "random_one_of":
             if not allow_random:
@@ -388,9 +637,16 @@ class RunModifierLibrary:
             if not isinstance(options, list) or not options:
                 raise ValueError(f"Run modifier {modifier_id} random_one_of effects must define options.")
             validated["options"] = [
-                self._validate_random_option(option, modifier_id, hook_name) for option in options
+                self._validate_random_option(option, modifier_id, hook_name, modifier_category=modifier_category)
+                for option in options
             ]
-            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+            return self._apply_common_effect_metadata(
+                validated,
+                effect_data,
+                modifier_id,
+                hook_name,
+                modifier_category=modifier_category,
+            )
 
         if effect_type in {
             "percent_discount",
@@ -407,7 +663,13 @@ class RunModifierLibrary:
                 raise ValueError(f"Run modifier {modifier_id} {effect_type} value must be a non-negative integer.")
             validated["target"] = target
             validated["value"] = value
-            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+            return self._apply_common_effect_metadata(
+                validated,
+                effect_data,
+                modifier_id,
+                hook_name,
+                modifier_category=modifier_category,
+            )
 
         if effect_type in {
             "apply_status_all_enemies",
@@ -437,7 +699,13 @@ class RunModifierLibrary:
             validated["card_id"] = card_id
             validated["count"] = count
             validated["pile"] = pile
-            return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+            return self._apply_common_effect_metadata(
+                validated,
+                effect_data,
+                modifier_id,
+                hook_name,
+                modifier_category=modifier_category,
+            )
         elif effect_type == "add_random_temporary_card_to_hand":
             temporary_cost_override = effect_data.get("temporary_cost_override", 0)
             if not isinstance(temporary_cost_override, int) or temporary_cost_override < 0:
@@ -473,7 +741,13 @@ class RunModifierLibrary:
                 )
             validated["encounter_types"] = list(encounter_types)
 
-        return self._apply_common_effect_metadata(validated, effect_data, modifier_id, hook_name)
+        return self._apply_common_effect_metadata(
+            validated,
+            effect_data,
+            modifier_id,
+            hook_name,
+            modifier_category=modifier_category,
+        )
 
     def _apply_common_effect_metadata(
         self,
@@ -481,6 +755,8 @@ class RunModifierLibrary:
         effect_data: dict[str, Any],
         modifier_id: str,
         hook_name: str,
+        *,
+        modifier_category: str,
     ) -> dict[str, Any]:
         once_per = effect_data.get("once_per")
         if once_per is not None:
@@ -591,13 +867,102 @@ class RunModifierLibrary:
                 )
             validated["require_modifier_flag"] = require_modifier_flag
 
+        validated["trigger_scope"] = self._validate_trigger_scope(
+            effect_data,
+            validated,
+            modifier_id,
+            hook_name,
+            modifier_category,
+        )
+
         return validated
+
+    def _validate_trigger_scope(
+        self,
+        effect_data: dict[str, Any],
+        validated_effect: dict[str, Any],
+        modifier_id: str,
+        hook_name: str,
+        modifier_category: str,
+    ) -> dict[str, Any]:
+        raw_scope = effect_data.get("trigger_scope")
+        normalized_scope = raw_scope
+        if normalized_scope is None:
+            played_multiple = validated_effect.get("played_card_type_count_multiple_of")
+            if played_multiple is not None:
+                normalized_scope = {
+                    "mode": "every_n_this_turn",
+                    "count": int(played_multiple),
+                }
+            else:
+                once_per = validated_effect.get("once_per")
+                if once_per == "combat":
+                    normalized_scope = {"mode": "once_per_combat"}
+                elif once_per == "turn":
+                    normalized_scope = {"mode": "first_each_turn"}
+                elif hook_name == "combat_start":
+                    normalized_scope = {"mode": "once_per_combat"}
+                elif hook_name == "on_turn_start":
+                    normalized_scope = {"mode": "first_each_turn"}
+                elif hook_name in ACTION_TRIGGER_HOOKS:
+                    normalized_scope = {"mode": "uncapped_safe"}
+
+        if normalized_scope is None:
+            return {"mode": "once"}
+
+        if not isinstance(normalized_scope, dict):
+            raise ValueError(f"Run modifier {modifier_id} hook {hook_name} trigger_scope must be a dictionary.")
+        mode = normalized_scope.get("mode")
+        if mode not in ALLOWED_TRIGGER_SCOPE_MODES:
+            raise ValueError(
+                f"Run modifier {modifier_id} hook {hook_name} trigger_scope mode must be one of: "
+                f"{', '.join(sorted(ALLOWED_TRIGGER_SCOPE_MODES))}"
+            )
+
+        validated_scope: dict[str, Any] = {"mode": str(mode)}
+        key = normalized_scope.get("key", validated_effect.get("gate_id"))
+        if key is not None:
+            if not isinstance(key, str) or not key:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} trigger_scope key must be a non-empty string.")
+            validated_scope["key"] = key
+
+        if mode in {"every_n_this_turn", "max_n_per_turn"}:
+            count = normalized_scope.get("count", normalized_effect_count := validated_effect.get("played_card_type_count_multiple_of"))
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} trigger_scope count must be a positive integer.")
+            validated_scope["count"] = count
+        elif "count" in normalized_scope:
+            count = normalized_scope.get("count")
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} trigger_scope count must be a positive integer.")
+            validated_scope["count"] = count
+
+        if validated_effect["type"] in DANGEROUS_LOOP_EFFECT_TYPES:
+            if validated_scope["mode"] not in {
+                "first_each_turn",
+                "every_n_this_turn",
+                "max_n_per_turn",
+                "once_per_combat",
+                "per_card_type_each_turn",
+                "per_target_each_turn",
+            }:
+                raise ValueError(
+                    f"Run modifier {modifier_id} hook {hook_name} effect {validated_effect['type']} must use an explicit loop-safe trigger_scope."
+                )
+
+        if modifier_category in PLAYER_FACING_RELIC_CATEGORIES and hook_name in ACTION_TRIGGER_HOOKS:
+            if validated_scope["mode"] not in ALLOWED_TRIGGER_SCOPE_MODES:
+                raise ValueError(f"Run modifier {modifier_id} hook {hook_name} requires a supported trigger_scope.")
+
+        return validated_scope
 
     def _validate_random_option(
         self,
         option_data: dict[str, Any],
         modifier_id: str,
         hook_name: str,
+        *,
+        modifier_category: str,
     ) -> dict[str, Any]:
         if not isinstance(option_data, dict):
             raise ValueError(
@@ -624,7 +989,13 @@ class RunModifierLibrary:
             "weight": weight,
             "summary": summary,
             "effects": [
-                self._validate_effect(effect, modifier_id, hook_name, allow_random=False)
+                self._validate_effect(
+                    effect,
+                    modifier_id,
+                    hook_name,
+                    allow_random=False,
+                    modifier_category=modifier_category,
+                )
                 for effect in effects
             ],
         }

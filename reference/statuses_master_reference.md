@@ -42,7 +42,7 @@ Generated from combat/status code plus `data/cards.json`, `data/enemies.json`, a
 - Effect: At end of the afflicted unit's turn, it loses HP equal to Infection. If Infection is 6 or more, it takes 4 extra damage and resets to 3.
 - Clears / Decay: Persists until combat ends or an explicit effect changes it.
 - Visual Flavor: Verdant spores, septic fluid, and invasive biotech growth crawling across metal or flesh.
-- Who Can Apply It: Culture Shepherd (`culture_shepherd`), Gland Brute (`gland_brute`), Miremother Vexa (`miremother_vexa`), Serum Acolyte (`serum_acolyte`), Sludge Whelp (`sludge_whelp`), Waste Leech (`waste_leech`), Harvest Bite (`bio_harvest_bite_01`), Leech Jab (`bio_leech_jab_01`), Parasite Fang (`bio_parasite_fang_01`), Septic Round (`bio_septic_round_01`), Containment Loop (`containment_loop`) [relic], Execution Array (`execution_array`) [relic], Field Dampener (`field_dampener`) [relic], Parasite Seal (`parasite_seal`) [relic], Quarantine Vault (`quarantine_vault`) [relic], Septic Crown (`septic_crown`) [relic], Septic Reservoir (`septic_reservoir`) [relic], Septic Siphon (`septic_siphon`) [relic], Verdict Engine (`verdict_engine`) [relic], Viral Relay (`viral_relay`) [relic]
+- Who Can Apply It: Culture Shepherd (`culture_shepherd`), Gland Brute (`gland_brute`), Miremother Vexa (`miremother_vexa`), Serum Acolyte (`serum_acolyte`), Sludge Whelp (`sludge_whelp`), Waste Leech (`waste_leech`), Harvest Bite (`bio_harvest_bite_01`), Leech Jab (`bio_leech_jab_01`), Parasite Fang (`bio_parasite_fang_01`), Septic Round (`bio_septic_round_01`), Containment Loop (`containment_loop`) [relic], Execution Array (`execution_array`) [relic], Field Dampener (`field_dampener`) [relic], Quarantine Vault (`quarantine_vault`) [relic], Septic Crown (`septic_crown`) [relic], Septic Reservoir (`septic_reservoir`) [relic], Septic Siphon (`septic_siphon`) [relic], Verdict Engine (`verdict_engine`) [relic], Viral Clamp (`parasite_seal`) [relic], Viral Relay (`viral_relay`) [relic]
 
 ### Burn (`burn`)
 
@@ -60,7 +60,7 @@ Generated from combat/status code plus `data/cards.json`, `data/enemies.json`, a
 - Effect: When the afflicted target is hit, it takes bonus damage equal to Bleed.
 - Clears / Decay: Bleed drops by 1 each time the bonus damage triggers.
 - Visual Flavor: Razor-red cuts, cable slashes, and fresh droplets drawn in aggressive diagonal marks.
-- Who Can Apply It: Caravan Reaver (`caravan_reaver`), Carrion Hound (`carrion_hound`), Sandpack Alpha (`sandpack_alpha`), Bash Protocol (`enforcer_bash_protocol_01`), Breaker Line (`enforcer_breaker_line_01`), Gouge (`enforcer_gouge_01`), Arterial Reservoir (`arterial_reservoir`) [relic], Blood Indexer (`blood_indexer`) [relic], Butcher Hooks (`butcher_hooks`) [relic], Controlled Bleed Valve (`controlled_bleed_valve`) [relic], Execution Array (`execution_array`) [relic], Execution Relay (`execution_relay`) [relic], Field Dampener (`field_dampener`) [relic], Grave Lantern (`grave_lantern`) [relic], Open-Circuit Brand (`open_circuit_brand`) [relic], Quarantine Vault (`quarantine_vault`) [relic], Verdict Engine (`verdict_engine`) [relic]
+- Who Can Apply It: Caravan Reaver (`caravan_reaver`), Carrion Hound (`carrion_hound`), Sandpack Alpha (`sandpack_alpha`), Bash Protocol (`enforcer_bash_protocol_01`), Breaker Line (`enforcer_breaker_line_01`), Gouge (`enforcer_gouge_01`), Arterial Reservoir (`arterial_reservoir`) [relic], Bleed Brand (`open_circuit_brand`) [relic], Blood Indexer (`blood_indexer`) [relic], Butcher Hooks (`butcher_hooks`) [relic], Controlled Bleed Valve (`controlled_bleed_valve`) [relic], Execution Array (`execution_array`) [relic], Execution Relay (`execution_relay`) [relic], Field Dampener (`field_dampener`) [relic], Grave Lantern (`grave_lantern`) [relic], Quarantine Vault (`quarantine_vault`) [relic], Verdict Engine (`verdict_engine`) [relic]
 
 ### Marked (`marked`)
 
@@ -69,7 +69,7 @@ Generated from combat/status code plus `data/cards.json`, `data/enemies.json`, a
 - Effect: Blackwire attacks gain +2 damage per current Marked stack, then consume 1 stack on hit.
 - Clears / Decay: Player Marked lasts up to 2 turns unless consumed sooner. Generic enemy-side counters persist until removed.
 - Visual Flavor: Clean compliance brackets, target pings, and white tracking circles locking onto prey.
-- Who Can Apply It: Audit Hound (`audit_hound`), Director Vale (`director_vale`), Junction-9 Sentinel (`junction_9_sentinel`), Patrol Drone (`patrol_drone`), Relay Vulture (`relay_vulture`), Scrap Ticker (`scrap_ticker`), Signal Analyst (`signal_analyst`), Signal Junker (`signal_junker`), Suppression Sniper (`suppression_sniper`), Wastes Colossus (`wastes_colossus`), Marker Scrambler (`marker_scrambler`) [relic], Toll Spike (`toll_spike`) [relic]
+- Who Can Apply It: Audit Hound (`audit_hound`), Director Vale (`director_vale`), Junction-9 Sentinel (`junction_9_sentinel`), Patrol Drone (`patrol_drone`), Relay Vulture (`relay_vulture`), Scrap Ticker (`scrap_ticker`), Signal Analyst (`signal_analyst`), Signal Junker (`signal_junker`), Suppression Sniper (`suppression_sniper`), Wastes Colossus (`wastes_colossus`), Field Dampener (`field_dampener`) [relic], Marker Scrambler (`marker_scrambler`) [relic], Quarantine Vault (`quarantine_vault`) [relic], Toll Spike (`toll_spike`) [relic]
 
 ### Suppressed (`suppressed`)
 
@@ -187,11 +187,63 @@ Generated from combat/status code plus `data/cards.json`, `data/enemies.json`, a
 
 ## Run Modifier Statuses
 
+### Echo (`echo`)
+
+- Description: The first card you play each combat repeats.
+- Visual Flavor: A mirrored waveform token with duplicate edges and a pale afterimage trailing behind it.
+- Rarity: `special`
+- Base Weight: `2`
+- Draft Eligible: `False`
+- Source Types: `event`
+- Tags: `offense`, `scaling`, `blessing`
+- Hooks:
+  - `passive`
+    - The first card you play each combat repeats.
+
+### Efficient (`efficient`)
+
+- Description: The first card each combat costs 0.
+- Visual Flavor: A clean zero-cost command chip with trimmed edges, teal timing marks, and perfect economy.
+- Rarity: `special`
+- Base Weight: `5`
+- Draft Eligible: `False`
+- Source Types: `event`
+- Tags: `energy`, `blessing`
+- Hooks:
+  - `passive`
+    - The first card each combat costs 0.
+
+### Glitch State (`glitch_state`)
+
+- Description: Each combat begins with a random glitch.
+- Visual Flavor: A corrupted status badge of jittering pixels, split colors, and unstable signal tears.
+- Rarity: `special`
+- Base Weight: `2`
+- Draft Eligible: `False`
+- Source Types: `event`
+- Tags: `volatility`, `risk`, `event`
+- Hooks:
+  - `combat_start`
+    - Random one of: Glitch surge: +1 Energy. | Glitch buffer: Gain 6 Block. | Glitch cache: Draw 1. | Glitch backlash: Lose 4 HP.
+
+### Momentum (`momentum`)
+
+- Description: Attack cards deal 3 extra damage if you attacked last turn.
+- Visual Flavor: A forward-tilted speed emblem of rev bars and attack chevrons, always leaning into the next hit.
+- Rarity: `special`
+- Base Weight: `5`
+- Draft Eligible: `False`
+- Source Types: `event`
+- Tags: `offense`, `scaling`, `blessing`
+- Hooks:
+  - `passive`
+    - If you attacked last turn, Attack cards deal 3 extra damage.
+
 ### Stim Boost (`stim_boost`)
 
 - Description: Next 3 combats: start with 1 extra Energy.
 - Visual Flavor: A compact stim cartridge with fresh green charge, timer ticks, and combat-prep seals.
-- Rarity: `common`
+- Rarity: `special`
 - Base Weight: `6`
 - Draft Eligible: `False`
 - Source Types: `event`
@@ -202,37 +254,11 @@ Generated from combat/status code plus `data/cards.json`, `data/enemies.json`, a
   - `combat_start`
     - Gain 1 Energy.
 
-### Efficient (`efficient`)
-
-- Description: The first card each combat costs 0.
-- Visual Flavor: A clean zero-cost command chip with trimmed edges, teal timing marks, and perfect economy.
-- Rarity: `uncommon`
-- Base Weight: `5`
-- Draft Eligible: `False`
-- Source Types: `event`
-- Tags: `energy`, `blessing`
-- Hooks:
-  - `passive`
-    - The first card each combat costs 0.
-
-### Momentum (`momentum`)
-
-- Description: Attack cards deal 3 extra damage if you attacked last turn.
-- Visual Flavor: A forward-tilted speed emblem of rev bars and attack chevrons, always leaning into the next hit.
-- Rarity: `uncommon`
-- Base Weight: `5`
-- Draft Eligible: `False`
-- Source Types: `event`
-- Tags: `offense`, `scaling`, `blessing`
-- Hooks:
-  - `passive`
-    - If you attacked last turn, Attack cards deal 3 extra damage.
-
 ### System Corruption (`system_corruption`)
 
 - Description: Next combat: lose 4 HP at the start.
 - Visual Flavor: A sickly warning badge with corrupt code bleed, dead pixels, and damage-start alert lines.
-- Rarity: `uncommon`
+- Rarity: `special`
 - Base Weight: `4`
 - Draft Eligible: `False`
 - Source Types: `event`
@@ -242,29 +268,3 @@ Generated from combat/status code plus `data/cards.json`, `data/enemies.json`, a
 - Hooks:
   - `combat_start`
     - Take 4 damage.
-
-### Echo (`echo`)
-
-- Description: The first card you play each combat repeats.
-- Visual Flavor: A mirrored waveform token with duplicate edges and a pale afterimage trailing behind it.
-- Rarity: `rare`
-- Base Weight: `2`
-- Draft Eligible: `False`
-- Source Types: `event`
-- Tags: `offense`, `scaling`, `blessing`
-- Hooks:
-  - `passive`
-    - The first card you play each combat repeats.
-
-### Glitch State (`glitch_state`)
-
-- Description: Each combat begins with a random glitch.
-- Visual Flavor: A corrupted status badge of jittering pixels, split colors, and unstable signal tears.
-- Rarity: `rare`
-- Base Weight: `2`
-- Draft Eligible: `False`
-- Source Types: `event`
-- Tags: `volatility`, `risk`, `event`
-- Hooks:
-  - `combat_start`
-    - Random one of: Glitch surge: +1 Energy. | Glitch buffer: Gain 6 Block. | Glitch cache: Draw 1. | Glitch backlash: Lose 4 HP.

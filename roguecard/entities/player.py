@@ -19,6 +19,7 @@ class Player:
     current_hp: int = PLAYER_STARTING_HP
     max_energy: int = PLAYER_STARTING_ENERGY
     energy: int = PLAYER_STARTING_ENERGY
+    unstable_energy: int = 0
     block: int = 0
     draw_per_turn: int = PLAYER_STARTING_DRAW
     credits: int = PLAYER_STARTING_CREDITS
@@ -52,6 +53,7 @@ class Player:
     def start_combat(self) -> None:
         self.block = 0
         self.energy = self.max_energy
+        self.unstable_energy = 0
         self.strength = 0
         self.weak = 0
         self.vulnerable = 0
@@ -74,6 +76,7 @@ class Player:
     def start_turn(self) -> None:
         self.block = 0
         self.energy = self.max_energy
+        self.unstable_energy = 0
         self.next_card_cost_delta = 0
         self.next_attack_bonus = 0
         self.first_card_played = False
@@ -83,6 +86,7 @@ class Player:
     def end_combat(self) -> None:
         self.block = 0
         self.energy = self.max_energy
+        self.unstable_energy = 0
         self.strength = 0
         self.weak = 0
         self.vulnerable = 0
@@ -103,15 +107,31 @@ class Player:
     def spend_energy(self, amount: int) -> None:
         if amount < 0:
             raise ValueError("Energy cost cannot be negative.")
-        if amount > self.energy:
+        if amount > self.total_energy():
             raise ValueError("Not enough energy to play the requested card.")
-        self.energy -= amount
+        unstable_spend = min(self.unstable_energy, amount)
+        self.unstable_energy -= unstable_spend
+        self.energy -= amount - unstable_spend
 
     def gain_energy(self, amount: int) -> int:
         if not isinstance(amount, int):
             raise ValueError("Energy changes must be integers.")
         self.energy = max(0, self.energy + amount)
         return amount
+
+    def gain_unstable_energy(self, amount: int) -> int:
+        if not isinstance(amount, int):
+            raise ValueError("Energy changes must be integers.")
+        self.unstable_energy = max(0, self.unstable_energy + amount)
+        return amount
+
+    def clear_unstable_energy(self) -> int:
+        leftover = max(0, int(self.unstable_energy))
+        self.unstable_energy = 0
+        return leftover
+
+    def total_energy(self) -> int:
+        return max(0, int(self.energy)) + max(0, int(self.unstable_energy))
 
     def gain_block(self, amount: int) -> int:
         if amount < 0:
@@ -383,6 +403,8 @@ class Player:
             "current_hp": self.current_hp,
             "max_energy": self.max_energy,
             "energy": self.energy,
+            "unstable_energy": self.unstable_energy,
+            "total_energy": self.total_energy(),
             "block": self.block,
             "draw_per_turn": self.draw_per_turn,
             "credits": self.credits,

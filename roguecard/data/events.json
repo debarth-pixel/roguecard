@@ -563,6 +563,30 @@
         "description": "Leave it.",
         "choice_type": "effect",
         "effects": []
+      },
+      {
+        "id": "open_the_bleed_channel",
+        "label": "Open the bleed channel",
+        "description": "Gain a hidden Drift card. Increase Protocol Drift by 4%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 20
+        },
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "drift_error_knife_01"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          }
+        ],
+        "preview_notes": [
+          "Hidden Drift card",
+          "Feedback starts sooner if Drift climbs"
+        ]
       }
     ]
   },
@@ -692,6 +716,40 @@
         "description": "Keep it stock.",
         "choice_type": "effect",
         "effects": []
+      },
+      {
+        "id": "tune_for_overrun",
+        "label": "Tune for overrun",
+        "description": "Next combat: gain 1 Energy and draw 1. Increase Protocol Drift by 5%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 40
+        },
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          }
+        ],
+        "preview_notes": [
+          "Next combat overload",
+          "Raises future Feedback pressure"
+        ]
       }
     ]
   },
@@ -1553,6 +1611,32 @@
             }
           }
         ]
+      },
+      {
+        "id": "splice_the_drift_relay",
+        "label": "Splice the drift relay",
+        "description": "Next combat: add a hidden Drift card to hand. Increase Protocol Drift by 6%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 40
+        },
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_temporary_card_to_hand",
+              "card_id": "drift_unsafe_overclock_01"
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          }
+        ],
+        "preview_notes": [
+          "Next combat: hidden Drift card in hand"
+        ]
       }
     ]
   },
@@ -1634,6 +1718,35 @@
             }
           }
         ]
+      },
+      {
+        "id": "buy_the_black_patch",
+        "label": "Buy the black patch",
+        "description": "Spend 18 credits. Gain a hidden Drift card. Increase Protocol Drift by 4%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 20,
+          "credits_at_least": 18
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 18
+          },
+          {
+            "type": "gain_card",
+            "card_id": "drift_null_refund_01"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          }
+        ],
+        "preview_notes": [
+          "Hidden Drift card",
+          "Route your next turns through feedback pressure"
+        ]
       }
     ]
   },
@@ -1650,7 +1763,8 @@
     "tags": [
       "corruption",
       "anomaly",
-      "relic"
+      "relic",
+      "full_drift_pool"
     ],
     "choices": [
       {
@@ -1741,6 +1855,45 @@
             "type": "adjust_protocol_drift",
             "amount": 5
           }
+        ]
+      },
+      {
+        "id": "step_into_full_drift",
+        "label": "Step into full drift",
+        "description": "Gain a hidden Drift card, a corruption relic, and next combat +2 Energy. Stay at Full Drift.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 100
+        },
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "drift_black_ice_bloom_01"
+          },
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_categories": [
+              "boss_relic"
+            ],
+            "include_tags": [
+              "corruption"
+            ]
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 2
+            }
+          }
+        ],
+        "preview_notes": [
+          "Gain Eclipse relic",
+          "Hidden Drift card",
+          "Next combat: +2 Energy"
         ]
       }
     ]
@@ -4377,6 +4530,30 @@
         "requirements": {
           "credits_at_least": 12
         }
+      },
+      {
+        "id": "confess_to_the_signal",
+        "label": "Confess to the signal",
+        "description": "Gain a hidden Drift card. Increase Protocol Drift by 6%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 60
+        },
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "drift_mirror_cache_01"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          }
+        ],
+        "preview_notes": [
+          "Hidden Drift card",
+          "Feedback and backlash become active sooner"
+        ]
       }
     ],
     "min_floor": 3
@@ -4658,6 +4835,38 @@
         "requirements": {
           "modifier_active": "triune_module"
         }
+      },
+      {
+        "id": "promote_the_shadow_admin",
+        "label": "Promote the shadow admin",
+        "description": "Gain a corruption relic. Increase Protocol Drift by 8%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 60
+        },
+        "effects": [
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_categories": [
+              "rare_relic",
+              "boss_relic"
+            ],
+            "include_tags": [
+              "corruption"
+            ]
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
+          }
+        ],
+        "preview_notes": [
+          "Gain Eclipse relic",
+          "Feedback safe threshold shrinks with higher Drift"
+        ]
       }
     ],
     "min_floor": 5
@@ -4718,6 +4927,42 @@
             "type": "adjust_protocol_drift",
             "amount": -2
           }
+        ]
+      },
+      {
+        "id": "unseal_the_ghost_kernel",
+        "label": "Unseal the ghost kernel",
+        "description": "Gain a hidden Drift card and a corruption relic. Increase Protocol Drift by 8%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 60
+        },
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "drift_unsafe_overclock_01"
+          },
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_categories": [
+              "rare_relic",
+              "boss_relic"
+            ],
+            "include_tags": [
+              "corruption"
+            ]
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
+          }
+        ],
+        "preview_notes": [
+          "Hidden Drift card",
+          "Gain Eclipse relic"
         ]
       }
     ],
@@ -5510,6 +5755,42 @@
             "amount": -7
           }
         ]
+      },
+      {
+        "id": "rock_the_cradle_harder",
+        "label": "Rock the cradle harder",
+        "description": "Next combat: gain 1 Energy and add Glitch to discard. Increase Protocol Drift by 6%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 40
+        },
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_status_card",
+              "card_id": "status_glitch_01",
+              "count": 1,
+              "pile": "discard"
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          }
+        ],
+        "preview_notes": [
+          "Next combat overload",
+          "Glitch added before the fight stabilizes"
+        ]
       }
     ],
     "min_floor": 4
@@ -5756,7 +6037,8 @@
       "corruption",
       "relic",
       "chain",
-      "special"
+      "special",
+      "full_drift_pool"
     ],
     "choices": [
       {
@@ -5825,6 +6107,47 @@
             "type": "heal",
             "value": 10
           }
+        ]
+      },
+      {
+        "id": "let_the_shard_bite_back",
+        "label": "Let the shard bite back",
+        "description": "Gain a hidden Drift card and a corruption relic. Take 8 damage. Increase Protocol Drift by 10%.",
+        "choice_type": "effect",
+        "ui_role": "secret_corruption",
+        "requirements": {
+          "protocol_drift_at_least": 80
+        },
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "drift_black_ice_bloom_01"
+          },
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_categories": [
+              "rare_relic",
+              "boss_relic"
+            ],
+            "include_tags": [
+              "corruption"
+            ]
+          },
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 10
+          }
+        ],
+        "preview_notes": [
+          "Gain Eclipse relic",
+          "Hidden Drift card",
+          "Meaningful downside: 8 damage"
         ]
       }
     ],

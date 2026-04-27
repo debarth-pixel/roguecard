@@ -82,6 +82,11 @@ def inspect_card_rules(card: dict[str, Any]) -> list[str]:
 
 def renderable_card_rule_entries(card: dict[str, Any]) -> list[dict[str, str]]:
     entries = [{"text": line, "tone": "base"} for line in inspect_card_rules(card)]
+    for entry in list(card.get("dynamic_rule_entries") or []):
+        text = str(entry.get("text", "")).strip()
+        if not text:
+            continue
+        entries.append({"text": text, "tone": str(entry.get("tone", "base"))})
     corruption_display = card.get("corruption_display", [])
     if isinstance(corruption_display, list):
         for rider in corruption_display:
@@ -1360,6 +1365,8 @@ def _rule_line_color(type_theme: dict[str, Any], tone: str) -> tuple[int, int, i
         return (255, 214, 110)
     if tone == "corruption_inactive":
         return type_theme["footer_text"]
+    if tone == "danger":
+        return (255, 118, 112)
     return type_theme["primary_value"]
 
 

@@ -66,7 +66,7 @@ class RunModifierEngine:
             source_type="run_start",
             rarity_profile="positive",
             draft_only=True,
-            allow_types=["relic"],
+            allow_categories=["starter_relic"],
         )
         final_offer_ids = self._pick_weighted_ids(weighted_draft_pool, rng, count=3)
 
@@ -76,14 +76,14 @@ class RunModifierEngine:
                 source_type="run_start",
                 rarity_profile="positive",
                 draft_only=True,
-                allow_types=["relic"],
+                allow_categories=["starter_relic"],
                 pool_ids=[
                     modifier["id"]
                     for modifier in self.modifier_library.list_modifiers(
                         draft_only=True,
                         source_type="run_start",
                     )
-                    if modifier["type"] == "relic" and modifier["id"] not in final_offer_ids
+                    if modifier["category"] == "starter_relic" and modifier["id"] not in final_offer_ids
                 ],
             )
             final_offer_ids.extend(self._pick_weighted_ids(fallback_pool, rng, count=3 - len(final_offer_ids)))
@@ -310,6 +310,7 @@ class RunModifierEngine:
         rarity_profile: str,
         allow_types: list[str] | None = None,
         allow_rarities: list[str] | None = None,
+        allow_categories: list[str] | None = None,
         include_tags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
         draft_only: bool = False,
@@ -322,6 +323,11 @@ class RunModifierEngine:
 
         allow_type_set = None if allow_types is None else set(allow_types)
         allow_rarity_set = None if allow_rarities is None else set(allow_rarities)
+        if allow_categories is None and allow_type_set is not None and "relic" in allow_type_set:
+            default_relic_categories = self.modifier_library.default_relic_categories_for_source(source_type)
+            if default_relic_categories:
+                allow_categories = default_relic_categories
+        allow_category_set = None if allow_categories is None else set(allow_categories)
         include_tag_set = None if not include_tags else set(include_tags)
         exclude_tag_set = set(exclude_tags or [])
         candidates: list[dict[str, Any]] = []
@@ -330,6 +336,8 @@ class RunModifierEngine:
             if allow_type_set is not None and modifier["type"] not in allow_type_set:
                 continue
             if allow_rarity_set is not None and modifier["rarity"] not in allow_rarity_set:
+                continue
+            if allow_category_set is not None and modifier["category"] not in allow_category_set:
                 continue
             modifier_tags = set(modifier["tags"])
             if include_tag_set is not None and not include_tag_set.intersection(modifier_tags):
@@ -363,6 +371,7 @@ class RunModifierEngine:
         rarity_profile: str,
         allow_types: list[str] | None = None,
         allow_rarities: list[str] | None = None,
+        allow_categories: list[str] | None = None,
         include_tags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
         draft_only: bool = False,
@@ -374,6 +383,7 @@ class RunModifierEngine:
             rarity_profile=rarity_profile,
             allow_types=allow_types,
             allow_rarities=allow_rarities,
+            allow_categories=allow_categories,
             include_tags=include_tags,
             exclude_tags=exclude_tags,
             draft_only=draft_only,
@@ -401,6 +411,7 @@ class RunModifierEngine:
         count: int,
         allow_types: list[str] | None = None,
         allow_rarities: list[str] | None = None,
+        allow_categories: list[str] | None = None,
         include_tags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
         draft_only: bool = False,
@@ -412,6 +423,7 @@ class RunModifierEngine:
             rarity_profile=rarity_profile,
             allow_types=allow_types,
             allow_rarities=allow_rarities,
+            allow_categories=allow_categories,
             include_tags=include_tags,
             exclude_tags=exclude_tags,
             draft_only=draft_only,

@@ -375,6 +375,7 @@ class CombatUI:
         self._floating_feedback: list[dict[str, Any]] = []
         self._proc_ticker_entries: list[dict[str, Any]] = []
         self._last_layout_warning_signature: tuple[str, ...] | None = None
+        self._last_surface_size: tuple[int, int] = (SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -407,10 +408,15 @@ class CombatUI:
         self._clear_selection()
         return action
 
-    def handle_event(self, event: Any, combat_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        combat_state: dict[str, Any],
+        surface_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
-        layout = self.build_layout(combat_state, surface.get_size())
+        layout = self.build_layout(combat_state, surface_size)
 
         if event.type == pygame.MOUSEMOTION:
             self._mouse_pos = event.pos
@@ -592,7 +598,8 @@ class CombatUI:
         presentation = combat_state.get("presentation", {})
         if pygame is not None:
             self._ensure_fonts(presentation.get("ui_scale", 1.0))
-        combat_layout = build_combat_layout(surface_size)
+        resolved_surface_size = self._resolve_surface_size(surface_size)
+        combat_layout = build_combat_layout(resolved_surface_size)
         hand = combat_state.get("player_hand", [])
         player = combat_state["player"]
         character = combat_state.get("character") or {}
@@ -673,7 +680,13 @@ class CombatUI:
             else:
                 self._clear_selection(keep_hover=True)
 
-        player_actor = self._player_actor_layout(player, character, combat_state.get("run_state"), combat_layout)
+        player_actor = self._player_actor_layout(
+            player,
+            character,
+            combat_state.get("run_state"),
+            combat_state.get("drift_runtime"),
+            combat_layout,
+        )
         enemy_actors = self._enemy_actor_layout(enemies, selected_card, combat_layout)
         for enemy_actor in enemy_actors:
             enemy_actor.update(self._enemy_actor_animation_state(enemy_actor))
@@ -760,8 +773,9 @@ class CombatUI:
             return False, "Wait for enemy actions"
         if card.get("type") == "status":
             return False, "Status cards cannot be played"
-        if card["cost"] > player["energy"]:
-            missing = card["cost"] - player["energy"]
+        available_energy = int(player.get("total_energy", int(player.get("energy", 0) or 0)) or 0)
+        if card["cost"] > available_energy:
+            missing = card["cost"] - available_energy
             return False, f"Need {missing} more energy"
         target_mode = self._card_target_mode(card)
         if target_mode in {"single_enemy", "all_enemies"} and not living_enemy_ids:
@@ -817,7 +831,6 @@ class CombatUI:
         if hand_count <= 0:
             return []
         hand_rect = layout.hand_rect
-        safe_rect = layout.safe_rect
         focus_active = self._hovered_card_index is not None and self._selected_card_index is None
         width = self._starting_hand_card_width(hand_count, layout)
         best: list[dict[str, Any]] = []
@@ -827,58 +840,28 @@ class CombatUI:
             if hand_count > 1:
                 maximum_step = max(0.30, (hand_rect[2] - width) / (width * max(1, hand_count - 1)))
                 step_ratio = min(step_ratio, maximum_step)
+            angle_decay = max(0.0, (_attempt - 7) * 0.65)
             max_angle = 8.0 if hand_count <= 5 else max(3.0, 8.0 - ((hand_count - 5) * 0.8))
+            max_angle = max(1.5, max_angle - angle_decay)
+            if _attempt >= 10:
+                step_ratio = max(0.24, step_ratio - ((_attempt - 9) * 0.015))
             candidate = self._candidate_hand_geometries(hand_count, hand_rect, width, height, step_ratio, max_angle)
-            union = self._rect_union([card["bounds_rect"] for card in candidate])
-            if self._rect_contains(hand_rect, union) and self._rect_contains(safe_rect, union):
-                best = candidate
+            finalized = self._finalize_hand_geometries(candidate, layout, focus_active=focus_active)
+            if self._hand_layout_fits(finalized, layout):
+                best = finalized
                 break
-            best = candidate
+            best = finalized
             width = max(86, int(width * 0.94))
 
-        if not best:
-            return []
-
-        union = self._rect_union([card["bounds_rect"] for card in best])
-        dx, dy = self._shift_needed_to_contain(union, hand_rect)
-        union = self._shift_rect(union, dx, dy)
-        safe_dx, safe_dy = self._shift_needed_to_contain(union, safe_rect)
-        dx += safe_dx
-        dy += safe_dy
-
-        final: list[dict[str, Any]] = []
-        for card in best:
-            center = (card["center"][0] + dx, card["center"][1] + dy)
-            scale = self._hand_card_scale(card["index"])
-            draw_center = center
-            alpha = 255
-            if card["index"] == self._hovered_card_index and card["index"] != self._selected_card_index:
-                draw_center = (center[0], center[1] - self._hover_lift_for_layout(layout))
-            elif focus_active:
-                draw_center = (center[0], center[1] + min(CARD_FOCUS_RECESS_PX, max(4, hand_rect[3] // 24)))
-                alpha = CARD_DIMMED_ALPHA
-            draw_rect = self._hand_card_hit_rect(draw_center, card["size"], card["angle"], scale=scale)
-            draw_dx, draw_dy = self._shift_needed_to_contain(draw_rect, safe_rect)
-            if draw_dy < 0:
-                draw_center = (draw_center[0], draw_center[1] + draw_dy)
-                draw_rect = self._hand_card_hit_rect(draw_center, card["size"], card["angle"], scale=scale)
-            final.append(
-                {
-                    **card,
-                    "center": center,
-                    "draw_center": draw_center,
-                    "draw_scale": scale,
-                    "draw_alpha": alpha,
-                    "hit_rect": draw_rect,
-                }
-            )
-        return final
+        return best
 
     def _starting_hand_card_width(self, hand_count: int, layout: CombatLayout) -> int:
         surface_width, surface_height = layout.surface_size
         screen_scale = min(surface_width / SCREEN_WIDTH, surface_height / SCREEN_HEIGHT)
         height_cap = int(layout.hand_rect[3] / (CARD_PORTRAIT_HEIGHT_RATIO * 1.04))
-        comfortable_width = int(154 * max(0.78, min(1.12, screen_scale)))
+        comfortable_width = int(150 * max(0.76, min(1.10, screen_scale)))
+        if hand_count == 5 and surface_width <= SCREEN_WIDTH and surface_height <= SCREEN_HEIGHT:
+            comfortable_width = min(comfortable_width, 142)
         count_cap = int(layout.hand_rect[2] / max(1.0, 1.0 + (max(0, hand_count - 1) * 0.34)))
         return max(86, min(comfortable_width, height_cap, count_cap, 176))
 
@@ -915,11 +898,101 @@ class CombatUI:
             )
         return cards
 
+    def _finalize_hand_geometries(
+        self,
+        cards: list[dict[str, Any]],
+        layout: CombatLayout,
+        *,
+        focus_active: bool,
+    ) -> list[dict[str, Any]]:
+        if not cards:
+            return []
+        hand_rect = layout.hand_rect
+        safe_rect = layout.safe_rect
+        union = self._rect_union([card["bounds_rect"] for card in cards])
+        dx, dy = self._shift_needed_to_contain(union, hand_rect)
+        union = self._shift_rect(union, dx, dy)
+        safe_dx, safe_dy = self._shift_needed_to_contain(union, safe_rect)
+        dx += safe_dx
+        dy += safe_dy
+
+        finalized: list[dict[str, Any]] = []
+        for card in cards:
+            center = (card["center"][0] + dx, card["center"][1] + dy)
+            scale = self._hand_card_scale(card["index"])
+            draw_center = center
+            alpha = 255
+            if card["index"] == self._hovered_card_index and card["index"] != self._selected_card_index:
+                draw_center = (center[0], center[1] - self._hover_lift_for_layout(layout))
+            elif focus_active:
+                draw_center = (center[0], center[1] + min(CARD_FOCUS_RECESS_PX, max(4, hand_rect[3] // 24)))
+                alpha = CARD_DIMMED_ALPHA
+            draw_rect = self._hand_card_hit_rect(draw_center, card["size"], card["angle"], scale=scale)
+            draw_dx, draw_dy = self._shift_needed_to_contain(draw_rect, safe_rect)
+            if draw_dx != 0 or draw_dy != 0:
+                draw_center = (draw_center[0] + draw_dx, draw_center[1] + draw_dy)
+                draw_rect = self._hand_card_hit_rect(draw_center, card["size"], card["angle"], scale=scale)
+            finalized.append(
+                {
+                    **card,
+                    "center": center,
+                    "draw_center": draw_center,
+                    "draw_scale": scale,
+                    "draw_alpha": alpha,
+                    "hit_rect": draw_rect,
+                }
+            )
+
+        all_rects = [tuple(card["hit_rect"]) for card in finalized]
+        final_union = self._rect_union(all_rects)
+        adjust_x, adjust_y = self._shift_needed_to_contain(final_union, safe_rect)
+        if adjust_x != 0 or adjust_y != 0:
+            adjusted: list[dict[str, Any]] = []
+            for card in finalized:
+                center = (card["center"][0] + adjust_x, card["center"][1] + adjust_y)
+                draw_center = (card["draw_center"][0] + adjust_x, card["draw_center"][1] + adjust_y)
+                draw_rect = self._shift_rect(tuple(card["hit_rect"]), adjust_x, adjust_y)
+                adjusted.append({**card, "center": center, "draw_center": draw_center, "hit_rect": draw_rect})
+            finalized = adjusted
+        return finalized
+
+    def _hand_layout_fits(self, cards: list[dict[str, Any]], layout: CombatLayout) -> bool:
+        if not cards:
+            return True
+        safe_rect = layout.safe_rect
+        steady_cards = [
+            tuple(card["hit_rect"])
+            for card in cards
+            if card["index"] != self._hovered_card_index and card["index"] != self._selected_card_index
+        ]
+        if not steady_cards:
+            steady_cards = [tuple(card["hit_rect"]) for card in cards]
+        if not all(self._rect_contains(safe_rect, tuple(card["hit_rect"])) for card in cards):
+            return False
+        steady_union = self._rect_union(steady_cards)
+        if not self._rect_contains(layout.hand_rect, steady_union):
+            return False
+        for rect in steady_cards:
+            for reserved in (
+                layout.player_status_rect,
+                layout.deck_discard_rect,
+                layout.exhaust_rect,
+                layout.end_turn_rect,
+            ):
+                if self._rects_intersect(rect, reserved):
+                    return False
+        return True
+
     def _hover_lift_for_layout(self, layout: CombatLayout) -> int:
-        top_limit = layout.top_hud_rect[1] + layout.top_hud_rect[3] + 18
+        top_limit = max(
+            layout.top_hud_rect[1] + layout.top_hud_rect[3] + 18,
+            layout.enemy_status_area_rect[1] + layout.enemy_status_area_rect[3] + 10,
+        )
         hand_top = layout.hand_rect[1]
-        available = max(0, hand_top - top_limit)
-        return max(18, min(CARD_FOCUS_LIFT, available // 2 if available > 0 else 18))
+        available = max(0, hand_top - top_limit - 8)
+        if available <= 0:
+            return 0
+        return min(CARD_FOCUS_LIFT, available)
 
     def _hand_card_scale(self, index: int) -> float:
         if index == self._hovered_card_index and index != self._selected_card_index:
@@ -954,7 +1027,10 @@ class CombatUI:
         height = int(width * CARD_PORTRAIT_HEIGHT_RATIO)
         center_x = hand[0] + (hand[2] / 2)
         center_y = hand[1] - (height / 2) - max(10, int(layout.surface_size[1] * 0.018))
-        min_y = arena[1] + (height / 2) + 10
+        min_y = max(
+            arena[1] + (height / 2) + 10,
+            layout.enemy_status_area_rect[1] + layout.enemy_status_area_rect[3] + (height / 2) + 8,
+        )
         max_y = hand[1] - (height / 2) - 8
         if max_y < min_y:
             max_y = min_y
@@ -1008,6 +1084,7 @@ class CombatUI:
         player: dict[str, Any],
         character: dict[str, Any],
         run_state: dict[str, Any] | None,
+        drift_runtime: dict[str, Any] | None,
         layout: CombatLayout,
     ) -> dict[str, Any]:
         accent = tuple(character.get("accent_color", [232, 88, 72]))
@@ -1041,8 +1118,10 @@ class CombatUI:
         protocol_drift_band_label = "Stable"
         if isinstance(run_state, dict):
             protocol_drift_pct = max(0, min(100, int(run_state.get("protocol_drift_pct", 0) or 0)))
-            protocol_drift_band_index = max(0, min(4, int(run_state.get("band_index", 0) or 0)))
-            protocol_drift_band_label = str(run_state.get("band_label", "Stable"))
+            protocol_drift_band_index = max(0, min(5, int(run_state.get("tier_index", run_state.get("band_index", 0)) or 0)))
+            protocol_drift_band_label = str(run_state.get("tier_label", run_state.get("band_label", "Stable")))
+        feedback_safe_threshold = None if not isinstance(drift_runtime, dict) else drift_runtime.get("feedback_safe_threshold_this_turn")
+        feedback_triggers = 0 if not isinstance(drift_runtime, dict) else int(drift_runtime.get("feedback_triggers_this_turn", 0) or 0)
         return {
             "character_id": character.get("id", player.get("character_id", "runner")),
             "name": character.get("name", "Runner"),
@@ -1062,6 +1141,8 @@ class CombatUI:
             "protocol_drift_pct": protocol_drift_pct,
             "protocol_drift_band_index": protocol_drift_band_index,
             "protocol_drift_band_label": protocol_drift_band_label,
+            "feedback_safe_threshold": feedback_safe_threshold,
+            "feedback_triggers": feedback_triggers,
         }
 
     def _enemy_actor_layout(
@@ -1080,7 +1161,6 @@ class CombatUI:
         base_foot_y = min(arena[1] + arena[3] - 12, layout.hand_rect[1] - 38)
         surface_scale = min(layout.surface_size[0] / SCREEN_WIDTH, layout.surface_size[1] / SCREEN_HEIGHT)
         base_scale = max(0.86, min(1.14, surface_scale))
-        hp_width = max(88, min(140, int((lane_width / count) * 0.78)))
         for index, enemy in enumerate(enemies):
             if count == 1:
                 foot_x = lane_left + int(round(lane_width * 0.58))
@@ -1093,6 +1173,7 @@ class CombatUI:
             elif enemy.get("tier") == "elite":
                 scale *= 1.06
             enemy_ref = str(enemy.get("enemy_ref") or f"{enemy['id']}#{index}")
+            hp_width = max(84, min(140, int((lane_width / count) * 0.78)))
             width = int(92 * scale)
             height = int(146 * scale)
             top_y = int(foot_y - height)
@@ -1139,7 +1220,7 @@ class CombatUI:
                     "infect_preview_lethal": infect_preview["lethal"],
                 }
             )
-        return actors
+        return self._resolve_enemy_status_layout(actors, layout)
 
     def _status_items_for_player(self, player: dict[str, Any]) -> list[dict[str, Any]]:
         status_values: dict[str, int] = {}
@@ -1158,6 +1239,58 @@ class CombatUI:
                     status_values[status_id] = count
 
         return self._ordered_status_items(status_values)
+
+    def _resolve_enemy_status_layout(
+        self,
+        actors: list[dict[str, Any]],
+        layout: CombatLayout,
+    ) -> list[dict[str, Any]]:
+        if len(actors) <= 1:
+            return actors
+        sorted_actors = sorted(actors, key=lambda actor: actor["foot"][0])
+        area = layout.enemy_status_area_rect
+        area_left = area[0]
+        area_right = area[0] + area[2]
+        min_width = 72
+        max_status_top = max(area[1], layout.hand_rect[1] - 48)
+        min_status_top = area[1]
+
+        for index, actor in enumerate(sorted_actors):
+            foot_x = int(actor["foot"][0])
+            left_bound = area_left if index == 0 else int((sorted_actors[index - 1]["foot"][0] + foot_x) / 2) + 8
+            right_bound = area_right if index == len(sorted_actors) - 1 else int((foot_x + sorted_actors[index + 1]["foot"][0]) / 2) - 8
+            available_width = max(min_width, right_bound - left_bound - 56)
+            hp_width = max(min_width, min(int(actor["hp_bar_rect"][2]), available_width))
+            base_top = max(min_status_top, min(max_status_top, int(actor["name_rect"][1])))
+            intent_width = max(96, min(int(actor["intent_rect"][2]), max(104, right_bound - left_bound - 8)))
+            status_candidates = [base_top, base_top - 12, base_top + 12, base_top - 24, base_top + 24]
+
+            for candidate_top in status_candidates:
+                status_top = max(min_status_top, min(max_status_top, candidate_top))
+                name_rect = (int(foot_x - hp_width / 2), status_top, hp_width, actor["name_rect"][3])
+                hp_bar_rect = (int(foot_x - hp_width / 2), status_top + 20, hp_width, actor["hp_bar_rect"][3])
+                block_x = min(area_right - actor["block_rect"][2], hp_bar_rect[0] + hp_width + 8)
+                block_x = max(left_bound, block_x)
+                block_rect = (block_x, status_top + 10, actor["block_rect"][2], actor["block_rect"][3])
+                group_rect = self._rect_union([name_rect, hp_bar_rect, block_rect])
+                if all(
+                    not self._rects_intersect(group_rect, self._rect_union([other["name_rect"], other["hp_bar_rect"], other["block_rect"]]))
+                    for other in sorted_actors[:index]
+                ):
+                    intent_rect = (
+                        int(max(left_bound, min(right_bound - intent_width, foot_x - (intent_width / 2)))),
+                        actor["intent_rect"][1],
+                        intent_width,
+                        actor["intent_rect"][3],
+                    )
+                    actor["name_rect"] = name_rect
+                    actor["hp_bar_rect"] = hp_bar_rect
+                    actor["block_rect"] = block_rect
+                    actor["intent_rect"] = intent_rect
+                    actor["block_anchor"] = (block_rect[0] + (block_rect[2] // 2), block_rect[1] + (block_rect[3] // 2))
+                    actor["status_origin"] = (foot_x, int(min(hp_bar_rect[1] + hp_bar_rect[3] + 6, layout.hand_rect[1] - 32)))
+                    break
+        return actors
 
     def _status_items_for_enemy(self, enemy: dict[str, Any]) -> list[dict[str, Any]]:
         status_values: dict[str, int] = {}
@@ -1458,7 +1591,7 @@ class CombatUI:
             return
         presentation = combat_state.get("presentation", {})
         self._ensure_fonts(presentation.get("ui_scale", 1.0))
-        layout = self.build_layout(combat_state)
+        layout = self.build_layout(combat_state, surface.get_size())
         self.render_background(surface, combat_state)
         self.render_foreground(surface, combat_state, layout=layout)
 
@@ -1722,8 +1855,16 @@ class CombatUI:
             self._draw_asset_drift_gauge(
                 surface,
                 pygame.Rect(*drift_rect),
-                amount=max(0.0, min(1.0, float(player_actor.get("protocol_drift_pct", 0) or 0) / 100.0)),
+                protocol_drift_pct=int(player_actor.get("protocol_drift_pct", 0) or 0),
+                band_index=int(player_actor.get("protocol_drift_band_index", 0) or 0),
             )
+            safe_threshold = player_actor.get("feedback_safe_threshold")
+            if safe_threshold is not None:
+                cards_played = int(player_actor.get("player", {}).get("cards_played_this_turn", 0) or 0)
+                triggers = int(player_actor.get("feedback_triggers", 0) or 0)
+                info_rect = pygame.Rect(drift_rect[0] + 30, drift_rect[1] + 6, 164, 34)
+                self._draw_text(surface, f"Feedback {cards_played}/{safe_threshold}", (info_rect.x, info_rect.y), self._micro_font, width=info_rect.width)
+                self._draw_text(surface, f"Triggers {triggers}", (info_rect.x, info_rect.y + 14), self._micro_font, width=info_rect.width)
         for entry in layout.get("deck_stats", []):
             rect = pygame.Rect(*entry["rect"])
             accent = entry["accent"]
@@ -1738,19 +1879,86 @@ class CombatUI:
             surface.blit(label_surface, (rect.x, rect.y + 1))
             surface.blit(value_surface, (rect.x + label_surface.get_width() + 8, rect.y - 1))
 
-    def _draw_asset_drift_gauge(self, surface: Any, rect: Any, *, amount: float) -> None:
+    def _draw_asset_drift_gauge(
+        self,
+        surface: Any,
+        rect: Any,
+        *,
+        protocol_drift_pct: int,
+        band_index: int,
+    ) -> None:
         gauge_rect = pygame.Rect(rect)
         base = combat_ui_assets.get("drift_gauge_low", gauge_rect.size)
         if base is not None:
             surface.blit(base, gauge_rect.topleft)
-        if amount <= 0:
+        segment_rects = self._drift_gauge_segment_rects(gauge_rect)
+        if not segment_rects:
             return
-        full = combat_ui_assets.get("drift_gauge_full", gauge_rect.size)
-        if full is None:
-            return
-        fill_height = max(1, int(gauge_rect.height * amount))
-        source_rect = pygame.Rect(0, gauge_rect.height - fill_height, gauge_rect.width, fill_height)
-        surface.blit(full, (gauge_rect.x, gauge_rect.bottom - fill_height), source_rect)
+
+        palette = self._protocol_drift_palette(band_index)
+        empty_fill = tuple(
+            max(16, min(255, int((background * 0.78) + (border * 0.22))))
+            for background, border in zip(palette["background"], palette["border"])
+        )
+        active_fill = self._protocol_drift_bar_color(band_index)
+        active_segments = self._protocol_drift_segment_count(protocol_drift_pct)
+        border_radius = max(1, min(3, segment_rects[0].height // 2))
+
+        for index, segment_rect in enumerate(segment_rects):
+            is_active = index < active_segments
+            color = active_fill if is_active else empty_fill
+            pygame.draw.rect(surface, color, segment_rect, border_radius=border_radius)
+            if is_active:
+                pygame.draw.rect(surface, palette["border"], segment_rect, 1, border_radius=border_radius)
+
+    def _protocol_drift_segment_count(self, protocol_drift_pct: int, *, segment_total: int = 20) -> int:
+        if segment_total <= 0:
+            return 0
+        clamped_pct = max(0, min(100, int(protocol_drift_pct)))
+        if clamped_pct <= 0:
+            return 0
+        return min(segment_total, max(1, math.ceil((clamped_pct / 100.0) * segment_total)))
+
+    def _drift_gauge_inner_rect(self, gauge_rect: Any) -> Any:
+        rect = pygame.Rect(gauge_rect)
+        pad_x = max(3, int(round(rect.width * 0.18)))
+        pad_top = max(6, int(round(rect.height * 0.09)))
+        pad_bottom = max(8, int(round(rect.height * 0.12)))
+        inner_rect = pygame.Rect(
+            rect.x + pad_x,
+            rect.y + pad_top,
+            max(1, rect.width - (pad_x * 2)),
+            max(1, rect.height - pad_top - pad_bottom),
+        )
+        return inner_rect
+
+    def _drift_gauge_segment_rects(self, gauge_rect: Any, *, segment_total: int = 20) -> list[Any]:
+        inner_rect = self._drift_gauge_inner_rect(gauge_rect)
+        if segment_total <= 0 or inner_rect.width <= 0 or inner_rect.height <= 0:
+            return []
+        gap = max(1, int(round(inner_rect.height * 0.012)))
+        usable_height = inner_rect.height - (gap * (segment_total - 1))
+        if usable_height < segment_total:
+            gap = 0
+            usable_height = inner_rect.height
+        segment_height = max(1, usable_height // segment_total)
+        total_drawn_height = (segment_height * segment_total) + (gap * (segment_total - 1))
+        start_y = inner_rect.bottom - total_drawn_height
+        rects: list[Any] = []
+        for index in range(segment_total):
+            rects.append(
+                pygame.Rect(
+                    inner_rect.x,
+                    start_y + ((segment_total - 1 - index) * (segment_height + gap)),
+                    inner_rect.width,
+                    segment_height,
+                )
+            )
+        return rects
+
+    def _protocol_drift_bar_color(self, band_index: int) -> tuple[int, int, int]:
+        palette = self._protocol_drift_palette(band_index)
+        return palette["fill"]
 
     def _draw_asset_pile_holder(
         self,
@@ -1900,7 +2108,13 @@ class CombatUI:
             preview_fill=INFECT_PREVIEW_FILL,
             show_skull=bool(actor.get("infect_preview_lethal", False)),
         )
-        self._draw_energy_row(surface, rect=(hud_rect.x + 28, hud_rect.y + 40, max(160, min(236, meter_width)), 16), current=int(player["energy"]), maximum=max(1, int(player["max_energy"])))
+        self._draw_energy_row(
+            surface,
+            rect=(hud_rect.x + 28, hud_rect.y + 40, max(160, min(236, meter_width)), 28),
+            current=int(player["energy"]),
+            maximum=max(1, int(player["max_energy"])),
+            unstable_current=int(player.get("unstable_energy", 0) or 0),
+        )
 
         if int(player.get("block", 0) or 0) > 0:
             self._draw_block_chip(
@@ -1956,8 +2170,9 @@ class CombatUI:
             {"fill": (86, 112, 140), "border": (128, 152, 178), "background": (18, 26, 40)},
             {"fill": (82, 170, 186), "border": (112, 206, 220), "background": (14, 30, 40)},
             {"fill": (98, 156, 224), "border": (126, 188, 246), "background": (14, 24, 42)},
-            {"fill": (226, 154, 84), "border": (244, 188, 110), "background": (30, 20, 16)},
-            {"fill": (236, 104, 92), "border": (255, 148, 130), "background": (36, 16, 18)},
+            {"fill": (224, 152, 86), "border": (242, 186, 114), "background": (30, 20, 16)},
+            {"fill": (236, 104, 122), "border": (255, 148, 168), "background": (38, 14, 24)},
+            {"fill": (255, 76, 108), "border": (255, 138, 158), "background": (42, 10, 18)},
         )
         return palettes[max(0, min(len(palettes) - 1, band_index))]
 
@@ -2749,7 +2964,15 @@ class CombatUI:
         label_surface = label_font.render(label, True, (244, 248, 255))
         surface.blit(label_surface, label_surface.get_rect(center=rect.center))
 
-    def _draw_energy_row(self, surface: Any, *, rect: tuple[int, int, int, int], current: int, maximum: int) -> None:
+    def _draw_energy_row(
+        self,
+        surface: Any,
+        *,
+        rect: tuple[int, int, int, int],
+        current: int,
+        maximum: int,
+        unstable_current: int = 0,
+    ) -> None:
         row_rect = pygame.Rect(*rect)
         self._draw_text(surface, "ENERGY", (row_rect.x, row_rect.y + 2), self._tiny_font, width=60)
         pip_x = row_rect.x + 66
@@ -2772,6 +2995,22 @@ class CombatUI:
                 surface.blit(glow, (pip_rect.x - 5, pip_rect.y - 5))
             pygame.draw.polygon(surface, color, points)
             pygame.draw.polygon(surface, border, points, 2)
+        if unstable_current > 0:
+            unstable_label = self._micro_font.render("UNSTABLE", True, (255, 170, 110))
+            surface.blit(unstable_label, (row_rect.x, row_rect.y + 15))
+            unstable_x = pip_x
+            for index in range(unstable_current):
+                pip_rect = pygame.Rect(unstable_x + (index * 18), row_rect.y + 15, 14, 10)
+                points = [
+                    (pip_rect.centerx, pip_rect.y),
+                    (pip_rect.right - 2, pip_rect.y + 3),
+                    (pip_rect.right - 2, pip_rect.bottom - 2),
+                    (pip_rect.centerx, pip_rect.bottom),
+                    (pip_rect.x + 2, pip_rect.bottom - 2),
+                    (pip_rect.x + 2, pip_rect.y + 3),
+                ]
+                pygame.draw.polygon(surface, (255, 118, 92), points)
+                pygame.draw.polygon(surface, (255, 202, 130), points, 2)
 
     def _draw_block_chip(
         self,
@@ -3137,6 +3376,16 @@ class CombatUI:
         combat_layout = layout.get("combat_layout")
         if not isinstance(combat_layout, CombatLayout):
             return
+        warnings = self._layout_warnings(layout)
+        signature = tuple(sorted(set(warnings)))
+        if signature and signature != self._last_layout_warning_signature:
+            LOGGER.warning("Combat layout warnings: %s", " | ".join(signature))
+        self._last_layout_warning_signature = signature or None
+
+    def _layout_warnings(self, layout: dict[str, Any]) -> list[str]:
+        combat_layout = layout.get("combat_layout")
+        if not isinstance(combat_layout, CombatLayout):
+            return []
         warnings: list[str] = []
         safe_rect = combat_layout.safe_rect
         hand_rect = combat_layout.hand_rect
@@ -3145,6 +3394,9 @@ class CombatUI:
             hand_union = self._rect_union(card_rects)
             if not self._rect_contains(safe_rect, hand_union):
                 warnings.append("card hand leaves safe_rect")
+            for index, rect in enumerate(card_rects):
+                if not self._rect_contains(safe_rect, rect):
+                    warnings.append(f"card {index} leaves safe_rect")
             for name, rect in (
                 ("player_status_rect", combat_layout.player_status_rect),
                 ("deck_discard_rect", combat_layout.deck_discard_rect),
@@ -3160,10 +3412,26 @@ class CombatUI:
                 rect = enemy.get(name)
                 if rect is not None and self._rects_intersect(tuple(rect), hand_rect):
                     warnings.append(f"enemy {enemy.get('id', '?')} {name} intersects hand_rect")
-        signature = tuple(sorted(set(warnings)))
-        if signature and signature != self._last_layout_warning_signature:
-            LOGGER.warning("Combat layout warnings: %s", " | ".join(signature))
-        self._last_layout_warning_signature = signature or None
+                if rect is not None:
+                    for index, card_rect in enumerate(card_rects):
+                        if self._rects_intersect(tuple(rect), card_rect):
+                            warnings.append(f"enemy {enemy.get('id', '?')} {name} intersects card {index}")
+        selected_card = layout.get("selected_card")
+        if isinstance(selected_card, dict):
+            selected_rect = tuple(selected_card.get("center_rect", (0, 0, 0, 0)))
+            if not self._rect_contains(safe_rect, selected_rect):
+                warnings.append("selected_card leaves safe_rect")
+            if self._rects_intersect(selected_rect, combat_layout.top_hud_rect):
+                warnings.append("selected_card intersects top_hud_rect")
+        return warnings
+
+    def _resolve_surface_size(self, surface_size: tuple[int, int] | None) -> tuple[int, int]:
+        if surface_size is None:
+            return self._last_surface_size
+        width = max(640, int(surface_size[0]))
+        height = max(360, int(surface_size[1]))
+        self._last_surface_size = (width, height)
+        return self._last_surface_size
 
     def _render_bark(self, surface: Any, bark: dict[str, Any], enemy_actors: list[dict[str, Any]]) -> None:
         speaker = next((enemy for enemy in enemy_actors if enemy["id"] == bark.get("speaker_id")), None)

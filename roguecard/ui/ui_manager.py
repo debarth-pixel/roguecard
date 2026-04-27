@@ -100,6 +100,7 @@ class UIManager:
         self._audio_callback: Callable[[str], None] | None = None
         self._purge_feedback: dict[str, Any] | None = None
         self._top_bar_warning_signature: tuple[str, ...] | None = None
+        self._last_surface_size: tuple[int, int] = (1280, 720)
 
     def set_audio_callback(self, callback: Callable[[str], None] | None) -> None:
         self._audio_callback = callback
@@ -130,7 +131,13 @@ class UIManager:
         ):
             self._load_image(path)
 
-    def handle_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        state_snapshot: dict[str, Any],
+        surface_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
+        resolved_surface_size = self._resolve_surface_size(surface_size)
         presentation = state_snapshot.get("presentation", {})
         if pygame is not None:
             self._ensure_fonts(presentation.get("ui_scale", 1.0))
@@ -143,7 +150,7 @@ class UIManager:
 
         current_state = state_snapshot["current_state"]
         if current_state in {"modifier_draft", "map", "combat", "reward", "shop", "event"} and not self.map_tablet_view.suppress_top_bar(current_state):
-            top_action = self._handle_top_bar_event(event, state_snapshot)
+            top_action = self._handle_top_bar_event(event, state_snapshot, resolved_surface_size)
             if top_action is not None:
                 return top_action
 
@@ -171,7 +178,7 @@ class UIManager:
                 return action
 
         if current_state == "combat" and state_snapshot["combat"] is not None:
-            action = self.combat_ui.handle_event(event, self._combat_view_state(state_snapshot))
+            action = self.combat_ui.handle_event(event, self._combat_view_state(state_snapshot), resolved_surface_size)
             if action is not None:
                 return action
 
@@ -270,6 +277,7 @@ class UIManager:
         if pygame is None or surface is None:
             return
 
+        self._last_surface_size = surface.get_size()
         self._ensure_fonts(state_snapshot.get("presentation", {}).get("ui_scale", 1.0))
         current_state = state_snapshot["current_state"]
         map_view_state = None if state_snapshot.get("map") is None else self._map_view_state(state_snapshot)
@@ -549,15 +557,18 @@ class UIManager:
         hud_rect = pygame.Rect(*layout["machine_hud_rect"])
         combat_ui_assets.blit(surface, "top_machine_hud_frame", hud_rect)
 
+        warnings = self._combat_top_bar_warnings(layout)
+        signature = tuple(sorted(warnings))
+        if signature and signature != self._top_bar_warning_signature:
+            LOGGER.warning("Combat top HUD warnings: %s", " | ".join(signature))
+            self._top_bar_warning_signature = signature
+        elif not signature:
+            self._top_bar_warning_signature = None
+
         for segment in layout["segments"]:
             rect = pygame.Rect(*segment["rect"])
             label = self._fit_single_line(str(segment["label"]), self._small_font, rect.width - 34)
             sublabel = self._fit_single_line(str(segment.get("sublabel", "")), self._tiny_font, rect.width - 34)
-            if (label != str(segment["label"]) or sublabel != str(segment.get("sublabel", ""))) and len(str(segment["label"])) <= 14:
-                signature = (str(segment["label"]), str(rect.width))
-                if signature != self._top_bar_warning_signature:
-                    LOGGER.warning("Combat top HUD clipped short label %s in %spx.", segment["label"], rect.width)
-                    self._top_bar_warning_signature = signature
             line_rect = pygame.Rect(rect.x + 9, rect.y + 8, 4, max(16, rect.height - 18))
             pygame.draw.rect(surface, segment["accent"], line_rect, border_radius=2)
             label_surface = self._small_font.render(label.upper(), True, (236, 244, 255))
@@ -794,7 +805,7 @@ class UIManager:
                     "accent": COLOR_GOLD,
                 }
             )
-        if current_state != "combat" and isinstance(run_state, dict):
+        if current_state != "combat" and isinstance(run_state, dict) and run_state.get("protocol_drift_seen", False):
             items.append(self._protocol_drift_segment(run_state))
         progress_label = self._top_bar_progress_label(state_snapshot)
         if progress_label is not None:
@@ -803,12 +814,18 @@ class UIManager:
 
     def _protocol_drift_segment(self, run_state: dict[str, Any]) -> dict[str, Any]:
         protocol_drift_pct = max(0, min(100, int(run_state.get("protocol_drift_pct", 0) or 0)))
-        band_label = str(run_state.get("band_label", "Stable"))
-        band_index = max(0, min(4, int(run_state.get("band_index", 0) or 0)))
+        seen = bool(run_state.get("protocol_drift_seen", False))
+        band_label = str(run_state.get("tier_label", run_state.get("band_label", "Stable")))
+        band_index = max(0, min(5, int(run_state.get("tier_index", run_state.get("band_index", 0) or 0))))
+        next_threshold_pct = run_state.get("next_threshold_pct")
+        next_threshold_label = run_state.get("next_threshold_label")
+        label = f"Drift {protocol_drift_pct}% {band_label}"
+        if next_threshold_pct is not None and next_threshold_label:
+            label = f"{label} -> {next_threshold_pct}% {next_threshold_label}"
         return {
-            "label": f"Drift {protocol_drift_pct}% {band_label}",
+            "label": label,
             "accent": self._protocol_drift_accent(band_index),
-            "active": protocol_drift_pct > 0,
+            "active": seen,
         }
 
     def _protocol_drift_accent(self, band_index: int) -> tuple[int, int, int]:
@@ -816,8 +833,9 @@ class UIManager:
             (118, 138, 166),
             (106, 198, 208),
             (110, 182, 244),
-            (244, 176, 92),
-            (255, 118, 96),
+            (222, 166, 92),
+            (232, 118, 132),
+            (255, 82, 112),
         )
         return colors[max(0, min(len(colors) - 1, band_index))]
 
@@ -850,6 +868,21 @@ class UIManager:
         if run_seed is not None:
             parts.append(f"Seed {run_seed}")
         return "  |  ".join(parts)
+
+    def _combat_top_bar_warnings(self, layout: dict[str, Any]) -> list[str]:
+        warnings: list[str] = []
+        for segment in layout.get("segments", []):
+            label = str(segment.get("label", ""))
+            sublabel = str(segment.get("sublabel", ""))
+            rect = segment.get("rect")
+            if not isinstance(rect, tuple) or len(rect) != 4:
+                continue
+            available = rect[2] - 34
+            if len(label) <= 14 and self._fit_single_line(label, self._small_font, available) != label:
+                warnings.append(f"clipped label {label}")
+            if sublabel and len(sublabel) <= 14 and self._fit_single_line(sublabel, self._tiny_font, available) != sublabel:
+                warnings.append(f"clipped sublabel {sublabel}")
+        return warnings
 
     def _draw_top_stat_chip(
         self,
@@ -886,10 +919,15 @@ class UIManager:
             return words[0][:2].upper()
         return (words[0][0] + words[1][0]).upper()
 
-    def _handle_top_bar_event(self, event: Any, state_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    def _handle_top_bar_event(
+        self,
+        event: Any,
+        state_snapshot: dict[str, Any],
+        surface_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
-        layout = self._top_bar_layout(state_snapshot)
+        layout = self._top_bar_layout(state_snapshot, surface_size or self._last_surface_size)
         pause_rect = layout["pause_rect"]
         intel_rect = layout.get("intel_rect")
         if event.type == pygame.MOUSEMOTION:
@@ -922,8 +960,12 @@ class UIManager:
                 return {"type": "pause_open"}
         return None
 
-    def _modifier_icon_layout(self, state_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
-        return self._top_bar_layout(state_snapshot)["modifier_icons"]
+    def _modifier_icon_layout(
+        self,
+        state_snapshot: dict[str, Any],
+        surface_size: tuple[int, int] | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._top_bar_layout(state_snapshot, surface_size or self._last_surface_size)["modifier_icons"]
 
     def _update_modifier_hover(self, event: Any, state_snapshot: dict[str, Any]) -> None:
         if pygame is None or event.type not in {pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP}:
@@ -1813,6 +1855,14 @@ class UIManager:
         while len(clipped) > 3 and font.size(f"{clipped.upper()}...")[0] > width:
             clipped = clipped[:-1].rstrip()
         return f"{clipped}..." if clipped else text[:1]
+
+    def _resolve_surface_size(self, surface_size: tuple[int, int] | None) -> tuple[int, int]:
+        if surface_size is None:
+            return self._last_surface_size
+        width = max(640, int(surface_size[0]))
+        height = max(360, int(surface_size[1]))
+        self._last_surface_size = (width, height)
+        return self._last_surface_size
 
     def _wrap_lines(self, text: str | None, font: Any, width: int) -> list[str]:
         if text is None:

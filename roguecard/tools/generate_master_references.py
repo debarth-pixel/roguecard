@@ -41,6 +41,24 @@ RARITY_ORDER = {
     "cursed": 4,
     "special": 5,
 }
+RELIC_CATEGORY_ORDER = {
+    "starter_relic": 0,
+    "common_relic": 1,
+    "uncommon_relic": 2,
+    "rare_relic": 3,
+    "boss_relic": 4,
+    "shop_relic": 5,
+    "event_relic": 6,
+}
+RELIC_CATEGORY_LABELS = {
+    "starter_relic": "Starter Relics",
+    "common_relic": "Common Relics",
+    "uncommon_relic": "Uncommon Relics",
+    "rare_relic": "Rare Relics",
+    "boss_relic": "Boss Relics",
+    "shop_relic": "Shop Relics",
+    "event_relic": "Event Relics",
+}
 NODE_ORDER = {"combat": 0, "elite": 1, "boss": 2}
 DIFFICULTY_ORDER = {"easy": 0, "medium": 1, "hard": 2, "elite": 3, "boss": 4}
 
@@ -1126,8 +1144,6 @@ def _append_modifier_entry(
     lines: list[str],
     entry: dict[str, Any],
     visual_flavor: str,
-    *,
-    include_track: bool,
 ) -> None:
     lines.extend(
         [
@@ -1145,8 +1161,6 @@ def _append_modifier_entry(
     downside = entry.get("downside")
     if isinstance(downside, str) and downside.strip():
         lines.append(f"- Downside: {downside}")
-    if include_track:
-        lines.append(f"- Track: `{entry.get('track') or 'legacy/untracked'}`")
     duration = entry.get("duration")
     if duration:
         lines.append(f"- Duration: `{json.dumps(duration, sort_keys=True)}`")
@@ -1292,8 +1306,8 @@ def _write_modifier_reference(
     filename: str,
     entries: list[dict[str, Any]],
     visual_briefs: dict[str, dict[str, str]],
-    include_track: bool,
     summary_lines: list[str] | None = None,
+    group_by: str = "rarity",
 ) -> Path:
     lines: list[str] = [
         f"# {title}",
@@ -1305,18 +1319,24 @@ def _write_modifier_reference(
     if summary_lines:
         lines.extend(summary_lines)
     lines.append("")
-    rarity_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    grouped_entries: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in sorted(entries, key=lambda item: (RARITY_ORDER.get(str(item.get("rarity", "")), 999), str(item.get("name", "")))):
-        rarity_groups[str(entry.get("rarity", "unknown"))].append(entry)
-    ordered_rarities = sorted(rarity_groups, key=lambda item: (RARITY_ORDER.get(item, 999), item))
-    for rarity in ordered_rarities:
-        lines.extend([f"## {rarity}", ""])
-        for entry in rarity_groups[rarity]:
+        if group_by == "category":
+            grouped_entries[str(entry.get("category", "unknown"))].append(entry)
+        else:
+            grouped_entries[str(entry.get("rarity", "unknown"))].append(entry)
+    if group_by == "category":
+        ordered_groups = sorted(grouped_entries, key=lambda item: (RELIC_CATEGORY_ORDER.get(item, 999), item))
+    else:
+        ordered_groups = sorted(grouped_entries, key=lambda item: (RARITY_ORDER.get(item, 999), item))
+    for group_name in ordered_groups:
+        heading = RELIC_CATEGORY_LABELS.get(group_name, group_name.replace("_", " ").title())
+        lines.extend([f"## {heading}", ""])
+        for entry in grouped_entries[group_name]:
             _append_modifier_entry(
                 lines,
                 entry,
                 visual_briefs["run_modifiers"][entry["id"]],
-                include_track=include_track,
             )
     output_path = REFERENCE_ROOT / filename
     output_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -1330,9 +1350,9 @@ def _write_relics_reference(run_modifiers: list[dict[str, Any]], visual_briefs: 
         for entry in run_modifiers
         if str(entry.get("type", "")).lower() != "relic"
     )
-    track_counts = Counter(str(entry.get("track") or "legacy/untracked") for entry in relics)
+    category_counts = Counter(str(entry.get("category", "unknown")) for entry in relics)
     summary_lines = [
-        f"- Track breakdown: {', '.join(f'`{track}` x{track_counts.get(track, 0)}' for track in ('legacy/untracked', 'drop_in', 'advanced') if track in track_counts)}",
+        f"- Category breakdown: {', '.join(f'`{RELIC_CATEGORY_LABELS.get(category, category.replace('_', ' ').title())}` x{category_counts.get(category, 0)}' for category in sorted(category_counts, key=lambda item: (RELIC_CATEGORY_ORDER.get(item, 999), item)))}",
         f"- Related files: see `blessings_master_reference.md` for **{skipped_types.get('blessing', 0)}** blessings and `curses_master_reference.md` for **{skipped_types.get('curse', 0)}** curses.",
         f"- Non-relic modifier types excluded from this list: {', '.join(f'`{modifier_type}` x{count}' for modifier_type, count in sorted(skipped_types.items())) or 'None'}",
     ]
@@ -1341,8 +1361,8 @@ def _write_relics_reference(run_modifiers: list[dict[str, Any]], visual_briefs: 
         filename="relics_master_reference.md",
         entries=relics,
         visual_briefs=visual_briefs,
-        include_track=True,
         summary_lines=summary_lines,
+        group_by="category",
     )
 
 
@@ -1353,7 +1373,6 @@ def _write_blessings_reference(run_modifiers: list[dict[str, Any]], visual_brief
         filename="blessings_master_reference.md",
         entries=blessings,
         visual_briefs=visual_briefs,
-        include_track=False,
     )
 
 
@@ -1364,7 +1383,6 @@ def _write_curses_reference(run_modifiers: list[dict[str, Any]], visual_briefs: 
         filename="curses_master_reference.md",
         entries=curses,
         visual_briefs=visual_briefs,
-        include_track=False,
     )
 
 
@@ -1432,7 +1450,6 @@ def _write_statuses_reference(
             lines,
             entry,
             visual_briefs["run_modifiers"][entry["id"]],
-            include_track=False,
         )
 
     output_path = REFERENCE_ROOT / "statuses_master_reference.md"

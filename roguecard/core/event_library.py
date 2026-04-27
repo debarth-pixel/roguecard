@@ -8,7 +8,7 @@ from typing import Any
 from cards.card_library import CardLibrary
 from config import EVENT_TAGS, EVENTS_DATA_PATH, STATUS_SOURCE_TYPES
 from core.character_library import ALLOWED_CHARACTER_IDS
-from core.run_modifier_library import RunModifierLibrary
+from core.run_modifier_library import ALLOWED_MODIFIER_CATEGORIES, RunModifierLibrary
 
 ALLOWED_EVENT_CHOICE_TYPES = {"effect", "purge", "risk"}
 ALLOWED_EVENT_RARITIES = {"common", "uncommon", "rare", "special"}
@@ -57,6 +57,7 @@ ALLOWED_RANDOM_MODIFIER_FIELDS = {
     "source_type",
     "rarity_profile",
     "allow_types",
+    "allow_categories",
     "allow_rarities",
     "include_tags",
     "exclude_tags",
@@ -64,7 +65,7 @@ ALLOWED_RANDOM_MODIFIER_FIELDS = {
     "fallback_effects",
 }
 ALLOWED_MODIFIER_TYPES = {"relic", "blessing", "curse", "status"}
-ALLOWED_MODIFIER_RARITIES = {"common", "uncommon", "rare", "cursed", "special"}
+ALLOWED_MODIFIER_RARITIES = {"common", "uncommon", "rare", "boss", "cursed", "special"}
 
 
 class EventLibrary:
@@ -220,6 +221,7 @@ class EventLibrary:
         effects = choice_data.get("effects", [])
         outcomes = choice_data.get("outcomes", [])
         ui_role = choice_data.get("ui_role", "normal")
+        preview_notes = choice_data.get("preview_notes", [])
         character_ids = self._validate_character_ids(choice_data.get("character_ids", []), event_id, scope=f"choice {choice_id}")
 
         if not isinstance(choice_id, str) or not choice_id:
@@ -234,6 +236,11 @@ class EventLibrary:
             raise ValueError(f"Event {event_id} choice {choice_id} requirements must be a dictionary.")
         if not isinstance(ui_role, str) or ui_role not in ALLOWED_EVENT_UI_ROLES:
             raise ValueError(f"Event {event_id} choice {choice_id} has unsupported ui_role: {ui_role}")
+        if preview_notes not in (None, []) and (
+            not isinstance(preview_notes, list)
+            or not all(isinstance(note, str) and note.strip() for note in preview_notes)
+        ):
+            raise ValueError(f"Event {event_id} choice {choice_id} preview_notes must be a list of non-empty strings.")
 
         validated_requirements = self._validate_requirements(requirements, event_id, scope=f"choice {choice_id}")
 
@@ -268,6 +275,7 @@ class EventLibrary:
             "effects": validated_effects,
             "outcomes": validated_outcomes,
             "ui_role": ui_role,
+            "preview_notes": [] if preview_notes in (None, []) else [note.strip() for note in preview_notes],
         }
 
     def _validate_character_ids(self, raw_character_ids: Any, event_id: str, *, scope: str) -> list[str]:
@@ -543,6 +551,7 @@ class EventLibrary:
         source_type = effect_data.get("source_type")
         rarity_profile = effect_data.get("rarity_profile", "positive")
         allow_types = effect_data.get("allow_types", ["status", "blessing", "curse"])
+        allow_categories = effect_data.get("allow_categories")
         allow_rarities = effect_data.get("allow_rarities")
         include_tags = effect_data.get("include_tags", [])
         exclude_tags = effect_data.get("exclude_tags", [])
@@ -570,6 +579,22 @@ class EventLibrary:
                 )
             if modifier_type not in normalized_allow_types:
                 normalized_allow_types.append(modifier_type)
+
+        if allow_categories is None:
+            normalized_allow_categories = self._default_allow_categories(source_type, normalized_allow_types)
+        else:
+            if not isinstance(allow_categories, list) or not allow_categories:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} gain_random_modifier allow_categories must be a non-empty list when provided."
+                )
+            normalized_allow_categories = []
+            for category in allow_categories:
+                if category not in ALLOWED_MODIFIER_CATEGORIES:
+                    raise ValueError(
+                        f"Event {event_id} choice {choice_id} gain_random_modifier uses unsupported category: {category}"
+                    )
+                if category not in normalized_allow_categories:
+                    normalized_allow_categories.append(category)
 
         if allow_rarities is None:
             normalized_allow_rarities = None
@@ -611,6 +636,7 @@ class EventLibrary:
             "source_type": source_type,
             "rarity_profile": rarity_profile,
             "allow_types": normalized_allow_types,
+            "allow_categories": normalized_allow_categories,
             "allow_rarities": normalized_allow_rarities,
             "include_tags": normalized_include_tags,
             "exclude_tags": normalized_exclude_tags,
@@ -632,6 +658,21 @@ class EventLibrary:
                 "gain_random_modifier",
             )
         return validated_effect
+
+    def _default_allow_categories(self, source_type: str, allow_types: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for modifier_type in allow_types:
+            if modifier_type == "relic":
+                for category in self.modifier_library.default_relic_categories_for_source(source_type):
+                    if category not in normalized:
+                        normalized.append(category)
+            elif modifier_type == "blessing" and "blessing" not in normalized:
+                normalized.append("blessing")
+            elif modifier_type == "curse" and "curse" not in normalized:
+                normalized.append("curse")
+            elif modifier_type == "status" and "run_modifier_status" not in normalized:
+                normalized.append("run_modifier_status")
+        return normalized
 
     def _validate_modifier_tags(
         self,

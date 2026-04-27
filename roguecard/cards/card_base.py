@@ -158,6 +158,7 @@ class CardBase:
     temporary_by_default: bool = False
     generation_tags: list[str] = field(default_factory=list)
     corruption: dict[str, Any] | None = None
+    drift_override: dict[str, Any] | None = None
     resource_costs: list[CardResourceCost] = field(default_factory=list)
     resource_effects: list[CardResourceEffect] = field(default_factory=list)
     instance_id: str | None = None
@@ -190,6 +191,7 @@ class CardBase:
         temporary_by_default = card_data.get("temporary_by_default", False)
         generation_tags_data = card_data.get("generation_tags", [])
         corruption_data = card_data.get("corruption")
+        drift_override = card_data.get("drift_override")
         resource_costs_data = card_data.get("resource_costs", [])
         resource_effects_data = card_data.get("resource_effects", [])
         instance_id = card_data.get("instance_id")
@@ -227,6 +229,8 @@ class CardBase:
             raise ValueError(f"Card {card_id} generation_tags must be a list when provided.")
         if corruption_data is not None and not isinstance(corruption_data, dict):
             raise ValueError(f"Card {card_id} corruption must be a dictionary when provided.")
+        if drift_override is not None and not isinstance(drift_override, dict):
+            raise ValueError(f"Card {card_id} drift_override must be a dictionary when provided.")
         if not isinstance(resource_costs_data, list):
             raise ValueError("Card resource_costs must be a list when provided.")
         if not isinstance(resource_effects_data, list):
@@ -280,6 +284,7 @@ class CardBase:
             temporary_by_default=temporary_by_default,
             generation_tags=generation_tags,
             corruption=corruption,
+            drift_override=None if drift_override is None else copy_effects([drift_override])[0],
             resource_costs=resource_costs,
             resource_effects=resource_effects,
             instance_id=instance_id,
@@ -693,6 +698,8 @@ class CardBase:
             card_data["generation_tags"] = list(self.generation_tags)
         if self.corruption is not None:
             card_data["corruption"] = copy_corruption(self.corruption)
+        if self.drift_override is not None:
+            card_data["drift_override"] = copy_effects([self.drift_override])[0]
         if self.resource_costs:
             card_data["resource_costs"] = [cost.to_dict() for cost in self.resource_costs]
         if self.resource_effects:

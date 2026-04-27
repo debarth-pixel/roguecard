@@ -560,7 +560,7 @@ class EventUI:
 
     def _draw_preview_rows(self, surface: Any, preview_rows: list[dict[str, Any]], rect: Any, *, enabled: bool) -> None:
         x = rect.x
-        for preview in preview_rows[:2]:
+        for preview in preview_rows[:3]:
             label = str(preview.get("label", ""))
             if not label:
                 continue

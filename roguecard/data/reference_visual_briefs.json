@@ -618,6 +618,12 @@
     },
     "protocol_eclipse_cassette_feed": {
       "visual_flavor": "A corrupted cassette spool feeding glitch tape into an eclipse-shaped protocol reader."
+    },
+    "attack_cadence": {
+      "visual_flavor": "Beat-mark slugs and a metronome crackling through a burst-fire rhythm loop."
+    },
+    "guard_ledger": {
+      "visual_flavor": "A brass shield ledger with stamped impact marks and a retaliatory redline counter."
     }
   },
   "combat_statuses": {
