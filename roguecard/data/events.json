@@ -5,7 +5,10 @@
     "body": "A courier cache blinks beneath a tram bench.",
     "rarity": "common",
     "base_weight": 10,
-    "tags": ["economy", "narrative"],
+    "tags": [
+      "economy",
+      "narrative"
+    ],
     "choices": [
       {
         "id": "crack_cache",
@@ -29,12 +32,118 @@
     ]
   },
   {
+    "id": "black_ice_cache_01",
+    "title": "Black Ice Cache",
+    "body": "A locked shard still holds something worth stealing.",
+    "rarity": "uncommon",
+    "base_weight": 6,
+    "tags": [
+      "deck_edit",
+      "gamble"
+    ],
+    "choices": [
+      {
+        "id": "force_the_cache",
+        "label": "Force the cache",
+        "description": "Lose 6 HP. Gain Firewall.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "gain_card",
+            "card_id": "firewall_01"
+          }
+        ]
+      },
+      {
+        "id": "leave_the_shard",
+        "label": "Leave it sealed",
+        "description": "Leave it.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "ghost_warranty_01",
+    "title": "Ghost Warranty",
+    "body": "A market ghost offers a free first reroll in every shop.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "blessing",
+      "merchant_style"
+    ],
+    "choices": [
+      {
+        "id": "install_warranty",
+        "label": "Install the warranty",
+        "description": "Gain Ghost Warranty.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "ghost_warranty"
+          }
+        ]
+      },
+      {
+        "id": "decline_warranty",
+        "label": "Decline",
+        "description": "Decline it.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "debt_spike_01",
+    "title": "Debt Spike",
+    "body": "A courier broker offers premium access with a nasty rider.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "curse",
+      "status_risk",
+      "merchant_style"
+    ],
+    "choices": [
+      {
+        "id": "sign_the_advance",
+        "label": "Sign the advance",
+        "description": "Gain Debt Spike.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_spike"
+          }
+        ]
+      },
+      {
+        "id": "decline_contract",
+        "label": "Decline",
+        "description": "Decline it.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
     "id": "street_clinic_01",
     "title": "Street Clinic",
     "body": "A ripperdoc offers rough repairs under a neon sheet.",
     "rarity": "common",
     "base_weight": 9,
-    "tags": ["recovery", "merchant_style"],
+    "tags": [
+      "recovery",
+      "merchant_style",
+      "cleanse",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "pay_for_treatment",
@@ -42,7 +151,7 @@
         "description": "Spend 15 credits. Heal 15.",
         "choice_type": "effect",
         "requirements": {
-          "credits_at_least": 18,
+          "credits_at_least": 15,
           "missing_hp_at_least": 5
         },
         "effects": [
@@ -53,6 +162,26 @@
           {
             "type": "heal",
             "value": 15
+          }
+        ]
+      },
+      {
+        "id": "stabilize_protocol",
+        "label": "Stabilize the protocol",
+        "description": "Spend 20 credits. Reduce Protocol Drift by 8%.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 20,
+          "protocol_drift_at_least": 8
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 20
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -8
           }
         ]
       },
@@ -90,7 +219,12 @@
     "body": "A gray-market tech offers to scrub one routine from your stack.",
     "rarity": "common",
     "base_weight": 8,
-    "tags": ["deck_edit", "merchant_style"],
+    "tags": [
+      "deck_edit",
+      "merchant_style",
+      "cleanse",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "purge_card",
@@ -107,41 +241,30 @@
         ]
       },
       {
-        "id": "keep_deck_alone",
-        "label": "Keep the stack intact",
-        "description": "Leave it.",
-        "choice_type": "effect",
-        "effects": []
-      }
-    ]
-  },
-  {
-    "id": "black_ice_cache_01",
-    "title": "Black Ice Cache",
-    "body": "A locked shard still holds something worth stealing.",
-    "rarity": "uncommon",
-    "base_weight": 6,
-    "tags": ["deck_edit", "gamble"],
-    "choices": [
-      {
-        "id": "force_the_cache",
-        "label": "Force the cache",
-        "description": "Lose 6 HP. Gain Firewall.",
-        "choice_type": "effect",
+        "id": "deep_scrub",
+        "label": "Deep scrub",
+        "description": "Remove 1 deck card. Take 5 damage. Reduce Protocol Drift by 4%.",
+        "choice_type": "purge",
+        "requirements": {
+          "deck_size_at_least": 2
+        },
         "effects": [
           {
-            "type": "damage",
-            "value": 6
+            "type": "purge_card"
           },
           {
-            "type": "gain_card",
-            "card_id": "firewall_01"
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -4
           }
         ]
       },
       {
-        "id": "leave_the_shard",
-        "label": "Leave it sealed",
+        "id": "keep_deck_alone",
+        "label": "Keep the stack intact",
         "description": "Leave it.",
         "choice_type": "effect",
         "effects": []
@@ -154,7 +277,11 @@
     "body": "Two enforcers block the alley and ask for a tax.",
     "rarity": "common",
     "base_weight": 8,
-    "tags": ["economy", "gamble"],
+    "tags": [
+      "economy",
+      "gamble",
+      "tradeoff"
+    ],
     "choices": [
       {
         "id": "pay_the_tax",
@@ -182,6 +309,26 @@
             "value": 6
           }
         ]
+      },
+      {
+        "id": "hack_the_ledger",
+        "label": "Hack their ledger",
+        "description": "Gain 18 credits. Take 4 damage. Increase Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 18
+          },
+          {
+            "type": "damage",
+            "value": 4
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          }
+        ]
       }
     ]
   },
@@ -191,7 +338,11 @@
     "body": "A hacked terminal offers one corrupt spin.",
     "rarity": "uncommon",
     "base_weight": 6,
-    "tags": ["gamble", "anomaly"],
+    "tags": [
+      "gamble",
+      "anomaly",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "spin_the_daemon",
@@ -201,7 +352,7 @@
         "outcomes": [
           {
             "id": "jackpot_credits",
-            "weight": 45,
+            "weight": 40,
             "summary": "The exploit lands cleanly. You drain a hidden account.",
             "effects": [
               {
@@ -242,6 +393,21 @@
                 "card_id": "overclock_01"
               }
             ]
+          },
+          {
+            "id": "protocol_echo",
+            "weight": 5,
+            "summary": "The terminal hums with a protocol echo and pays in unstable profit.",
+            "effects": [
+              {
+                "type": "gain_credits",
+                "value": 20
+              },
+              {
+                "type": "adjust_protocol_drift",
+                "amount": 5
+              }
+            ]
           }
         ]
       },
@@ -255,41 +421,17 @@
     ]
   },
   {
-    "id": "ghost_warranty_01",
-    "title": "Ghost Warranty",
-    "body": "A market ghost offers a free first reroll in every shop.",
-    "rarity": "uncommon",
-    "base_weight": 4,
-    "tags": ["blessing", "merchant_style"],
-    "choices": [
-      {
-        "id": "install_warranty",
-        "label": "Install the warranty",
-        "description": "Gain Ghost Warranty.",
-        "choice_type": "effect",
-        "effects": [
-          {
-            "type": "gain_modifier",
-            "modifier_id": "ghost_warranty"
-          }
-        ]
-      },
-      {
-        "id": "decline_warranty",
-        "label": "Decline",
-        "description": "Decline it.",
-        "choice_type": "effect",
-        "effects": []
-      }
-    ]
-  },
-  {
     "id": "street_choir_01",
     "title": "Street Choir",
     "body": "A signal choir hums through a broken plaza.",
     "rarity": "uncommon",
     "base_weight": 4,
-    "tags": ["blessing", "status_gain", "recovery"],
+    "tags": [
+      "blessing",
+      "status_gain",
+      "recovery",
+      "cleanse"
+    ],
     "choices": [
       {
         "id": "join_the_choir",
@@ -304,38 +446,33 @@
         ]
       },
       {
-        "id": "stay_offline",
-        "label": "Stay offline",
-        "description": "Stay offline.",
+        "id": "let_the_choir_retune_you",
+        "label": "Let the choir retune you",
+        "description": "Lose 8 credits. Heal 5. Reduce Protocol Drift by 4%.",
         "choice_type": "effect",
-        "effects": []
-      }
-    ]
-  },
-  {
-    "id": "debt_spike_01",
-    "title": "Debt Spike",
-    "body": "A courier broker offers premium access with a nasty rider.",
-    "rarity": "uncommon",
-    "base_weight": 4,
-    "tags": ["curse", "status_risk", "merchant_style"],
-    "choices": [
-      {
-        "id": "sign_the_advance",
-        "label": "Sign the advance",
-        "description": "Gain Debt Spike.",
-        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 8,
+          "protocol_drift_at_least": 20
+        },
         "effects": [
           {
-            "type": "gain_modifier",
-            "modifier_id": "debt_spike"
+            "type": "lose_credits",
+            "value": 8
+          },
+          {
+            "type": "heal",
+            "value": 5
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -4
           }
         ]
       },
       {
-        "id": "decline_contract",
-        "label": "Decline",
-        "description": "Decline it.",
+        "id": "stay_offline",
+        "label": "Stay offline",
+        "description": "Stay offline.",
         "choice_type": "effect",
         "effects": []
       }
@@ -347,17 +484,30 @@
     "body": "A scarred shard promises power and leaves a mark.",
     "rarity": "rare",
     "base_weight": 2,
-    "tags": ["curse", "status_gain", "anomaly"],
+    "tags": [
+      "curse",
+      "status_gain",
+      "anomaly",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "take_the_scar",
         "label": "Take the scar",
-        "description": "Gain Black Ice Scar.",
+        "description": "Gain Black Ice Scar. Take 6 damage. Increase Protocol Drift by 8%.",
         "choice_type": "effect",
         "effects": [
           {
             "type": "gain_modifier",
             "modifier_id": "black_ice_scar"
+          },
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
           }
         ]
       },
@@ -376,12 +526,17 @@
     "body": "An illicit chip hums with hot, unstable power.",
     "rarity": "rare",
     "base_weight": 3,
-    "tags": ["status_risk", "combat_prep", "anomaly"],
+    "tags": [
+      "status_risk",
+      "combat_prep",
+      "anomaly",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "install_chip",
         "label": "Install the chip",
-        "description": "Gain Adrenal Surge. Gain Overheat.",
+        "description": "Gain Adrenal Surge. Gain Overheat. Take 7 damage. Increase Protocol Drift by 5%.",
         "choice_type": "effect",
         "effects": [
           {
@@ -391,6 +546,14 @@
           {
             "type": "gain_modifier",
             "modifier_id": "overheat"
+          },
+          {
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
           }
         ]
       },
@@ -409,7 +572,12 @@
     "body": "A hidden pit boss offers fast winnings with strings attached.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["economy", "gamble", "status_risk"],
+    "tags": [
+      "economy",
+      "gamble",
+      "status_risk",
+      "tradeoff"
+    ],
     "choices": [
       {
         "id": "take_the_odds",
@@ -426,16 +594,20 @@
       {
         "id": "take_the_advance",
         "label": "Take the advance",
-        "description": "Gain 30 credits. Gain Debt Mark.",
+        "description": "Gain 35 credits. Gain Debt Mark. Increase Protocol Drift by 2%.",
         "choice_type": "effect",
         "effects": [
           {
             "type": "gain_credits",
-            "value": 30
+            "value": 35
           },
           {
             "type": "gain_modifier",
             "modifier_id": "debt_mark"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
           }
         ]
       },
@@ -454,7 +626,12 @@
     "body": "A quiet tuner offers to rewrite your stack timing.",
     "rarity": "rare",
     "base_weight": 3,
-    "tags": ["status_gain", "combat_prep", "anomaly"],
+    "tags": [
+      "status_gain",
+      "combat_prep",
+      "anomaly",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "optimize_flow",
@@ -466,10 +643,24 @@
             "type": "gain_random_modifier",
             "source_type": "event",
             "rarity_profile": "positive",
-            "allow_types": ["status", "blessing"],
-            "allow_rarities": ["common", "uncommon", "rare"],
-            "include_tags": ["energy", "draw", "scaling"],
-            "exclude_tags": ["curse", "risk"],
+            "allow_types": [
+              "status",
+              "blessing"
+            ],
+            "allow_rarities": [
+              "common",
+              "uncommon",
+              "rare"
+            ],
+            "include_tags": [
+              "energy",
+              "draw",
+              "scaling"
+            ],
+            "exclude_tags": [
+              "curse",
+              "risk"
+            ],
             "fallback_effects": [
               {
                 "type": "gain_modifier",
@@ -482,12 +673,16 @@
       {
         "id": "install_echo",
         "label": "Install echo routing",
-        "description": "Gain Echo.",
+        "description": "Gain Echo. Increase Protocol Drift by 3%.",
         "choice_type": "effect",
         "effects": [
           {
             "type": "gain_modifier",
             "modifier_id": "echo"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
           }
         ]
       },
@@ -506,7 +701,12 @@
     "body": "A stripped combat frame still has lessons worth stealing.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["combat_prep", "economy"],
+    "tags": [
+      "combat_prep",
+      "economy",
+      "relic",
+      "tradeoff"
+    ],
     "choices": [
       {
         "id": "study_the_rhythm",
@@ -543,6 +743,29 @@
             "value": 15
           }
         ]
+      },
+      {
+        "id": "install_the_cracked_gyro",
+        "label": "Install the cracked gyro",
+        "description": "Gain Riot Gyro. Take 8 damage. Increase Protocol Drift by 4%.",
+        "choice_type": "effect",
+        "requirements": {
+          "current_hp_at_least": 16
+        },
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "riot_gyro"
+          },
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          }
+        ]
       }
     ]
   },
@@ -552,30 +775,54 @@
     "body": "A shrine of scavenged monitors flickers between blessing and malfunction.",
     "rarity": "special",
     "base_weight": 2,
-    "tags": ["anomaly", "status_risk", "narrative"],
-    "exclusion_tags": ["anomaly"],
+    "tags": [
+      "anomaly",
+      "status_risk",
+      "narrative",
+      "corruption"
+    ],
+    "exclusion_tags": [
+      "anomaly"
+    ],
     "min_floor": 3,
     "choices": [
       {
         "id": "embrace_the_glitch",
         "label": "Embrace the glitch",
-        "description": "Roll a volatile anomaly status.",
+        "description": "Roll a volatile anomaly status. Increase Protocol Drift by 6%.",
         "choice_type": "effect",
         "effects": [
           {
             "type": "gain_random_modifier",
             "source_type": "event",
             "rarity_profile": "risky",
-            "allow_types": ["status", "blessing", "curse"],
-            "allow_rarities": ["uncommon", "rare", "cursed"],
-            "include_tags": ["volatility", "risk"],
-            "exclude_tags": ["shop"],
+            "allow_types": [
+              "status",
+              "blessing",
+              "curse"
+            ],
+            "allow_rarities": [
+              "uncommon",
+              "rare",
+              "cursed"
+            ],
+            "include_tags": [
+              "volatility",
+              "risk"
+            ],
+            "exclude_tags": [
+              "shop"
+            ],
             "fallback_effects": [
               {
                 "type": "gain_modifier",
                 "modifier_id": "glitch_state"
               }
             ]
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
           }
         ]
       },
@@ -606,7 +853,12 @@
     "body": "A cracked med-station still pushes live stimulants.",
     "rarity": "uncommon",
     "base_weight": 5,
-    "tags": ["combat_prep", "status_gain", "merchant_style"],
+    "tags": [
+      "combat_prep",
+      "status_gain",
+      "merchant_style",
+      "corruption"
+    ],
     "choices": [
       {
         "id": "take_clean_stims",
@@ -618,10 +870,22 @@
             "type": "gain_random_modifier",
             "source_type": "event",
             "rarity_profile": "positive",
-            "allow_types": ["status", "blessing"],
-            "allow_rarities": ["common", "uncommon"],
-            "include_tags": ["energy", "offense"],
-            "exclude_tags": ["curse", "shop"],
+            "allow_types": [
+              "status",
+              "blessing"
+            ],
+            "allow_rarities": [
+              "common",
+              "uncommon"
+            ],
+            "include_tags": [
+              "energy",
+              "offense"
+            ],
+            "exclude_tags": [
+              "curse",
+              "shop"
+            ],
             "duration": {
               "type": "combat",
               "value": 3
@@ -638,7 +902,7 @@
       {
         "id": "take_dirty_stims",
         "label": "Take the dirty stims",
-        "description": "Gain 25 credits. Next combat: System Corruption.",
+        "description": "Gain 25 credits. Next combat: System Corruption. Increase Protocol Drift by 3%.",
         "choice_type": "effect",
         "effects": [
           {
@@ -648,6 +912,10 @@
           {
             "type": "gain_modifier",
             "modifier_id": "system_corruption"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
           }
         ]
       },
@@ -659,5 +927,5449 @@
         "effects": []
       }
     ]
+  },
+  {
+    "id": "signal_busker_01",
+    "title": "Signal Busker",
+    "body": "A speaker-masked busker plays a tune only your implants can hear.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "blessing",
+      "economy",
+      "narrative",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "tip_the_busker",
+        "label": "Tip the busker",
+        "description": "Spend 8 credits. Heal 5.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 8
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 8
+          },
+          {
+            "type": "heal",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "steal_the_amp_fuse",
+        "label": "Steal the amp fuse",
+        "description": "Gain 14 credits. Next combat: gain 1 Suppressed and a temporary Mirror Cache.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 14
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "suppressed",
+              "value": 1
+            }
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_temporary_card_to_hand",
+              "card_id": "drift_mirror_cache_01"
+            }
+          }
+        ]
+      },
+      {
+        "id": "sync_to_the_chorus",
+        "label": "Sync to the chorus",
+        "description": "Heal 4. Reduce Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "requirements": {
+          "modifier_active": "street_choir"
+        },
+        "effects": [
+          {
+            "type": "heal",
+            "value": 4
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "spare_battery_shrine_01",
+    "title": "Spare Battery Shrine",
+    "body": "A shrine of taped batteries hums with enough charge to make one fight sloppy and bright.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "combat_prep",
+      "energy",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "slot_the_clean_cell",
+        "label": "Slot the clean cell",
+        "description": "Spend 10 credits. Next combat: gain 1 Energy on turn 1.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 10
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 10
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "slot_the_leaking_cell",
+        "label": "Slot the leaking cell",
+        "description": "Next two combats: gain 1 Energy on turn 1. Increase Protocol Drift by 4%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "spare_battery_leaking_cell"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "id": "leave_the_shrine_intact",
+        "label": "Leave the shrine intact",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "street_charger_01",
+    "title": "Street Charger",
+    "body": "A vending charger offers safe juice and illegal juice.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "combat_prep",
+      "energy",
+      "draw",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "charge_clean",
+        "label": "Charge clean",
+        "description": "Spend 8 credits. Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 8
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 8
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "overcharge",
+        "label": "Overcharge",
+        "description": "Take 3 damage. Next combat: gain 1 Energy on turn 1. Increase Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 3
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "id": "leave_the_charger",
+        "label": "Leave the charger",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "cheap_implant_rack_01",
+    "title": "Cheap Implant Rack",
+    "body": "A rack of discount implants blinks with exactly enough power to be a mistake.",
+    "rarity": "common",
+    "base_weight": 5,
+    "tags": [
+      "relic",
+      "tradeoff",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "install_the_queue_clone",
+        "label": "Install the queue clone",
+        "description": "Gain Queue Mirror. Lose 5 HP. Increase Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "queue_mirror"
+          },
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "id": "install_the_riot_patch",
+        "label": "Install the riot patch",
+        "description": "Gain Riot Plating. Lose 7 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "riot_plating"
+          },
+          {
+            "type": "damage",
+            "value": 7
+          }
+        ]
+      },
+      {
+        "id": "keep_your_ports_closed",
+        "label": "Keep your ports closed",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ],
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "low_signal_shelter_01",
+    "title": "Low-Signal Shelter",
+    "body": "A shelter blocks hostile signals, but its beds are wired to something hungry.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "recovery",
+      "corruption",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "sleep_offline",
+        "label": "Sleep offline",
+        "description": "Heal 10.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 10
+          }
+        ]
+      },
+      {
+        "id": "sleep_plugged_in",
+        "label": "Sleep plugged in",
+        "description": "Heal 15. Increase Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 15
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "id": "stand_guard",
+        "label": "Stand guard",
+        "description": "Gain 12 credits. Next combat: start with 4 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 4
+            }
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "blackwire_broker_01",
+    "title": "Blackwire Broker",
+    "body": "A broker in a static-lined coat sells answers to control effects that have not happened yet.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "min_floor": 2,
+    "tags": [
+      "control",
+      "relic",
+      "status_risk",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "buy_the_damper",
+        "label": "Buy the damper",
+        "description": "Spend 24 credits. Gain Null Damper. Next combat: add a temporary Null Refund to hand.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 24
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 24
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "null_damper"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_temporary_card_to_hand",
+              "card_id": "drift_null_refund_01"
+            }
+          }
+        ]
+      },
+      {
+        "id": "buy_the_punitive_spike",
+        "label": "Buy the punitive spike",
+        "description": "Gain Toll Spike. Next combat: start Suppressed. Increase Protocol Drift by 5%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "toll_spike"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "suppressed",
+              "value": 1
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "id": "take_only_the_names",
+        "label": "Take only the names",
+        "description": "Gain 18 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 18
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "ghost_market_turnstile_01",
+    "title": "Ghost Market Turnstile",
+    "body": "A turnstile appears where no shop exists, charging a fare in coins or future bargains.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "min_floor": 2,
+    "tags": [
+      "shop",
+      "economy",
+      "relic",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "pay_the_fare",
+        "label": "Pay the fare",
+        "description": "Spend 25 credits. Gain Market Ghost.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 25
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 25
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "market_ghost"
+          }
+        ]
+      },
+      {
+        "id": "take_ghost_credit",
+        "label": "Take ghost credit",
+        "description": "Gain 35 credits. Gain Debt Mark.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 35
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ]
+      },
+      {
+        "id": "show_the_warranty_chip",
+        "label": "Show the warranty chip",
+        "description": "Gain 12 credits.",
+        "choice_type": "effect",
+        "requirements": {
+          "modifier_active": "ghost_warranty"
+        },
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "bone_receipt_window_01",
+    "title": "Bone Receipt Window",
+    "body": "A clerk files pain receipts and pays out in block, credits, or silence.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "min_floor": 2,
+    "tags": [
+      "self_damage",
+      "defense",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "file_a_pain_claim",
+        "label": "File a pain claim",
+        "description": "Gain Bone Receipt. Lose 8 HP. Increase Protocol Drift by 4%. Next combat: add a temporary Error Knife to hand.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "bone_receipt"
+          },
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_temporary_card_to_hand",
+              "card_id": "drift_error_knife_01"
+            }
+          }
+        ]
+      },
+      {
+        "id": "cash_out_old_injuries",
+        "label": "Cash out old injuries",
+        "description": "Gain 20 credits. Heal 4.",
+        "choice_type": "effect",
+        "requirements": {
+          "current_hp_below_percent": 60
+        },
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "heal",
+            "value": 4
+          }
+        ]
+      },
+      {
+        "id": "refuse_the_paperwork",
+        "label": "Refuse the paperwork",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "relay_grafting_chair_01",
+    "title": "Relay Grafting Chair",
+    "body": "A mechanic offers to graft a relay directly into your timing nerves.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "min_floor": 3,
+    "tags": [
+      "energy",
+      "relic",
+      "corruption",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "install_the_overclock_relay",
+        "label": "Install the overclock relay",
+        "description": "Gain Overclock Relay. Take 7 damage. Increase Protocol Drift by 5%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "overclock_relay"
+          },
+          {
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "id": "install_the_lag_harvester",
+        "label": "Install the lag harvester",
+        "description": "Gain Lag Harvest. Next combat: add 1 Glitch to discard.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "lag_harvest"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_status_card",
+              "card_id": "status_glitch_01",
+              "count": 1,
+              "pile": "discard"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ask_for_a_harmless_tune",
+        "label": "Ask for a harmless tune",
+        "description": "Lose 12 credits. Next combat: gain 1 Energy on turn 1.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 12
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 12
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "protocol_patch_bay_01",
+    "title": "Protocol Patch Bay",
+    "body": "A maintenance bay offers to patch instability, or sell you the thing causing it.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "min_floor": 3,
+    "tags": [
+      "corruption",
+      "cleanse",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "stabilize_the_protocol",
+        "label": "Stabilize the protocol",
+        "description": "Spend 24 credits. Reduce Protocol Drift by 8%.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 24,
+          "protocol_drift_at_least": 8
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 24
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -8
+          }
+        ]
+      },
+      {
+        "id": "install_the_drift_cassette",
+        "label": "Install the drift cassette",
+        "description": "Gain Protocol Drift. Take 10 damage. Gain Unsafe Overclock. Increase Protocol Drift by 5%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "protocol_drift"
+          },
+          {
+            "type": "damage",
+            "value": 10
+          },
+          {
+            "type": "gain_card",
+            "card_id": "drift_unsafe_overclock_01"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "id": "patch_around_the_damage",
+        "label": "Patch around the damage",
+        "description": "Heal 8. Next combat: add 1 Glitch to discard.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 8
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_status_card",
+              "card_id": "status_glitch_01",
+              "count": 1,
+              "pile": "discard"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "protocol_eclipse_01",
+    "title": "Protocol Eclipse",
+    "body": "Your protocol shadow moves a second before you do, and the city briefly follows it instead.",
+    "rarity": "special",
+    "base_weight": 1,
+    "min_floor": 6,
+    "requirements": {
+      "protocol_drift_at_least": 50
+    },
+    "tags": [
+      "corruption",
+      "anomaly",
+      "relic"
+    ],
+    "choices": [
+      {
+        "id": "anchor_yourself",
+        "label": "Anchor yourself",
+        "description": "Lose 25 credits. Reduce Protocol Drift by 20%. Remove 1 Glitch from your deck if present.",
+        "choice_type": "effect",
+        "requirements": {
+          "credits_at_least": 25
+        },
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 25
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -20
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_glitch_01",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "take_the_eclipse_core",
+        "label": "Take the eclipse core",
+        "description": "Gain a rare corruption relic. Take 18 damage. Increase Protocol Drift by 12%. Add Glitch and Black Ice Bloom to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_random_modifier",
+            "source_type": "boss_reward",
+            "rarity_profile": "positive",
+            "allow_types": [
+              "relic"
+            ],
+            "allow_rarities": [
+              "rare"
+            ],
+            "include_tags": [
+              "corruption"
+            ],
+            "exclude_tags": [
+              "curse"
+            ],
+            "fallback_effects": [
+              {
+                "type": "gain_modifier",
+                "modifier_id": "protocol_drift"
+              }
+            ]
+          },
+          {
+            "type": "damage",
+            "value": 18
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 12
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_glitch_01"
+          },
+          {
+            "type": "gain_card",
+            "card_id": "drift_black_ice_bloom_01"
+          }
+        ]
+      },
+      {
+        "id": "let_the_cassette_feed",
+        "label": "Let the cassette feed",
+        "description": "The first Glitch you draw in the next three combats grants 1 extra Energy. Increase Protocol Drift by 5%.",
+        "choice_type": "effect",
+        "requirements": {
+          "modifier_active": "protocol_drift"
+        },
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "protocol_eclipse_cassette_feed"
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rainwater_condenser_01",
+    "title": "Rainwater Condenser",
+    "body": "A rooftop condenser drips clean water through a nest of illegal cooling fins.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "recovery",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "drink_the_filtered_water",
+        "label": "Drink the filtered water",
+        "description": "Heal 7 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 7
+          }
+        ]
+      },
+      {
+        "id": "bottle_the_coolant",
+        "label": "Bottle the coolant",
+        "description": "Next combat: start with 6 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 6
+            }
+          }
+        ]
+      },
+      {
+        "id": "drink_from_the_lower_valve",
+        "label": "Drink from the lower valve",
+        "description": "Heal 13 HP. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 13
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "junkyard_tollbooth_01",
+    "title": "Junkyard Tollbooth",
+    "body": "A salvage kid blocks the junkyard gate with a scanner made from three broken laws.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "economy",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "pay_the_salvage_toll",
+        "label": "Pay the salvage toll",
+        "description": "Spend 12 credits. Gain a random common defense relic.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 12
+          },
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_types": [
+              "relic"
+            ],
+            "fallback_effects": [
+              {
+                "type": "gain_credits",
+                "value": 12
+              }
+            ],
+            "allow_rarities": [
+              "common"
+            ],
+            "include_tags": [
+              "defense"
+            ]
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 12
+        }
+      },
+      {
+        "id": "crash_the_gate",
+        "label": "Crash the gate",
+        "description": "Gain 20 credits. Take 6 damage.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "damage",
+            "value": 6
+          }
+        ]
+      },
+      {
+        "id": "take_the_untagged_relic",
+        "label": "Take the untagged relic",
+        "description": "Take 5 damage. Increase Protocol Drift by 3%. Gain a random common relic.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          },
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_types": [
+              "relic"
+            ],
+            "fallback_effects": [
+              {
+                "type": "gain_credits",
+                "value": 12
+              }
+            ],
+            "allow_rarities": [
+              "common"
+            ],
+            "include_tags": [
+              "defense",
+              "offense",
+              "economy",
+              "draw",
+              "status"
+            ]
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "broken_firewall_kiosk_01",
+    "title": "Broken Firewall Kiosk",
+    "body": "An old security kiosk still prints defensive routines if you hit it correctly.",
+    "rarity": "common",
+    "base_weight": 9,
+    "tags": [
+      "deck_edit",
+      "defense",
+      "merchant_style"
+    ],
+    "choices": [
+      {
+        "id": "print_a_firewall",
+        "label": "Print a Firewall",
+        "description": "Spend 7 credits. Add Firewall to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 7
+          },
+          {
+            "type": "gain_card",
+            "card_id": "firewall_01"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 7
+        }
+      },
+      {
+        "id": "hotwire_the_printer",
+        "label": "Hotwire the printer",
+        "description": "Take 4 damage. Increase Protocol Drift by 2%. Next combat: add a temporary Firewall to your hand.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 4
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_temporary_card_to_hand",
+              "card_id": "firewall_01"
+            }
+          }
+        ]
+      },
+      {
+        "id": "kick_it_quiet",
+        "label": "Kick it quiet",
+        "description": "Gain 6 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "butcher_ledger_01",
+    "title": "Butcher Ledger",
+    "body": "A meat-shop terminal lists names, wounds, and unpaid cuts in the same column.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": [
+      "bleed",
+      "economy",
+      "synergy"
+    ],
+    "choices": [
+      {
+        "id": "trace_unpaid_cuts",
+        "label": "Trace unpaid cuts",
+        "description": "Gain 16 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 16
+          }
+        ],
+        "requirements": {
+          "modifier_active": "butcher_hooks"
+        }
+      },
+      {
+        "id": "forge_your_name",
+        "label": "Forge your name",
+        "description": "Gain 22 credits. Next combat: start with 1 Bleed.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 22
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "bleed",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "close_the_ledger",
+        "label": "Close the ledger",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ],
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "market_price_oracle_01",
+    "title": "Market Price Oracle",
+    "body": "A coin-operated oracle predicts tomorrow's prices and today's bad decisions.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "economy",
+      "shop",
+      "merchant_style"
+    ],
+    "choices": [
+      {
+        "id": "buy_the_forecast",
+        "label": "Buy the forecast",
+        "description": "Spend 8 credits. Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 8
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 8
+        }
+      },
+      {
+        "id": "break_the_oracle",
+        "label": "Break the oracle",
+        "description": "Gain 14 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 14
+          }
+        ]
+      },
+      {
+        "id": "ask_for_a_ghost_price",
+        "label": "Ask for a ghost price",
+        "description": "Gain 6 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 6
+          }
+        ],
+        "requirements": {
+          "modifier_active": "market_ghost"
+        }
+      }
+    ],
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "scavenger_lunch_01",
+    "title": "Scavenger Lunch",
+    "body": "A scavenger offers three packets from a cooler that should not still be cold.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "recovery",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "eat_slowly",
+        "label": "Eat slowly",
+        "description": "Heal 6 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 6
+          }
+        ]
+      },
+      {
+        "id": "pocket_the_protein",
+        "label": "Pocket the protein",
+        "description": "Gain 10 credits. Heal 2 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          },
+          {
+            "type": "heal",
+            "value": 2
+          }
+        ]
+      },
+      {
+        "id": "eat_the_silver_packet",
+        "label": "Eat the silver packet",
+        "description": "Heal 12 HP. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 12
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "null_ticket_booth_01",
+    "title": "Null Ticket Booth",
+    "body": "The rail booth sells transit tickets, signal masks, and one obvious lie.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": [
+      "control",
+      "cleanse",
+      "status_risk",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "buy_a_legal_ticket",
+        "label": "Buy a legal ticket",
+        "description": "Spend 10 credits. Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 10
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 10
+        }
+      },
+      {
+        "id": "ride_the_wrong_line",
+        "label": "Ride the wrong line",
+        "description": "Gain 15 credits. Next combat: start with 1 Nullified.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 15
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "nullified",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "override_the_turnstile",
+        "label": "Override the turnstile",
+        "description": "Next combat: start with 6 Block. Increase Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 6
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "overpass_sleepers_01",
+    "title": "Overpass Sleepers",
+    "body": "A sleeping camp under the overpass guards a working med-blanket with knives and kindness.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "recovery",
+      "economy",
+      "morality"
+    ],
+    "choices": [
+      {
+        "id": "share_credits",
+        "label": "Share credits",
+        "description": "Spend 10 credits. Heal 8 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 10
+          },
+          {
+            "type": "heal",
+            "value": 8
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 10
+        }
+      },
+      {
+        "id": "take_watch_duty",
+        "label": "Take watch duty",
+        "description": "Next combat: start with 5 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 5
+            }
+          }
+        ]
+      },
+      {
+        "id": "steal_from_the_sleeping_rig",
+        "label": "Steal from the sleeping rig",
+        "description": "Gain 18 credits. Next combat: start with 1 Marked.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 18
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "marked",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "split_wire_courier_01",
+    "title": "Split-Wire Courier",
+    "body": "A courier with two mirrored packages asks which version of the truth you can carry.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "economy",
+      "deck_edit",
+      "chain",
+      "narrative"
+    ],
+    "choices": [
+      {
+        "id": "deliver_the_blue_parcel",
+        "label": "Deliver the blue parcel",
+        "description": "Gain 15 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 15
+          }
+        ]
+      },
+      {
+        "id": "open_the_red_parcel",
+        "label": "Open the red parcel",
+        "description": "Increase Protocol Drift by 2%. Add Cache Draw to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          },
+          {
+            "type": "gain_card",
+            "card_id": "cache_draw_01"
+          }
+        ]
+      },
+      {
+        "id": "drop_both_parcels",
+        "label": "Drop both parcels",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "id": "ash_seller_01",
+    "title": "Ash Seller",
+    "body": "A vendor sells cooling ash from a barrel that is still burning inside.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": [
+      "burn",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "buy_cooled_ash",
+        "label": "Buy cooled ash",
+        "description": "Spend 14 credits. Gain Ash Veil.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 14
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "ash_veil"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 14
+        }
+      },
+      {
+        "id": "scoop_free_ash",
+        "label": "Scoop free ash",
+        "description": "Gain 10 credits. Next combat: start with 1 Burn.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "burn",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "let_the_dampener_taste_it",
+        "label": "Let the dampener taste it",
+        "description": "Next combat: start with 5 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 5
+            }
+          }
+        ],
+        "requirements": {
+          "modifier_active": "field_dampener"
+        }
+      }
+    ]
+  },
+  {
+    "id": "shredder_blessing_01",
+    "title": "Shredder Blessing",
+    "body": "A civic paper shredder has been converted into a machine that eats bad habits.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "deck_edit",
+      "recovery",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "feed_a_routine",
+        "label": "Feed a routine",
+        "description": "Spend 8 credits. Remove 1 deck card.",
+        "choice_type": "purge",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 8
+          },
+          {
+            "type": "purge_card"
+          }
+        ],
+        "requirements": {
+          "deck_size_at_least": 2,
+          "credits_at_least": 8
+        }
+      },
+      {
+        "id": "feed_a_status",
+        "label": "Feed a status",
+        "description": "Heal 3 HP. Remove 1 Junk from your deck if present.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 3
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_junk_01",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "climb_inside",
+        "label": "Climb inside",
+        "description": "Take 6 damage. Increase Protocol Drift by 2%. Remove 1 deck card.",
+        "choice_type": "purge",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          },
+          {
+            "type": "purge_card"
+          }
+        ],
+        "requirements": {
+          "deck_size_at_least": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "plaza_antenna_01",
+    "title": "Plaza Antenna",
+    "body": "A bent plaza antenna catches battle forecasts in bursts of static.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "combat_prep",
+      "draw",
+      "defense",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "tune_the_defense_band",
+        "label": "Tune the defense band",
+        "description": "Next combat: start with 5 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 5
+            }
+          }
+        ]
+      },
+      {
+        "id": "tune_the_draw_band",
+        "label": "Tune the draw band",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "leave_it_buzzing",
+        "label": "Leave it buzzing",
+        "description": "Gain 8 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scrap_lottery_box_01",
+    "title": "Scrap Lottery Box",
+    "body": "A dented prize box promises a relic, a burn, or proof that it was never honest.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "gamble",
+      "relic",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "pull_the_scrap_lever",
+        "label": "Pull the scrap lever",
+        "description": "Roll a small prize or injury.",
+        "choice_type": "risk",
+        "outcomes": [
+          {
+            "id": "loose_credits",
+            "weight": 45,
+            "summary": "Gain 18 credits.",
+            "effects": [
+              {
+                "type": "gain_credits",
+                "value": 18
+              }
+            ]
+          },
+          {
+            "id": "biting_slot",
+            "weight": 25,
+            "summary": "Take 5 damage.",
+            "effects": [
+              {
+                "type": "damage",
+                "value": 5
+              }
+            ]
+          },
+          {
+            "id": "jammed_card",
+            "weight": 20,
+            "summary": "Add Cache Draw to your deck.",
+            "effects": [
+              {
+                "type": "gain_card",
+                "card_id": "cache_draw_01"
+              }
+            ]
+          },
+          {
+            "id": "buried_relic",
+            "weight": 10,
+            "summary": "Increase Protocol Drift by 2%. Gain a random common relic.",
+            "effects": [
+              {
+                "type": "adjust_protocol_drift",
+                "amount": 2
+              },
+              {
+                "type": "gain_random_modifier",
+                "source_type": "event",
+                "rarity_profile": "positive",
+                "allow_types": [
+                  "relic"
+                ],
+                "fallback_effects": [
+                  {
+                    "type": "gain_credits",
+                    "value": 12
+                  }
+                ],
+                "allow_rarities": [
+                  "common"
+                ],
+                "include_tags": [
+                  "defense",
+                  "offense",
+                  "economy",
+                  "draw",
+                  "status"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "kick_the_refund_tray",
+        "label": "Kick the refund tray",
+        "description": "Gain 4 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "grave_bell_01",
+    "title": "Grave Bell",
+    "body": "A small iron bell rings before anyone touches it.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": [
+      "kill",
+      "heal",
+      "relic",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "ring_once",
+        "label": "Ring once",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "ring_until_it_answers",
+        "label": "Ring until it answers",
+        "description": "Take 5 damage. Increase Protocol Drift by 3%. Gain Grave Toll.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "grave_toll"
+          }
+        ]
+      },
+      {
+        "id": "stuff_the_bell",
+        "label": "Stuff the bell",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ],
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "quarantine_mask_vendor_01",
+    "title": "Quarantine Mask Vendor",
+    "body": "A mask vendor offers fresh filters, used filters, and a smile behind neither.",
+    "rarity": "common",
+    "base_weight": 7,
+    "tags": [
+      "infect",
+      "cleanse",
+      "relic",
+      "merchant_style"
+    ],
+    "choices": [
+      {
+        "id": "buy_a_fresh_filter",
+        "label": "Buy a fresh filter",
+        "description": "Spend 12 credits. Next combat: start with 6 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 12
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 6
+            }
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 12
+        }
+      },
+      {
+        "id": "wear_the_used_mask",
+        "label": "Wear the used mask",
+        "description": "Take 4 damage. Gain Parasite Seal.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 4
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "parasite_seal"
+          }
+        ]
+      },
+      {
+        "id": "trade_a_sample",
+        "label": "Trade a sample",
+        "description": "Gain 15 credits. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 15
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "civic_checkpoint_01",
+    "title": "Civic Checkpoint",
+    "body": "A checkpoint scans your license, your face, and the parts of you that are still negotiable.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "economy",
+      "marked",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "show_papers",
+        "label": "Show papers",
+        "description": "Spend 6 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 6
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 6
+        }
+      },
+      {
+        "id": "run_the_scan_hot",
+        "label": "Run the scan hot",
+        "description": "Next combat: draw 1 extra card on turn 1. Next combat: start with 1 Marked.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "marked",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "fake_the_papers",
+        "label": "Fake the papers",
+        "description": "Gain 8 credits. Increase Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          }
+        ],
+        "requirements": {
+          "protocol_drift_below": 80
+        }
+      },
+      {
+        "id": "bypass_authority",
+        "label": "Bypass authority",
+        "description": "Gain 12 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          }
+        ],
+        "requirements": {
+          "modifier_active": "authority_bypass"
+        }
+      }
+    ],
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "zero_cost_graffito_01",
+    "title": "Zero-Cost Graffito",
+    "body": "A wall tag rewrites itself whenever you think about doing something cheap.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": [
+      "zero_cost",
+      "draw",
+      "combo",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "study_the_tag",
+        "label": "Study the tag",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "scrape_conductive_paint",
+        "label": "Scrape conductive paint",
+        "description": "Gain 12 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          }
+        ]
+      },
+      {
+        "id": "trace_the_hidden_queue",
+        "label": "Trace the hidden queue",
+        "description": "Next combat: add a temporary Overclock to your hand.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_temporary_card_to_hand",
+              "card_id": "overclock_01"
+            }
+          }
+        ],
+        "requirements": {
+          "modifier_active": "queue_mirror"
+        }
+      }
+    ],
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "smuggled_waterline_01",
+    "title": "Smuggled Waterline",
+    "body": "A busted utility pipe carries clean water through a route nobody official can find.",
+    "rarity": "common",
+    "base_weight": 8,
+    "tags": [
+      "recovery",
+      "economy",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "drink_at_the_valve",
+        "label": "Drink at the valve",
+        "description": "Heal 8 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 8
+          }
+        ]
+      },
+      {
+        "id": "patch_the_leak",
+        "label": "Patch the leak",
+        "description": "Gain 10 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          }
+        ]
+      },
+      {
+        "id": "sell_the_route",
+        "label": "Sell the route",
+        "description": "Gain 22 credits. Gain Debt Mark.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 22
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dampener_repairman_01",
+    "title": "Dampener Repairman",
+    "body": "A repairman with magnetized fingers offers to patch the parts that absorb pain.",
+    "rarity": "common",
+    "base_weight": 6,
+    "tags": [
+      "defense",
+      "relic",
+      "enemy_status",
+      "merchant_style"
+    ],
+    "choices": [
+      {
+        "id": "buy_a_dampener_puck",
+        "label": "Buy a dampener puck",
+        "description": "Spend 15 credits. Gain Field Dampener.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 15
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "field_dampener"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 15
+        }
+      },
+      {
+        "id": "let_him_patch_your_rig",
+        "label": "Let him patch your rig",
+        "description": "Next combat: start with 5 Block. Increase Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 5
+            }
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "id": "ask_for_route_advice",
+        "label": "Ask for route advice",
+        "description": "Reduce Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -2
+          }
+        ],
+        "requirements": {
+          "modifier_active": "null_damper"
+        }
+      }
+    ]
+  },
+  {
+    "id": "trashfire_oracle_01",
+    "title": "Trashfire Oracle",
+    "body": "A burning barrel speaks in shop receipts, autopsy tags, and next-turn probabilities.",
+    "rarity": "common",
+    "base_weight": 5,
+    "tags": [
+      "narrative",
+      "gamble",
+      "chain",
+      "economy"
+    ],
+    "choices": [
+      {
+        "id": "listen_to_the_smoke",
+        "label": "Listen to the smoke",
+        "description": "Gain 12 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          }
+        ]
+      },
+      {
+        "id": "feed_it_credits",
+        "label": "Feed it credits",
+        "description": "Spend 10 credits. Next combat: gain 1 Energy on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 10
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 10
+        }
+      },
+      {
+        "id": "feed_it_blood",
+        "label": "Feed it blood",
+        "description": "Gain 25 credits. Take 6 damage. Increase Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 25
+          },
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "infection_gallery_01",
+    "title": "Infection Gallery",
+    "body": "A bio-artist displays living infections under glass, each one trained to obey applause.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "infect",
+      "heal",
+      "relic",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "buy_the_siphon",
+        "label": "Buy the siphon",
+        "description": "Spend 22 credits. Gain Septic Siphon.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 22
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "septic_siphon"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 22
+        }
+      },
+      {
+        "id": "open_the_obedient_frame",
+        "label": "Open the obedient frame",
+        "description": "Take 6 damage. Gain Containment Loop. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "containment_loop"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "let_the_gallery_sketch_you",
+        "label": "Let the gallery sketch you",
+        "description": "Heal 12 HP. Increase Protocol Drift by 4%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 12
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          }
+        ]
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "red_wastes_pumpjack_01",
+    "title": "Red Wastes Pumpjack",
+    "body": "A dry pumpjack coughs up heat, ash, and a relic wrapped in old warning tape.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "burn",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "take_the_cooled_veil",
+        "label": "Take the cooled veil",
+        "description": "Take 3 damage. Gain Ash Veil.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 3
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "ash_veil"
+          }
+        ]
+      },
+      {
+        "id": "take_the_feedback_coil",
+        "label": "Take the feedback coil",
+        "description": "Gain Cinder Feedback. Next combat: start with 2 Burn.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "cinder_feedback"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "burn",
+              "value": 2
+            }
+          }
+        ]
+      },
+      {
+        "id": "sell_the_heat_map",
+        "label": "Sell the heat-map",
+        "description": "Gain 28 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 28
+          }
+        ]
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "jammer_den_01",
+    "title": "Jammer Den",
+    "body": "Signal jammers chew status junk into power for anyone willing to breathe the smoke.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "status",
+      "exhaust",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "buy_the_battery_block",
+        "label": "Buy the battery block",
+        "description": "Spend 26 credits. Gain Jam Battery.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 26
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "jam_battery"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 26
+        }
+      },
+      {
+        "id": "buy_the_cycler_teeth",
+        "label": "Buy the cycler teeth",
+        "description": "Add Junk to your deck. Add Lag to your deck. Gain Jam Cycler.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "status_junk_01"
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_lag_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "jam_cycler"
+          }
+        ]
+      },
+      {
+        "id": "sleep_in_the_hum",
+        "label": "Sleep in the hum",
+        "description": "Heal 10 HP. Next combat: add 1 Junk to your discard.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 10
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_status_card",
+              "card_id": "status_junk_01",
+              "count": 1,
+              "pile": "discard"
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "auction_warmup_01",
+    "title": "Auction Warm-Up",
+    "body": "A back-room auction lets you pay now to see better futures later.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "reward",
+      "shop",
+      "economy",
+      "combo"
+    ],
+    "choices": [
+      {
+        "id": "buy_a_preview_seat",
+        "label": "Buy a preview seat",
+        "description": "Spend 18 credits. Add Cache Draw to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 18
+          },
+          {
+            "type": "gain_card",
+            "card_id": "cache_draw_01"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 18
+        }
+      },
+      {
+        "id": "bribe_the_seed_clerk",
+        "label": "Bribe the seed clerk",
+        "description": "Spend 30 credits. Gain Signal Router.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 30
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "signal_router"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 30
+        }
+      },
+      {
+        "id": "exploit_your_discount_shell",
+        "label": "Exploit your discount shell",
+        "description": "Gain 12 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          }
+        ],
+        "requirements": {
+          "modifier_active": "market_key"
+        }
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "grave_census_clerk_01",
+    "title": "Grave Census Clerk",
+    "body": "A civic clerk counts the dead before the fight starts and asks how official you want it.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "kill",
+      "energy",
+      "control",
+      "relic",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "buy_the_grave_pick",
+        "label": "Buy the grave pick",
+        "description": "Spend 24 credits. Gain Grave Pick.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 24
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "grave_pick"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 24
+        }
+      },
+      {
+        "id": "accept_the_sprinkler_form",
+        "label": "Accept the sprinkler form",
+        "description": "Take 5 damage. Gain Grave Sprinkler.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 5
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "grave_sprinkler"
+          }
+        ]
+      },
+      {
+        "id": "correct_the_count",
+        "label": "Correct the count",
+        "description": "Gain 10 credits. Heal 6 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          },
+          {
+            "type": "heal",
+            "value": 6
+          }
+        ],
+        "requirements": {
+          "modifier_active": "grave_toll"
+        }
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "septic_distillery_01",
+    "title": "Septic Distillery",
+    "body": "A hidden still brews infection down into something almost useful.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "infect",
+      "scaling",
+      "heal",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "buy_a_reservoir_vial",
+        "label": "Buy a reservoir vial",
+        "description": "Spend 28 credits. Gain Septic Reservoir.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 28
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "septic_reservoir"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 28
+        }
+      },
+      {
+        "id": "drink_the_distilled_parasite",
+        "label": "Drink the distilled parasite",
+        "description": "Heal 8 HP. Gain Septic Siphon. Next combat: start with 2 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "septic_siphon"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 2
+            }
+          }
+        ]
+      },
+      {
+        "id": "overproof_the_sample",
+        "label": "Overproof the sample",
+        "description": "Gain 20 credits. Increase Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          }
+        ]
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "pressure_optician_01",
+    "title": "Pressure Optician",
+    "body": "An optician fits lenses that make every weak seam feel personally insulting.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "control",
+      "draw",
+      "offense",
+      "relic"
+    ],
+    "choices": [
+      {
+        "id": "fit_pressure_sight",
+        "label": "Fit pressure sight",
+        "description": "Spend 24 credits. Gain Pressure Sight.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 24
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "pressure_sight"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 24
+        }
+      },
+      {
+        "id": "fit_exposure_grid",
+        "label": "Fit exposure grid",
+        "description": "Gain Exposure Grid. Next combat: start with 1 Marked.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "exposure_grid"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "marked",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "let_the_mesh_calibrate",
+        "label": "Let the mesh calibrate",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ],
+        "requirements": {
+          "modifier_active": "pressure_mesh"
+        }
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "riot_drill_square_01",
+    "title": "Riot Drill Square",
+    "body": "A squad of riot trainers offers either discipline or a beating wearing the same helmet.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "attack",
+      "strength",
+      "relic",
+      "combat_prep"
+    ],
+    "choices": [
+      {
+        "id": "run_the_attack_cadence",
+        "label": "Run the attack cadence",
+        "description": "Take 9 damage. Gain Riot Gyro.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 9
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "riot_gyro"
+          }
+        ]
+      },
+      {
+        "id": "train_under_plating",
+        "label": "Train under plating",
+        "description": "Spend 18 credits. Next combat: start with 5 Block.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 18
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_block",
+              "value": 5
+            }
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 18
+        }
+      },
+      {
+        "id": "show_your_plating",
+        "label": "Show your plating",
+        "description": "Gain 10 credits. Heal 5 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          },
+          {
+            "type": "heal",
+            "value": 5
+          }
+        ],
+        "requirements": {
+          "modifier_active": "riot_plating"
+        }
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "lag_harvester_01",
+    "title": "Lag Harvester",
+    "body": "A technician harvests delay from failing systems and sells it back as patience.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "status",
+      "energy",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "buy_stored_lag",
+        "label": "Buy stored lag",
+        "description": "Spend 25 credits. Gain Lag Harvest.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 25
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "lag_harvest"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 25
+        }
+      },
+      {
+        "id": "harvest_your_own_delay",
+        "label": "Harvest your own delay",
+        "description": "Increase Protocol Drift by 3%. Add Junk to your deck. Add Lag to your deck. Gain Lag Harvest.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_junk_01"
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_lag_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "lag_harvest"
+          }
+        ]
+      },
+      {
+        "id": "sell_clean_timing",
+        "label": "Sell clean timing",
+        "description": "Gain 25 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 25
+          }
+        ]
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "warranty_voider_01",
+    "title": "Warranty Voider",
+    "body": "A ghostly technician offers to void your warranty for a better problem.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "shop",
+      "relic",
+      "chain",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "void_the_warranty",
+        "label": "Void the warranty",
+        "description": "Gain 20 credits. Gain Market Ghost. Remove Ghost Warranty if active.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "market_ghost"
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "ghost_warranty"
+          }
+        ],
+        "requirements": {
+          "modifier_active": "ghost_warranty"
+        }
+      },
+      {
+        "id": "sell_the_sticker",
+        "label": "Sell the sticker",
+        "description": "Gain 26 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 26
+          }
+        ]
+      },
+      {
+        "id": "let_the_ghost_tune_prices",
+        "label": "Let the ghost tune prices",
+        "description": "Gain 18 credits. Increase Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 18
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 2
+          }
+        ]
+      }
+    ],
+    "min_floor": 3,
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "debt_witness_01",
+    "title": "Debt Witness",
+    "body": "A contract witness records debts with a camera that looks like a mouth.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "curse",
+      "economy",
+      "chain",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "take_witnessed_credit",
+        "label": "Take witnessed credit",
+        "description": "Gain 45 credits. Gain Debt Spike.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 45
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_spike"
+          }
+        ]
+      },
+      {
+        "id": "clear_your_name",
+        "label": "Clear your name",
+        "description": "Spend 30 credits. Remove Debt Mark if active.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 30
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ],
+        "requirements": {
+          "modifier_active": "debt_mark",
+          "credits_at_least": 30
+        }
+      },
+      {
+        "id": "refuse_the_witness",
+        "label": "Refuse the witness",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "rot_exchange_01",
+    "title": "Rot Exchange",
+    "body": "A recycler buys garbage routines and pays better for the ones still twitching.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "status",
+      "deck_edit",
+      "draw",
+      "relic"
+    ],
+    "choices": [
+      {
+        "id": "trade_status_for_credits",
+        "label": "Trade status for credits",
+        "description": "Gain 10 credits. Remove 1 Junk from your deck if present. Remove 1 Lag from your deck if present.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_junk_01",
+            "count": 1
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_lag_01",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "buy_the_index_wheel",
+        "label": "Buy the index wheel",
+        "description": "Spend 26 credits. Gain Rot Index.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 26
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "rot_index"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 26
+        }
+      },
+      {
+        "id": "buy_the_old_battery",
+        "label": "Buy the old battery",
+        "description": "Spend 18 credits. Gain Rot Battery.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 18
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "rot_battery"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 18
+        }
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "cache_bloom_01",
+    "title": "Cache Bloom",
+    "body": "A cache seed splits through concrete, offering draw now or draft power later.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "draw",
+      "reward",
+      "relic",
+      "deck_edit"
+    ],
+    "choices": [
+      {
+        "id": "harvest_the_seed",
+        "label": "Harvest the seed",
+        "description": "Add Cache Draw to your deck. Gain Shard Seed.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "cache_draw_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "shard_seed"
+          }
+        ]
+      },
+      {
+        "id": "let_it_bloom",
+        "label": "Let it bloom",
+        "description": "Spend 22 credits. Gain Flash Cache.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 22
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "flash_cache"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 22
+        }
+      },
+      {
+        "id": "cut_the_flower_early",
+        "label": "Cut the flower early",
+        "description": "Gain 20 credits. Add Cache Draw to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "gain_card",
+            "card_id": "cache_draw_01"
+          }
+        ]
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "cinder_contract_01",
+    "title": "Cinder Contract",
+    "body": "A heat debt collector offers retaliation in exchange for wearing the burn first.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "burn",
+      "retaliation",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "sign_the_cinder_clause",
+        "label": "Sign the cinder clause",
+        "description": "Gain Cinder Feedback. Next combat: start with 1 Burn.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "cinder_feedback"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "burn",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "buy_out_the_heat",
+        "label": "Buy out the heat",
+        "description": "Spend 18 credits. Gain Ash Veil.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 18
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "ash_veil"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 18
+        }
+      },
+      {
+        "id": "let_the_vault_contain_it",
+        "label": "Let the vault contain it",
+        "description": "Gain 12 credits. Heal 5 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 12
+          },
+          {
+            "type": "heal",
+            "value": 5
+          }
+        ],
+        "requirements": {
+          "modifier_active": "quarantine_vault"
+        }
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "execution_rig_01",
+    "title": "Execution Rig",
+    "body": "A kill-switch rig wants proof that your enemies are already compromised.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "status",
+      "offense",
+      "draw",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "install_execution_relay",
+        "label": "Install execution relay",
+        "description": "Spend 28 credits. Gain Execution Relay.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 28
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "execution_relay"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 28
+        }
+      },
+      {
+        "id": "install_the_full_array",
+        "label": "Install the full array",
+        "description": "Take 10 damage. Increase Protocol Drift by 7%. Gain Execution Array.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 10
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 7
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "execution_array"
+          }
+        ]
+      },
+      {
+        "id": "run_a_verdict_test",
+        "label": "Run a verdict test",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 3,
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "symbiont_soup_kitchen_01",
+    "title": "Symbiont Soup Kitchen",
+    "body": "A charity kitchen serves broth so alive it tries to remember your name.",
+    "rarity": "uncommon",
+    "base_weight": 5,
+    "tags": [
+      "heal",
+      "self_damage",
+      "offense",
+      "relic",
+      "status_risk"
+    ],
+    "choices": [
+      {
+        "id": "eat_the_warm_bowl",
+        "label": "Eat the warm bowl",
+        "description": "Heal 14 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 14
+          }
+        ]
+      },
+      {
+        "id": "eat_the_living_bowl",
+        "label": "Eat the living bowl",
+        "description": "Take 6 damage. Increase Protocol Drift by 4%. Gain Symbiont Spindle.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 6
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "symbiont_spindle"
+          }
+        ]
+      },
+      {
+        "id": "donate_blood",
+        "label": "Donate blood",
+        "description": "Gain 35 credits. Take 7 damage.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 35
+          },
+          {
+            "type": "damage",
+            "value": 7
+          }
+        ]
+      }
+    ],
+    "min_floor": 2,
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "null_confessional_01",
+    "title": "Null Confessional",
+    "body": "A blank-faced confessor listens to every positive effect you never received.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "nullified",
+      "cleanse",
+      "energy",
+      "draw",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "confess_the_blocked_gains",
+        "label": "Confess the blocked gains",
+        "description": "Next combat: gain 1 Energy on turn 1. Next combat: draw 2 extra cards on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 2
+            }
+          }
+        ]
+      },
+      {
+        "id": "buy_the_evasion_kit",
+        "label": "Buy the evasion kit",
+        "description": "Spend 32 credits. Gain Toll Evasion Kit.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 32
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "toll_evasion_kit"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 32
+        }
+      },
+      {
+        "id": "let_the_booth_blank_you",
+        "label": "Let the booth blank you",
+        "description": "Spend 12 credits. Reduce Protocol Drift by 5%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 12
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -5
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 12
+        }
+      }
+    ],
+    "min_floor": 3
+  },
+  {
+    "id": "scrap_choir_rehearsal_01",
+    "title": "Scrap Choir Rehearsal",
+    "body": "Tiny bells in a junk chapel sing only when something useless is destroyed.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "status",
+      "heal",
+      "exhaust",
+      "relic",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "join_rehearsal",
+        "label": "Join rehearsal",
+        "description": "Spend 24 credits. Gain Scrap Choir.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 24
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "scrap_choir"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 24
+        }
+      },
+      {
+        "id": "feed_the_hymn",
+        "label": "Feed the hymn",
+        "description": "Heal 8 HP. Remove 1 Junk from your deck if present.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 8
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_junk_01",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "sing_through_static",
+        "label": "Sing through static",
+        "description": "Gain 18 credits. Next combat: add 1 Glitch to your discard.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 18
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "add_status_card",
+              "card_id": "status_glitch_01",
+              "count": 1,
+              "pile": "discard"
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "field_trial_chamber_01",
+    "title": "Field Trial Chamber",
+    "body": "A lab chamber tests anti-status hardware by hurting you just enough to prove it works.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "enemy_status",
+      "cleanse",
+      "defense",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "run_the_basic_trial",
+        "label": "Run the basic trial",
+        "description": "Gain Field Dampener. Next combat: start with 1 Burn.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "field_dampener"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "burn",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "run_the_vault_trial",
+        "label": "Run the vault trial",
+        "description": "Take 12 damage. Increase Protocol Drift by 6%. Gain Quarantine Vault.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 12
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "quarantine_vault"
+          }
+        ]
+      },
+      {
+        "id": "refuse_the_chamber",
+        "label": "Refuse the chamber",
+        "description": "Gain 10 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 10
+          }
+        ]
+      }
+    ],
+    "min_floor": 3,
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "smuggler_decoder_01",
+    "title": "Smuggler Decoder",
+    "body": "A decoder kiosk recognizes one of your courier keys and opens an older route.",
+    "rarity": "uncommon",
+    "base_weight": 4,
+    "tags": [
+      "economy",
+      "shop",
+      "chain",
+      "deck_edit"
+    ],
+    "choices": [
+      {
+        "id": "decode_the_counterkey",
+        "label": "Decode the counterkey",
+        "description": "Gain 35 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 35
+          }
+        ]
+      },
+      {
+        "id": "buy_a_market_key_copy",
+        "label": "Buy a market key copy",
+        "description": "Spend 26 credits. Gain Market Key.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 26
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "market_key"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 26
+        }
+      },
+      {
+        "id": "force_the_decoder",
+        "label": "Force the decoder",
+        "description": "Gain 18 credits. Increase Protocol Drift by 3%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 18
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 3
+          }
+        ]
+      }
+    ],
+    "min_floor": 2
+  },
+  {
+    "id": "authority_backdoor_01",
+    "title": "Authority Backdoor",
+    "body": "An abandoned authority terminal still recognizes one master password and hates everyone else.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "energy",
+      "attack",
+      "skill",
+      "power",
+      "boss_relic",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "install_the_bypass",
+        "label": "Install the bypass",
+        "description": "Take 10 damage. Increase Protocol Drift by 10%. Gain Authority Bypass.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 10
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 10
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "authority_bypass"
+          }
+        ]
+      },
+      {
+        "id": "sell_the_password",
+        "label": "Sell the password",
+        "description": "Gain 70 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 70
+          }
+        ]
+      },
+      {
+        "id": "route_through_triune_module",
+        "label": "Route through Triune Module",
+        "description": "Reduce Protocol Drift by 3%. Next combat: gain 1 Energy on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -3
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "gain_energy",
+              "value": 1
+            }
+          }
+        ],
+        "requirements": {
+          "modifier_active": "triune_module"
+        }
+      }
+    ],
+    "min_floor": 5
+  },
+  {
+    "id": "mummified_server_01",
+    "title": "Mummified Server",
+    "body": "A wrapped server stack exhales old power routines through dry cable lungs.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "power",
+      "cost_reduction",
+      "combo",
+      "relic",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "unwrap_the_power_wire",
+        "label": "Unwrap the power wire",
+        "description": "Increase Protocol Drift by 6%. Add Glitch to your deck. Gain Mummified Wire.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_glitch_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "mummified_wire"
+          }
+        ]
+      },
+      {
+        "id": "harvest_the_bindings",
+        "label": "Harvest the bindings",
+        "description": "Gain 40 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 40
+          }
+        ]
+      },
+      {
+        "id": "leave_the_dead_server",
+        "label": "Leave the dead server",
+        "description": "Reduce Protocol Drift by 2%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -2
+          }
+        ]
+      }
+    ],
+    "min_floor": 4,
+    "character_ids": [
+      "operator"
+    ]
+  },
+  {
+    "id": "verdict_tribunal_01",
+    "title": "Verdict Tribunal",
+    "body": "A tribunal of obsolete law engines judges targets by how many problems they already have.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "status",
+      "offense",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "accept_the_verdict_engine",
+        "label": "Accept the verdict engine",
+        "description": "Take 9 damage. Gain Verdict Engine. Next combat: start with 1 Marked.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 9
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "verdict_engine"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "marked",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "present_grave_evidence",
+        "label": "Present grave evidence",
+        "description": "Gain 30 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 30
+          }
+        ],
+        "requirements": {
+          "modifier_active": "grave_matrix"
+        }
+      },
+      {
+        "id": "reject_jurisdiction",
+        "label": "Reject jurisdiction",
+        "description": "Move on.",
+        "choice_type": "effect",
+        "effects": []
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "quarantine_auction_01",
+    "title": "Quarantine Auction",
+    "body": "Two bidders fight over a sealed vault: one wants safety, the other wants leverage.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "cleanse",
+      "reward",
+      "shop",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "bid_on_the_vault",
+        "label": "Bid on the vault",
+        "description": "Spend 45 credits. Gain Quarantine Vault.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 45
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "quarantine_vault"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 45
+        }
+      },
+      {
+        "id": "steal_the_seed_catalog",
+        "label": "Steal the seed catalog",
+        "description": "Take 8 damage. Increase Protocol Drift by 5%. Gain Auction Seeder.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "auction_seeder"
+          }
+        ]
+      },
+      {
+        "id": "sell_your_antibodies",
+        "label": "Sell your antibodies",
+        "description": "Gain 55 credits. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 55
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "viral_crown_lab_01",
+    "title": "Viral Crown Lab",
+    "body": "A crown-shaped culture blooms in a lab that was sealed from the outside.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "infect",
+      "aoe",
+      "scaling",
+      "heal",
+      "relic",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "crown_the_outbreak",
+        "label": "Crown the outbreak",
+        "description": "Take 8 damage. Increase Protocol Drift by 6%. Gain Viral Relay.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "viral_relay"
+          }
+        ]
+      },
+      {
+        "id": "take_the_septic_crown",
+        "label": "Take the septic crown",
+        "description": "Take 7 damage. Gain Septic Crown.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "septic_crown"
+          }
+        ]
+      },
+      {
+        "id": "sterilize_the_tank",
+        "label": "Sterilize the tank",
+        "description": "Gain 20 credits. Reduce Protocol Drift by 6%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -6
+          }
+        ]
+      }
+    ],
+    "min_floor": 4,
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "mortuary_data_wake_01",
+    "title": "Mortuary Data Wake",
+    "body": "A funeral for corrupted data invites you to inherit what the dead routines left behind.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "status",
+      "exhaust",
+      "draw",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "inherit_the_router",
+        "label": "Inherit the router",
+        "description": "Add Junk to your deck. Add Lag to your deck. Gain Mortuary Router.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "status_junk_01"
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_lag_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "mortuary_router"
+          }
+        ]
+      },
+      {
+        "id": "read_the_wake_list",
+        "label": "Read the wake list",
+        "description": "Gain 35 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 35
+          }
+        ]
+      },
+      {
+        "id": "pay_respects",
+        "label": "Pay respects",
+        "description": "Heal 6 HP. Remove 1 Junk from your deck if present.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 6
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_junk_01",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "spine_core_vespers_01",
+    "title": "Spine Core Vespers",
+    "body": "A civic prayer service runs on a timer older than the city and twice as strict.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "turn_counter",
+      "draw",
+      "energy",
+      "boss_relic",
+      "corruption"
+    ],
+    "choices": [
+      {
+        "id": "accept_the_spine_script",
+        "label": "Accept the spine script",
+        "description": "Take 8 damage. Increase Protocol Drift by 8%. Gain Spine Script.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "spine_script"
+          }
+        ]
+      },
+      {
+        "id": "copy_one_verse",
+        "label": "Copy one verse",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "interrupt_the_sermon",
+        "label": "Interrupt the sermon",
+        "description": "Gain 30 credits. Next combat: start with 1 Suppressed.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 30
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "suppressed",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 5
+  },
+  {
+    "id": "triune_gate_01",
+    "title": "Triune Gate",
+    "body": "A three-lobed gate opens only when offense, defense, and power arrive in the same breath.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "attack",
+      "skill",
+      "power",
+      "draw",
+      "energy",
+      "boss_relic"
+    ],
+    "choices": [
+      {
+        "id": "take_the_triune_module",
+        "label": "Take the triune module",
+        "description": "Take 15 damage. Increase Protocol Drift by 8%. Gain Triune Module.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 15
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "triune_module"
+          }
+        ]
+      },
+      {
+        "id": "practice_the_sequence",
+        "label": "Practice the sequence",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "break_one_lobe_loose",
+        "label": "Break one lobe loose",
+        "description": "Spend 20 credits. Add Control Tower to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 20
+          },
+          {
+            "type": "gain_card",
+            "card_id": "operator_control_tower_01"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 20
+        }
+      }
+    ],
+    "min_floor": 5
+  },
+  {
+    "id": "flesh_dividend_clinic_01",
+    "title": "Flesh Dividend Clinic",
+    "body": "A biotech clinic promises that pain can become profit if you sign before bleeding.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "self_damage",
+      "heal",
+      "strength",
+      "energy",
+      "boss_relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "sign_the_flesh_dividend",
+        "label": "Sign the flesh dividend",
+        "description": "Take 12 damage. Increase Protocol Drift by 6%. Gain Flesh Dividend.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 12
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "flesh_dividend"
+          }
+        ]
+      },
+      {
+        "id": "take_the_recovery_payout",
+        "label": "Take the recovery payout",
+        "description": "Heal 18 HP. Gain Debt Spike.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 18
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_spike"
+          }
+        ]
+      },
+      {
+        "id": "audit_the_clinic",
+        "label": "Audit the clinic",
+        "description": "Gain 40 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 40
+          }
+        ],
+        "requirements": {
+          "modifier_active": "bone_receipt"
+        }
+      }
+    ],
+    "min_floor": 5,
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "grave_matrix_obelisk_01",
+    "title": "Grave Matrix Obelisk",
+    "body": "A black obelisk projects every enemy as already half buried.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "setup",
+      "aoe",
+      "control",
+      "relic",
+      "chain"
+    ],
+    "choices": [
+      {
+        "id": "install_the_grave_matrix",
+        "label": "Install the grave matrix",
+        "description": "Spend 40 credits. Gain Grave Matrix.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 40
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "grave_matrix"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 40
+        }
+      },
+      {
+        "id": "light_the_grave_lantern",
+        "label": "Light the grave lantern",
+        "description": "Take 8 damage. Gain Grave Lantern.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "grave_lantern"
+          }
+        ]
+      },
+      {
+        "id": "offer_the_first_tally",
+        "label": "Offer the first tally",
+        "description": "Take 8 damage. Gain Reaper Census.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "reaper_census"
+          }
+        ],
+        "requirements": {
+          "modifier_active": "grave_toll"
+        }
+      }
+    ],
+    "min_floor": 4,
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "controlled_bleed_theater_01",
+    "title": "Controlled Bleed Theater",
+    "body": "A surgical theater teaches wounds to reopen on command.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "bleed",
+      "draw",
+      "scaling",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "install_the_bleed_valve",
+        "label": "Install the bleed valve",
+        "description": "Take 8 damage. Gain Controlled Bleed Valve.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "controlled_bleed_valve"
+          }
+        ]
+      },
+      {
+        "id": "take_the_arterial_tank",
+        "label": "Take the arterial tank",
+        "description": "Increase Protocol Drift by 4%. Gain Arterial Reservoir. Next combat: start with 2 Bleed.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "arterial_reservoir"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "bleed",
+              "value": 2
+            }
+          }
+        ]
+      },
+      {
+        "id": "sell_the_technique",
+        "label": "Sell the technique",
+        "description": "Gain 50 credits. Remove 1 Strike from your deck if present.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 50
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "strike_01",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "min_floor": 4,
+    "character_ids": [
+      "enforcer"
+    ]
+  },
+  {
+    "id": "auction_seed_vault_01",
+    "title": "Auction Seed Vault",
+    "body": "A vault of auction seeds grows better choices in exchange for worse instincts.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "reward",
+      "shop",
+      "economy",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "buy_the_auction_seeder",
+        "label": "Buy the auction seeder",
+        "description": "Spend 50 credits. Gain Auction Seeder.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 50
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "auction_seeder"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 50
+        }
+      },
+      {
+        "id": "steal_a_seedbox",
+        "label": "Steal a seedbox",
+        "description": "Take 10 damage. Increase Protocol Drift by 6%. Gain Auction Seeder.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 10
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "auction_seeder"
+          }
+        ]
+      },
+      {
+        "id": "take_router_cuttings",
+        "label": "Take router cuttings",
+        "description": "Gain Signal Router. Gain Debt Mark.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "signal_router"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ]
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "protocol_drift_cradle_01",
+    "title": "Protocol Drift Cradle",
+    "body": "A cradle of corrupted cassettes rocks itself with every hostile signal in the room.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "corruption",
+      "status",
+      "energy",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "take_the_drift_cassette",
+        "label": "Take the drift cassette",
+        "description": "Take 10 damage. Increase Protocol Drift by 10%. Gain Protocol Drift.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 10
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 10
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "protocol_drift"
+          }
+        ]
+      },
+      {
+        "id": "tune_the_cassette_you_already_carry",
+        "label": "Tune the cassette you already carry",
+        "description": "Reduce Protocol Drift by 5%. Add Glitch to your deck.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -5
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_glitch_01"
+          }
+        ],
+        "requirements": {
+          "modifier_active": "protocol_drift"
+        }
+      },
+      {
+        "id": "seal_the_cradle",
+        "label": "Seal the cradle",
+        "description": "Gain 15 credits. Reduce Protocol Drift by 7%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 15
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -7
+          }
+        ]
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "recycler_crown_yard_01",
+    "title": "Recycler Crown Yard",
+    "body": "A crown of shredder teeth rises from the yard, hungry for junk and useful accidents.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "status",
+      "generation",
+      "combo",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "wear_the_recycler_crown",
+        "label": "Wear the recycler crown",
+        "description": "Increase Protocol Drift by 5%. Add Junk to your deck. Add Lag to your deck. Add Glitch to your deck. Gain Recycler Crown.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_junk_01"
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_lag_01"
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_glitch_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "recycler_crown"
+          }
+        ]
+      },
+      {
+        "id": "sell_the_teeth",
+        "label": "Sell the teeth",
+        "description": "Gain 55 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 55
+          }
+        ]
+      },
+      {
+        "id": "feed_the_old_router",
+        "label": "Feed the old router",
+        "description": "Add Control Tower to your deck. Remove 1 Junk from your deck if present.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "operator_control_tower_01"
+          },
+          {
+            "type": "remove_card_from_deck_by_id",
+            "card_id": "status_junk_01",
+            "count": 1
+          }
+        ],
+        "requirements": {
+          "modifier_active": "mortuary_router"
+        }
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "toll_evasion_run_01",
+    "title": "Toll Evasion Run",
+    "body": "Smugglers offer a full-speed run through null tolls while the city tries to erase your gains.",
+    "rarity": "rare",
+    "base_weight": 2,
+    "tags": [
+      "nullified",
+      "draw",
+      "energy",
+      "relic",
+      "tradeoff"
+    ],
+    "choices": [
+      {
+        "id": "take_the_evasion_kit",
+        "label": "Take the evasion kit",
+        "description": "Increase Protocol Drift by 4%. Gain Toll Evasion Kit. Next combat: start with 1 Nullified.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 4
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "toll_evasion_kit"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "nullified",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "ride_shotgun",
+        "label": "Ride shotgun",
+        "description": "Gain 45 credits. Next combat: start with 1 Nullified.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 45
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "nullified",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "flash_your_bypass",
+        "label": "Flash your bypass",
+        "description": "Gain 25 credits. Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 25
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ],
+        "requirements": {
+          "modifier_active": "authority_bypass"
+        }
+      }
+    ],
+    "min_floor": 4
+  },
+  {
+    "id": "market_ghost_reunion_01",
+    "title": "Market Ghost Reunion",
+    "body": "The market ghost meets its own warranty clerk and both insist the other one died owing you money.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "shop",
+      "economy",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "settle_the_receipt",
+        "label": "Settle the receipt",
+        "description": "Refresh Market Ghost. Gain 25 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "refresh_modifier",
+            "modifier_id": "market_ghost"
+          },
+          {
+            "type": "gain_credits",
+            "value": 25
+          }
+        ]
+      },
+      {
+        "id": "audit_the_ghosts",
+        "label": "Audit the ghosts",
+        "description": "Gain 60 credits. Remove Ghost Warranty if active.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 60
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "ghost_warranty"
+          }
+        ]
+      },
+      {
+        "id": "sign_the_spectral_ledger",
+        "label": "Sign the spectral ledger",
+        "description": "Increase Protocol Drift by 7%. Gain Auction Seeder. Gain Debt Mark.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 7
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "auction_seeder"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ]
+      }
+    ],
+    "min_floor": 5,
+    "requirements": {
+      "modifier_active": "market_ghost"
+    }
+  },
+  {
+    "id": "black_ice_heart_01",
+    "title": "Black Ice Heart",
+    "body": "The splinter from the cache points toward a beating shard under the city.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "anomaly",
+      "corruption",
+      "relic",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "take_the_heart_shard",
+        "label": "Take the heart shard",
+        "description": "Gain a random rare relic. Take 14 damage. Increase Protocol Drift by 12%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_random_modifier",
+            "source_type": "event",
+            "rarity_profile": "positive",
+            "allow_types": [
+              "relic"
+            ],
+            "allow_rarities": [
+              "rare"
+            ],
+            "include_tags": [
+              "defense",
+              "offense",
+              "economy",
+              "draw",
+              "status"
+            ],
+            "fallback_effects": [
+              {
+                "type": "gain_credits",
+                "value": 24
+              }
+            ]
+          },
+          {
+            "type": "damage",
+            "value": 14
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 12
+          }
+        ]
+      },
+      {
+        "id": "seal_it_in_a_vault",
+        "label": "Seal it in a vault",
+        "description": "Reduce Protocol Drift by 8%. Gain Quarantine Vault.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "quarantine_vault"
+          }
+        ]
+      },
+      {
+        "id": "leave_the_heart_beating",
+        "label": "Leave the heart beating",
+        "description": "Heal 10 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 10
+          }
+        ]
+      }
+    ],
+    "min_floor": 6,
+    "requirements": {
+      "modifier_active": "protocol_drift"
+    }
+  },
+  {
+    "id": "choir_beneath_city_01",
+    "title": "Choir Beneath the City",
+    "body": "Every broken speaker in the undercity sings the same note and waits for you to harmonize.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "blessing",
+      "heal",
+      "status",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "harmonize_cleanly",
+        "label": "Harmonize cleanly",
+        "description": "Heal 15 HP. Reduce Protocol Drift by 10%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 15
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -10
+          }
+        ]
+      },
+      {
+        "id": "let_the_scrap_choir_answer",
+        "label": "Let the scrap choir answer",
+        "description": "Add Junk to your deck. Gain Scrap Choir.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_card",
+            "card_id": "status_junk_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "scrap_choir"
+          }
+        ]
+      },
+      {
+        "id": "sing_the_unstable_note",
+        "label": "Sing the unstable note",
+        "description": "Increase Protocol Drift by 6%. Gain Symbiont Spindle. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "symbiont_spindle"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 5,
+    "requirements": {
+      "modifier_active": "street_choir"
+    }
+  },
+  {
+    "id": "debt_court_01",
+    "title": "Debt Court",
+    "body": "Your debts are tried by a court where the judge is a contract and the jury is interest.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "curse",
+      "economy",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "pay_judgment",
+        "label": "Pay judgment",
+        "description": "Spend 45 credits. Remove Debt Mark if active. Remove Debt Spike if active. Reduce Protocol Drift by 4%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 45
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -4
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "debt_spike"
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 45
+        }
+      },
+      {
+        "id": "declare_violent_bankruptcy",
+        "label": "Declare violent bankruptcy",
+        "description": "Take 12 damage. Remove Debt Mark if active. Remove Debt Spike if active. Gain 20 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 20
+          },
+          {
+            "type": "damage",
+            "value": 12
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "debt_spike"
+          },
+          {
+            "type": "remove_modifier",
+            "modifier_id": "debt_mark"
+          }
+        ]
+      },
+      {
+        "id": "accept_the_court_dividend",
+        "label": "Accept the court dividend",
+        "description": "Increase Protocol Drift by 8%. Gain Flesh Dividend. Gain Debt Spike.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "flesh_dividend"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "debt_spike"
+          }
+        ]
+      }
+    ],
+    "min_floor": 5,
+    "requirements": {
+      "modifier_active": "debt_mark"
+    }
+  },
+  {
+    "id": "grave_census_final_01",
+    "title": "Grave Census Final",
+    "body": "The census clerk finds the missing column: your name, written before the fight.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "kill",
+      "control",
+      "energy",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "accept_official_count",
+        "label": "Accept official count",
+        "description": "Refresh Reaper Census. Take 8 damage. Gain 25 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "refresh_modifier",
+            "modifier_id": "reaper_census"
+          },
+          {
+            "type": "damage",
+            "value": 8
+          },
+          {
+            "type": "gain_credits",
+            "value": 25
+          }
+        ]
+      },
+      {
+        "id": "light_every_lantern",
+        "label": "Light every lantern",
+        "description": "Gain Grave Lantern.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "grave_lantern"
+          }
+        ]
+      },
+      {
+        "id": "erase_your_line",
+        "label": "Erase your line",
+        "description": "Spend 20 credits. Heal 18 HP. Reduce Protocol Drift by 6%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "lose_credits",
+            "value": 20
+          },
+          {
+            "type": "heal",
+            "value": 18
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -6
+          }
+        ],
+        "requirements": {
+          "credits_at_least": 20
+        }
+      }
+    ],
+    "min_floor": 6,
+    "requirements": {
+      "modifier_active": "reaper_census"
+    }
+  },
+  {
+    "id": "infection_bloom_parade_01",
+    "title": "Infection Bloom Parade",
+    "body": "A parade of infected lanterns blooms through the district, spreading celebration like a symptom.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "infect",
+      "aoe",
+      "heal",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "crown_the_parade",
+        "label": "Crown the parade",
+        "description": "Refresh Septic Crown. Heal 12 HP. Take 7 damage.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "refresh_modifier",
+            "modifier_id": "septic_crown"
+          },
+          {
+            "type": "heal",
+            "value": 12
+          },
+          {
+            "type": "damage",
+            "value": 7
+          }
+        ]
+      },
+      {
+        "id": "release_the_relay_spores",
+        "label": "Release the relay spores",
+        "description": "Increase Protocol Drift by 6%. Gain Viral Relay. Next combat: start with 1 Infect.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "viral_relay"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "infect",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "wear_the_parasite_seal",
+        "label": "Wear the parasite seal",
+        "description": "Heal 18 HP.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 18
+          }
+        ]
+      }
+    ],
+    "min_floor": 6,
+    "requirements": {
+      "modifier_active": "septic_crown"
+    },
+    "character_ids": [
+      "bio_hacker"
+    ]
+  },
+  {
+    "id": "zero_day_masquerade_01",
+    "title": "Zero-Day Masquerade",
+    "body": "Every guest wears the same mask: zero cost, no receipt, no memory.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "zero_cost",
+      "cost_reduction",
+      "combo",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "dance_the_free_sequence",
+        "label": "Dance the free sequence",
+        "description": "Next combat: draw 1 extra card on turn 1.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "draw_cards",
+              "value": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": "steal_a_power_mask",
+        "label": "Steal a power mask",
+        "description": "Increase Protocol Drift by 8%. Add Glitch to your deck. Gain Mummified Wire.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 8
+          },
+          {
+            "type": "gain_card",
+            "card_id": "status_glitch_01"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "mummified_wire"
+          }
+        ]
+      },
+      {
+        "id": "sell_the_invitation",
+        "label": "Sell the invitation",
+        "description": "Gain 65 credits.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 65
+          }
+        ]
+      }
+    ],
+    "min_floor": 6,
+    "requirements": {
+      "modifier_active": "queue_mirror"
+    }
+  },
+  {
+    "id": "quarantine_saint_01",
+    "title": "Quarantine Saint",
+    "body": "A saint of sealed doors offers mercy only after proving you can survive the lock.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "cleanse",
+      "enemy_status",
+      "heal",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "accept_containment",
+        "label": "Accept containment",
+        "description": "Take 10 damage. Increase Protocol Drift by 5%. Gain Quarantine Vault.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 10
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 5
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "quarantine_vault"
+          }
+        ]
+      },
+      {
+        "id": "receive_absolution",
+        "label": "Receive absolution",
+        "description": "Heal 20 HP. Reduce Protocol Drift by 15%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "heal",
+            "value": 20
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -15
+          }
+        ]
+      },
+      {
+        "id": "weaponize_the_seal",
+        "label": "Weaponize the seal",
+        "description": "Gain Toll Spike. Gain Null Damper. Next combat: start with 1 Suppressed.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_modifier",
+            "modifier_id": "null_damper"
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "toll_spike"
+          },
+          {
+            "type": "queue_next_combat_effect",
+            "effect": {
+              "type": "apply_player_status",
+              "status_id": "suppressed",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "min_floor": 6,
+    "requirements": {
+      "protocol_drift_at_least": 35
+    }
+  },
+  {
+    "id": "spine_breach_01",
+    "title": "Spine Breach",
+    "body": "The Spine Core opens a service hatch and asks whether you want timing, authority, or escape.",
+    "rarity": "special",
+    "base_weight": 1,
+    "tags": [
+      "energy",
+      "draw",
+      "boss_relic",
+      "chain",
+      "special"
+    ],
+    "choices": [
+      {
+        "id": "claim_civic_authority",
+        "label": "Claim civic authority",
+        "description": "Refresh Authority Bypass. Gain 30 credits. Increase Protocol Drift by 6%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "refresh_modifier",
+            "modifier_id": "authority_bypass"
+          },
+          {
+            "type": "gain_credits",
+            "value": 30
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          }
+        ]
+      },
+      {
+        "id": "claim_perfect_timing",
+        "label": "Claim perfect timing",
+        "description": "Increase Protocol Drift by 6%. Gain Spine Script.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "adjust_protocol_drift",
+            "amount": 6
+          },
+          {
+            "type": "gain_modifier",
+            "modifier_id": "spine_script"
+          }
+        ]
+      },
+      {
+        "id": "escape_through_the_breach",
+        "label": "Escape through the breach",
+        "description": "Gain 75 credits. Reduce Protocol Drift by 8%.",
+        "choice_type": "effect",
+        "effects": [
+          {
+            "type": "gain_credits",
+            "value": 75
+          },
+          {
+            "type": "adjust_protocol_drift",
+            "amount": -8
+          }
+        ]
+      }
+    ],
+    "min_floor": 7,
+    "requirements": {
+      "modifier_active": "authority_bypass"
+    }
   }
 ]

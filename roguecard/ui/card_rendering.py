@@ -80,6 +80,23 @@ def inspect_card_rules(card: dict[str, Any]) -> list[str]:
     return lines
 
 
+def renderable_card_rule_entries(card: dict[str, Any]) -> list[dict[str, str]]:
+    entries = [{"text": line, "tone": "base"} for line in inspect_card_rules(card)]
+    corruption_display = card.get("corruption_display", [])
+    if isinstance(corruption_display, list):
+        for rider in corruption_display:
+            text = str(rider.get("text", "")).strip()
+            if not text:
+                continue
+            entries.append(
+                {
+                    "text": text,
+                    "tone": "corruption_active" if rider.get("active") else "corruption_inactive",
+                }
+            )
+    return entries
+
+
 def primary_effect_text(card: dict[str, Any]) -> str:
     lines = concise_card_rules(card)
     return lines[0] if lines else card_type_label(card)
@@ -804,10 +821,15 @@ def _draw_full_rules(
     rules_font = fonts["rules"]
     line_step = max(rules_font.get_linesize(), int(rules_font.get_linesize() * CARD_TYPOGRAPHY["description_line_height"]))
     max_lines = max(2, layout["rules_text"].height // max(1, line_step))
-    wrapped = _wrap_lines_clamped(inspect_card_rules(card), rules_font, layout["rules_text"].width, max_lines=max_lines)
+    wrapped = _wrap_rule_entries(
+        renderable_card_rule_entries(card),
+        rules_font,
+        layout["rules_text"].width,
+        max_lines=max_lines,
+    )
     y = layout["rules_text"].y
-    for line in wrapped:
-        rendered = rules_font.render(line, True, type_theme["primary_value"])
+    for entry in wrapped:
+        rendered = rules_font.render(entry["text"], True, _rule_line_color(type_theme, entry["tone"]))
         surface.blit(rendered, (layout["rules_text"].x, y))
         y += line_step
 
@@ -840,10 +862,15 @@ def _draw_compact_rules(
 
     rules_font = fonts["compact_rules"]
     max_lines = max(2, layout["rules_text"].height // max(1, rules_font.get_linesize()))
-    wrapped = _wrap_lines_clamped(inspect_card_rules(card), rules_font, layout["rules_text"].width, max_lines=max_lines)
+    wrapped = _wrap_rule_entries(
+        renderable_card_rule_entries(card),
+        rules_font,
+        layout["rules_text"].width,
+        max_lines=max_lines,
+    )
     y = layout["rules_text"].y
-    for line in wrapped:
-        rendered = rules_font.render(line, True, type_theme["primary_value"])
+    for entry in wrapped:
+        rendered = rules_font.render(entry["text"], True, _rule_line_color(type_theme, entry["tone"]))
         surface.blit(rendered, (layout["rules_text"].x, y))
         y += rules_font.get_linesize()
 
@@ -1284,6 +1311,56 @@ def _wrap_lines_clamped(lines: list[str], font: Any, width: int, *, max_lines: i
     if overflowed and wrapped:
         wrapped[-1] = _fit_text_ellipsis(f"{wrapped[-1]}...", font, width)
     return wrapped[:max_lines]
+
+
+def _wrap_rule_entries(
+    entries: list[dict[str, str]],
+    font: Any,
+    width: int,
+    *,
+    max_lines: int,
+) -> list[dict[str, str]]:
+    wrapped: list[dict[str, str]] = []
+    overflowed = False
+    for entry in entries:
+        raw_line = str(entry.get("text", ""))
+        tone = str(entry.get("tone", "base"))
+        if not raw_line:
+            continue
+        words = raw_line.split()
+        current = ""
+        for word in words:
+            candidate = word if not current else f"{current} {word}"
+            if font.size(candidate)[0] <= width:
+                current = candidate
+                continue
+            if current:
+                wrapped.append({"text": current, "tone": tone})
+                if len(wrapped) >= max_lines:
+                    overflowed = True
+                    break
+            current = word
+        if overflowed:
+            break
+        if current:
+            wrapped.append({"text": current, "tone": tone})
+            if len(wrapped) >= max_lines:
+                overflowed = True
+                break
+    if overflowed and wrapped:
+        wrapped[-1] = {
+            **wrapped[-1],
+            "text": _fit_text_ellipsis(f"{wrapped[-1]['text']}...", font, width),
+        }
+    return wrapped[:max_lines]
+
+
+def _rule_line_color(type_theme: dict[str, Any], tone: str) -> tuple[int, int, int]:
+    if tone == "corruption_active":
+        return (255, 214, 110)
+    if tone == "corruption_inactive":
+        return type_theme["footer_text"]
+    return type_theme["primary_value"]
 
 
 def _fit_text_ellipsis(text: str, font: Any, width: int) -> str:

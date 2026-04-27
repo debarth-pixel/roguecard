@@ -104,7 +104,7 @@ def _presentation_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
         "screen_shake": False,
         "high_contrast": DEFAULT_HIGH_CONTRAST,
         "master_volume": 0.8,
-        "music_volume": 0.65,
+        "music_volume": 0.5,
         "muted": True,
         "animation": {"state": "idle"},
     }

@@ -1,8 +1,9 @@
 # Enemies Master Reference
 
-Generated from `data/enemies.json`.
+Generated from `data/enemies.json`, `data/outskirts_encounters.json`, `data/final_map_encounters.json`, and `data/campaign_maps.json`.
 
 - Total enemies: **47**
+- `city_streets` currently has authored boss routes only in live data; regular combat and elite routing still point at placeholder ids from `campaign_maps.json`.
 
 ## blackwire_directorate
 
@@ -13,8 +14,13 @@ Generated from `data/enemies.json`.
 - Max HP: `64`
 - Tags: `anti_combo`, `tracker`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `trace_bite`, `ledger_sweep`, `compliance_leap`
 - Summon IDs: None
 - Special Mechanics: Marked, Suppressed, Strip Buff
+- Visual Flavor: A lean compliance hound of matte navy armor, white scanner eyes, and tracked-jaw plating built like a police dog crossed with an audit drone.
+- Placement:
+  - Blackwire Lockdown Sector `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `blackwire_security_escalation`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_security_escalation`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -22,18 +28,21 @@ Generated from `data/enemies.json`.
   - `trace_bite`: Bite for 9 and Mark 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Deal 9 damage to default.
       - Apply 1 Marked to default.
   - `ledger_sweep`: Sweep for 8 and strip one buff
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `buff_strip`
     - Effects:
       - Deal 8 damage to default.
       - Strip a removable player buff from default.
   - `compliance_leap`: Leap for 10 and Suppress 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 10 damage to default.
       - Apply 1 Suppressed to default.
@@ -45,8 +54,12 @@ Generated from `data/enemies.json`.
 - Max HP: `165`
 - Tags: `shield`, `machine`, `suppression`
 - Bark Profile: `compliance_engine_ax9`
+- Intent Pattern: `barrier_cycle`, `pacify_burst`, `deploy_node`, `null_wave`
 - Summon IDs: None
 - Special Mechanics: Suppressed, Strip Buff, Summoning, Phase change
+- Visual Flavor: A hulking corridor-pacification engine with slab shields, riot shutters, cyan warning bars, and a siege-cannon chest.
+- Placement:
+  - Blackwire Lockdown Sector boss pool: final-route boss pool for `blackwire_directorate`.
 - Phase Rules:
   - `overdrive` at <= 0.5 HP ratio -> pattern ['overdrive_cannon', 'barrier_cycle', 'null_wave', 'overdrive_cannon']
 - Death Effects: None
@@ -55,29 +68,34 @@ Generated from `data/enemies.json`.
   - `barrier_cycle`: Gain 16 Block
     - Target: `self`
     - Cooldown: `0`
+    - Bark Trigger: `shielded_phase`
     - Effects:
       - Gain 16 Block.
   - `pacify_burst`: Burst for 13 and Suppress 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `suppression`
     - Effects:
       - Deal 13 damage to default.
       - Apply 1 Suppressed to default.
   - `deploy_node`: Deploy a Sentry Node
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `deploy`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 1 `sentry_node`.
   - `null_wave`: Wave for 8 and strip one buff
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `suppression`
     - Effects:
       - Deal 8 damage to default.
       - Strip a removable player buff from default.
   - `overdrive_cannon`: Cannon for 18
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `phase_change`
     - Effects:
       - Deal 18 damage to default.
 
@@ -88,8 +106,12 @@ Generated from `data/enemies.json`.
 - Max HP: `145`
 - Tags: `suppression`, `commander`, `drone`
 - Bark Profile: `director_vale`
+- Intent Pattern: `tracked`, `revoke`, `deploy_kill_asset`, `lockdown`
 - Summon IDs: None
 - Special Mechanics: Marked, Suppressed, Strip Buff, Summoning, Phase change
+- Visual Flavor: A severe executive commander in tailored black tactical wear, a white data visor, and control drones orbiting like bodyguards.
+- Placement:
+  - Blackwire Lockdown Sector boss pool: final-route boss pool for `blackwire_directorate`.
 - Phase Rules:
   - `kill_authority` at <= 0.5 HP ratio -> pattern ['kill_authority', 'tracked', 'deploy_kill_asset', 'kill_authority']
 - Death Effects: None
@@ -98,29 +120,34 @@ Generated from `data/enemies.json`.
   - `tracked`: Apply 2 Marked
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Apply 2 Marked to default.
   - `revoke`: Revoke for 9 and strip one buff
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `buff_strip`
     - Effects:
       - Deal 9 damage to default.
       - Strip a removable player buff from default.
   - `deploy_kill_asset`: Deploy a Patrol Drone
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 1 `patrol_drone`.
   - `lockdown`: Lockdown for 12 and Suppress 2
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 12 damage to default.
       - Apply 2 Suppressed to default.
   - `kill_authority`: Authority fire for 16
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `phase_change`
     - Effects:
       - Deal 16 damage to default.
       - Strip a removable player buff from default.
@@ -132,8 +159,16 @@ Generated from `data/enemies.json`.
 - Max HP: `34`
 - Tags: `buff_strip`, `suppress`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `null_strike`, `pressure_hit`, `null_strike`
 - Summon IDs: None
 - Special Mechanics: Suppressed, Strip Buff
+- Visual Flavor: A cold security officer with a collapsible null baton, crisp visor stripe, and a compact suppression harness.
+- Placement:
+  - Blackwire Lockdown Sector `combat` `easy`: floors 1-5 (weight 1) via `blackwire_compliance_sweep`.
+  - Blackwire Lockdown Sector `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `blackwire_controlled_response`.
+  - Blackwire Lockdown Sector `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `blackwire_sanction_team`.
+  - Blackwire Lockdown Sector `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `blackwire_controlled_response`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_lockdown_wing`, `blackwire_sanction_team`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -141,12 +176,14 @@ Generated from `data/enemies.json`.
   - `null_strike`: Strike for 6 and strip one buff
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `buff_strip`
     - Effects:
       - Deal 6 damage to default.
       - Strip a removable player buff from default.
   - `pressure_hit`: Hit for 7 and Suppress 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 7 damage to default.
       - Apply 1 Suppressed to default.
@@ -158,8 +195,17 @@ Generated from `data/enemies.json`.
 - Max HP: `22`
 - Tags: `mark`, `summon`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `tag_ping`, `pulse`
 - Summon IDs: None
 - Special Mechanics: Marked
+- Visual Flavor: A hovering patrol drone with a camera eye, a cyan tracking cone, and a clipped utility chassis built for checkpoint work.
+- Placement:
+  - Blackwire Lockdown Sector `combat` `easy`: floors 1-5 (weight 1) via `blackwire_compliance_sweep`, `blackwire_corridor_patrol`.
+  - Blackwire Lockdown Sector `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `blackwire_overwatch_cell`.
+  - Blackwire Lockdown Sector `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `blackwire_security_escalation`.
+  - Blackwire Lockdown Sector `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `blackwire_drone_nest`, `blackwire_overwatch_cell`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_lockdown_wing`, `blackwire_security_escalation`.
+  - Live summoners: Director Vale (`director_vale`).
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -167,12 +213,14 @@ Generated from `data/enemies.json`.
   - `tag_ping`: Ping for 3 and Mark 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Deal 3 damage to default.
       - Apply 1 Marked to default.
   - `pulse`: Pulse for 4
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 4 damage to default.
 
@@ -183,8 +231,16 @@ Generated from `data/enemies.json`.
 - Max HP: `46`
 - Tags: `shield`, `guard`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `shield_wall`, `bash`, `shield_wall`
 - Summon IDs: None
 - Special Mechanics: Suppressed
+- Visual Flavor: A broad armored guard behind a rectangular riot shield with heavy boots, cyan compliance lights, and a blunt baton silhouette.
+- Placement:
+  - Blackwire Lockdown Sector `combat` `easy`: floors 1-5 (weight 1) via `blackwire_basic_checkpoint`, `blackwire_corridor_patrol`.
+  - Blackwire Lockdown Sector `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `blackwire_controlled_response`, `blackwire_overwatch_cell`.
+  - Blackwire Lockdown Sector `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `blackwire_sanction_team`.
+  - Blackwire Lockdown Sector `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `blackwire_controlled_response`, `blackwire_overwatch_cell`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_lockdown_wing`, `blackwire_sanction_team`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -197,6 +253,7 @@ Generated from `data/enemies.json`.
   - `bash`: Bash for 7 and Suppress 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 7 damage to default.
       - Apply 1 Suppressed to default.
@@ -208,8 +265,13 @@ Generated from `data/enemies.json`.
 - Max HP: `12`
 - Tags: `summon`, `fortified`, `machine`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `laser_ping`, `field_screen`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A squat deployable turret-node with folding legs, a dish eye, and fortified shutter plating around a compact gun core.
+- Placement:
+  - Summon-only in current authored data; not placed directly in encounter pools.
+  - Live summoners: Compliance Engine AX-9 (`compliance_engine_ax9`), Turret Handler (`turret_handler`).
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -217,6 +279,7 @@ Generated from `data/enemies.json`.
   - `laser_ping`: Ping for 4
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 4 damage to default.
   - `field_screen`: Grant 5 Block
@@ -232,8 +295,16 @@ Generated from `data/enemies.json`.
 - Max HP: `28`
 - Tags: `mark`, `amplify`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `tracking_lock`, `signal_burst`, `suppress_route`
 - Summon IDs: None
 - Special Mechanics: Marked, Suppressed
+- Visual Flavor: A thin control specialist framed by floating reticles, signal bars, and mark-projection screens instead of brute armor.
+- Placement:
+  - Blackwire Lockdown Sector `combat` `easy`: floors 1-5 (weight 1) via `blackwire_corridor_patrol`.
+  - Blackwire Lockdown Sector `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `blackwire_controlled_response`.
+  - Blackwire Lockdown Sector `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `blackwire_security_escalation`.
+  - Blackwire Lockdown Sector `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `blackwire_controlled_response`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_security_escalation`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -241,17 +312,20 @@ Generated from `data/enemies.json`.
   - `tracking_lock`: Apply 2 Marked
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Apply 2 Marked to default.
   - `signal_burst`: Burst for 4 and Mark 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Deal 4 damage to default.
       - Apply 1 Marked to default.
   - `suppress_route`: Apply Suppressed 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Apply 1 Suppressed to default.
 
@@ -262,8 +336,15 @@ Generated from `data/enemies.json`.
 - Max HP: `38`
 - Tags: `telegraph`, `burst`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `aim`, `execution_round`, `tag_shot`
 - Summon IDs: None
 - Special Mechanics: Marked
+- Visual Flavor: A long-barreled suppression marksman with a rigid firing frame, pale targeting beam, and a severe anti-personnel silhouette.
+- Placement:
+  - Blackwire Lockdown Sector `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `blackwire_overwatch_cell`.
+  - Blackwire Lockdown Sector `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `blackwire_sanction_team`.
+  - Blackwire Lockdown Sector `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `blackwire_overwatch_cell`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_sanction_team`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -276,12 +357,14 @@ Generated from `data/enemies.json`.
   - `execution_round`: Fire for 16
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Conditions: `{"player_status_at_least": {"status": "marked", "value": 1}}`
     - Effects:
       - Deal 16 damage to default.
   - `tag_shot`: Shot for 9 and Mark 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `mark`
     - Effects:
       - Deal 9 damage to default.
       - Apply 1 Marked to default.
@@ -293,8 +376,13 @@ Generated from `data/enemies.json`.
 - Max HP: `33`
 - Tags: `summon`, `turret`
 - Bark Profile: `blackwire_directorate`
+- Intent Pattern: `deploy_drone`, `service_pistol`, `reinforce`
 - Summon IDs: None
 - Special Mechanics: Summoning
+- Visual Flavor: A support tech dragging a portable turret cradle, cable spools, and folding mount hardware through a lockstep corridor.
+- Placement:
+  - Blackwire Lockdown Sector `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `blackwire_drone_nest`.
+  - Blackwire Lockdown Sector `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `blackwire_lockdown_wing`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -302,12 +390,14 @@ Generated from `data/enemies.json`.
   - `deploy_drone`: Deploy a Sentry Node
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `deploy`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 1 `sentry_node`.
   - `service_pistol`: Fire for 5
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 5 damage to default.
   - `reinforce`: Gain 7 Block
@@ -325,8 +415,12 @@ Generated from `data/enemies.json`.
 - Max HP: `146`
 - Tags: `momentum`, `war_chief`, `summon`
 - Bark Profile: `ashfang_rook`
+- Intent Pattern: `pack_in`, `blood_hot`, `cleaver_rush`, `crowd_surge`
 - Summon IDs: None
 - Special Mechanics: Strength gain, Summoning, Phase change
+- Visual Flavor: A scarred war-chief in layered road leathers, ember cape strips, and a hooked command weapon raised over a roaring pack.
+- Placement:
+  - Cinder Jackals Edgeworks boss pool: final-route boss pool for `cinder_jackals`.
 - Phase Rules:
   - `all_out` at <= 0.45 HP ratio -> pattern ['all_out', 'pack_in', 'all_out', 'blood_hot']
 - Death Effects: None
@@ -335,29 +429,34 @@ Generated from `data/enemies.json`.
   - `pack_in`: Call two Scavvers
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 2 `scavver`.
   - `blood_hot`: Hit for 10 and gain 1 Strength
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 10 damage to default.
       - Gain 1 Strength.
   - `cleaver_rush`: Rush for 12
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 12 damage to default.
   - `crowd_surge`: Surge for 14
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `summon`
     - Conditions: `{"any_other_ally_present": true}`
     - Effects:
       - Deal 14 damage to default.
   - `all_out`: All-out strike for 18
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `phase_change`
     - Effects:
       - Deal 18 damage to default.
 
@@ -368,8 +467,14 @@ Generated from `data/enemies.json`.
 - Max HP: `22`
 - Tags: `burn`, `volatile`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `ember_jar`, `detonate`
 - Summon IDs: None
 - Special Mechanics: Burn
+- Visual Flavor: A scavenger bomber with a fuel-canister backpack, torch nozzle, and a soot-black mask lit by furnace orange.
+- Placement:
+  - Cinder Jackals Edgeworks `combat` `easy`: floors 1-5 (weight 1) via `cinder_roadside_fire`.
+  - Cinder Jackals Edgeworks `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `cinder_burn_convoy`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_burn_convoy`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -377,12 +482,14 @@ Generated from `data/enemies.json`.
   - `ember_jar`: Jar for 5 and Burn 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `burn`
     - Effects:
       - Deal 5 damage to default.
       - Apply 1 Burn to default.
   - `detonate`: Detonate for 8 and Burn 2
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `burn`
     - Effects:
       - Deal 8 damage to default.
       - Apply 2 Burn to default.
@@ -394,8 +501,13 @@ Generated from `data/enemies.json`.
 - Max HP: `10`
 - Tags: `summon`, `burn`, `volatile`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `spark_bite`, `flash_pop`
 - Summon IDs: None
 - Special Mechanics: Burn, Self-destruct
+- Visual Flavor: A tiny volatile scrap-creature glowing from within with ember seams, hot vents, and a skittering bomb-like silhouette.
+- Placement:
+  - Summon-only in current authored data; not placed directly in encounter pools.
+  - Live summoners: Furnace Hound (`furnace_hound`).
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -403,12 +515,14 @@ Generated from `data/enemies.json`.
   - `spark_bite`: Bite for 4 and Burn 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `burn`
     - Effects:
       - Deal 4 damage to default.
       - Apply 1 Burn to default.
   - `flash_pop`: Flash for 5
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `burn`
     - Effects:
       - Deal 5 damage to default.
       - Self-destruct.
@@ -420,8 +534,15 @@ Generated from `data/enemies.json`.
 - Max HP: `56`
 - Tags: `heavy`, `momentum`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `wind_up`, `crush`, `rush_crush`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A massive bruiser swinging chain-wrapped metal with a slab frame, weld scars, and momentum-driven posture.
+- Placement:
+  - Cinder Jackals Edgeworks `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `cinder_rush_line`.
+  - Cinder Jackals Edgeworks `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `cinder_stampede_crew`.
+  - Cinder Jackals Edgeworks `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `cinder_rush_line`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_jackal_killbox`, `cinder_stampede_crew`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -434,11 +555,13 @@ Generated from `data/enemies.json`.
   - `crush`: Crush for 12
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 12 damage to default.
   - `rush_crush`: Rush crush for 15
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Conditions: `{"any_other_ally_present": true}`
     - Effects:
       - Deal 15 damage to default.
@@ -450,8 +573,15 @@ Generated from `data/enemies.json`.
 - Max HP: `24`
 - Tags: `fast`, `bleed`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `flurry`, `hook_cut`, `flurry`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A fast desert cutthroat with paired blades, wrapped face cloth, and a low forward-leaning silhouette built for quick blood.
+- Placement:
+  - Cinder Jackals Edgeworks `combat` `easy`: floors 1-5 (weight 1) via `cinder_knife_pack`.
+  - Cinder Jackals Edgeworks `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `cinder_rush_line`.
+  - Cinder Jackals Edgeworks `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `cinder_rush_line`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_jackal_killbox`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -459,11 +589,13 @@ Generated from `data/enemies.json`.
   - `flurry`: Cut twice for 3
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 3 damage to default 2 times.
   - `hook_cut`: Hook cut for 7
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 7 damage to default.
 
@@ -474,8 +606,12 @@ Generated from `data/enemies.json`.
 - Max HP: `170`
 - Tags: `siege`, `machine`, `burn`
 - Bark Profile: `furnace_hound`
+- Intent Pattern: `loose_mites`, `artillery_prep`, `incinerate`, `ram`
 - Summon IDs: None
 - Special Mechanics: Burn, Strength gain, Summoning, Phase change
+- Visual Flavor: A tracked scrap war-beast with a furnace maw, smokestack spine, and glowing heat vents like an industrial predator.
+- Placement:
+  - Cinder Jackals Edgeworks boss pool: final-route boss pool for `cinder_jackals`.
 - Phase Rules:
   - `overheat` at <= 0.5 HP ratio -> pattern ['overheat_ram', 'loose_mites', 'incinerate', 'overheat_ram']
 - Death Effects: None
@@ -484,29 +620,34 @@ Generated from `data/enemies.json`.
   - `loose_mites`: Loose two Burner Mites
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 2 `burner_mite`.
   - `artillery_prep`: Gain 10 Block and 1 Strength
     - Target: `self`
     - Cooldown: `0`
+    - Bark Trigger: `charge`
     - Effects:
       - Gain 10 Block.
       - Gain 1 Strength.
   - `incinerate`: Incinerate for 10 and Burn 2
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `burn`
     - Effects:
       - Deal 10 damage to default.
       - Apply 2 Burn to default.
   - `ram`: Ram for 15
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 15 damage to default.
   - `overheat_ram`: Overheat ram for 19
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `phase_change`
     - Effects:
       - Deal 19 damage to default.
 
@@ -517,8 +658,15 @@ Generated from `data/enemies.json`.
 - Max HP: `28`
 - Tags: `pack`, `fast`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `bite`, `feast`, `bite`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A rangy scrapland beast with plated ribs, oil-stained fur, and a pack-hunter grin stretched over mean teeth.
+- Placement:
+  - Cinder Jackals Edgeworks `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `cinder_pack_leader`.
+  - Cinder Jackals Edgeworks `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `cinder_burn_convoy`.
+  - Cinder Jackals Edgeworks `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `cinder_dust_ambush`, `cinder_pack_leader`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_burn_convoy`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -526,11 +674,13 @@ Generated from `data/enemies.json`.
   - `bite`: Bite for 6
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 6 damage to default.
   - `feast`: Feast for 9
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Conditions: `{"player_hp_below_ratio": 0.5}`
     - Effects:
       - Deal 9 damage to default.
@@ -542,8 +692,17 @@ Generated from `data/enemies.json`.
 - Max HP: `18`
 - Tags: `swarm`, `momentum`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `slash`, `mob_rush`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A thin scavenger ganger in patched scrap armor, quick limbs, and looted gear hanging from every strap.
+- Placement:
+  - Cinder Jackals Edgeworks `combat` `easy`: floors 1-5 (weight 1) via `cinder_canyon_trash`, `cinder_knife_pack`, `cinder_roadside_fire`.
+  - Cinder Jackals Edgeworks `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `cinder_pack_leader`.
+  - Cinder Jackals Edgeworks `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `cinder_burn_convoy`, `cinder_stampede_crew`.
+  - Cinder Jackals Edgeworks `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `cinder_dust_ambush`, `cinder_pack_leader`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_burn_convoy`, `cinder_stampede_crew`.
+  - Live summoners: Ashfang Rook (`ashfang_rook`), Scrap Caller (`scrap_caller`).
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -551,11 +710,13 @@ Generated from `data/enemies.json`.
   - `slash`: Slash for 4
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 4 damage to default.
   - `mob_rush`: Rush for 6
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `summon`
     - Conditions: `{"any_other_ally_present": true}`
     - Effects:
       - Deal 6 damage to default.
@@ -567,8 +728,15 @@ Generated from `data/enemies.json`.
 - Max HP: `30`
 - Tags: `pack`, `spawn`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `call_scavver`, `pack_jab`, `whip_up`
 - Summon IDs: None
 - Special Mechanics: Strength gain, Summoning
+- Visual Flavor: A raider summoner beating a scrap totem or horn rig, with dangling chains and pack-signaling smoke around them.
+- Placement:
+  - Cinder Jackals Edgeworks `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `cinder_pack_leader`.
+  - Cinder Jackals Edgeworks `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `cinder_stampede_crew`.
+  - Cinder Jackals Edgeworks `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `cinder_pack_leader`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_stampede_crew`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -576,12 +744,14 @@ Generated from `data/enemies.json`.
   - `call_scavver`: Call a Scavver
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 1 `scavver`.
   - `pack_jab`: Jab for 5
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 5 damage to default.
   - `whip_up`: Gain 1 Strength
@@ -597,8 +767,13 @@ Generated from `data/enemies.json`.
 - Max HP: `52`
 - Tags: `ranged`, `swingy`
 - Bark Profile: `cinder_jackals`
+- Intent Pattern: `snap_fire`, `wild_burst`, `cover_flame`
 - Summon IDs: None
 - Special Mechanics: Burn
+- Visual Flavor: A swaggering gunner braced behind a brutal homemade firearm, ammo belts, and dust-blown goggles.
+- Placement:
+  - Cinder Jackals Edgeworks `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `cinder_dust_ambush`.
+  - Cinder Jackals Edgeworks `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `cinder_jackal_killbox`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -606,17 +781,20 @@ Generated from `data/enemies.json`.
   - `snap_fire`: Fire for 11
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 11 damage to default.
   - `wild_burst`: Burst for 14
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Conditions: `{"any_other_ally_present": true}`
     - Effects:
       - Deal 14 damage to default.
   - `cover_flame`: Fire for 7 and Burn 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `burn`
     - Effects:
       - Deal 7 damage to default.
       - Apply 1 Burn to default.
@@ -630,8 +808,12 @@ Generated from `data/enemies.json`.
 - Max HP: `150`
 - Tags: `general`, `machine`, `defense`
 - Bark Profile: `junction_9_sentinel`
+- Intent Pattern: `defense_mode`, `heavy_charge`, `scan_burst`
 - Summon IDs: None
 - Special Mechanics: Marked
+- Visual Flavor: An old civic-defense automaton of white-gray armor plates, signal pylons, and sealed municipal authority geometry.
+- Placement:
+  - City Streets boss pool: city-streets boss route for `blackwire_directorate`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -644,6 +826,7 @@ Generated from `data/enemies.json`.
   - `heavy_charge`: Charge for 16
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `heavy_prep`
     - Effects:
       - Deal 16 damage to default.
   - `scan_burst`: Burst for 8 and Mark 1
@@ -660,8 +843,12 @@ Generated from `data/enemies.json`.
 - Max HP: `160`
 - Tags: `general`, `adaptive`, `guardian`
 - Bark Profile: `spine_warden_null`
+- Intent Pattern: `pattern_lock`, `veto_wave`, `null_barrage`
 - Summon IDs: None
 - Special Mechanics: Suppressed
+- Visual Flavor: A severe adaptive guardian in pale machine armor with blank null-glyph panels and a saintlike control halo.
+- Placement:
+  - City Streets boss pool: city-streets boss route for `helix_ward`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -674,12 +861,14 @@ Generated from `data/enemies.json`.
   - `veto_wave`: Wave for 10 and Suppress 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `phase_change`
     - Effects:
       - Deal 10 damage to default.
       - Apply 1 Suppressed to default.
   - `null_barrage`: Barrage for 15
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 15 damage to default.
 
@@ -690,8 +879,12 @@ Generated from `data/enemies.json`.
 - Max HP: `132`
 - Tags: `general`, `tax`, `disruption`
 - Bark Profile: `toll_reeve`
+- Intent Pattern: `gate_tax`, `muscle_wall`, `resource_cut`
 - Summon IDs: None
 - Special Mechanics: Suppressed, Strip Buff
+- Visual Flavor: A route-lord in tollkeeper regalia with an armored cloak, tax sigils, and a weaponized checkpoint silhouette.
+- Placement:
+  - City Streets boss pool: city-streets boss route for `cinder_jackals`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -699,6 +892,7 @@ Generated from `data/enemies.json`.
   - `gate_tax`: Tax hit for 10 and strip one buff
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `resource_tax`
     - Effects:
       - Deal 10 damage to default.
       - Strip a removable player buff from default.
@@ -710,6 +904,7 @@ Generated from `data/enemies.json`.
   - `resource_cut`: Hit for 9 and Suppress 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `resource_tax`
     - Effects:
       - Deal 9 damage to default.
       - Apply 1 Suppressed to default.
@@ -723,8 +918,15 @@ Generated from `data/enemies.json`.
 - Max HP: `34`
 - Tags: `spawn`, `harvest`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `brood_release`, `sludge_whip`, `brood_release`, `siphon`
 - Summon IDs: None
 - Special Mechanics: Infection, Strength gain, Summoning, Ally-death passive
+- Visual Flavor: A biotech handler with culture tanks, hanging specimen bags, and hooked tools guiding living fodder.
+- Placement:
+  - Helix Ward Depths `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `helix_culture_line`.
+  - Helix Ward Depths `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `helix_live_harvest`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_culture_line`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_live_harvest`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects:
@@ -734,12 +936,14 @@ Generated from `data/enemies.json`.
   - `brood_release`: Summon a Sludge Whelp
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 1 `sludge_whelp`.
   - `sludge_whip`: Whip for 5 and Infect 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `infect`
     - Effects:
       - Deal 5 damage to default.
       - Apply 1 Infection to default.
@@ -756,8 +960,14 @@ Generated from `data/enemies.json`.
 - Max HP: `68`
 - Tags: `mutate`, `horror`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `hushed_advance`, `graft_maul`, `spill_residue`
 - Summon IDs: None
 - Special Mechanics: Strength gain, Summoning, Phase change, Ally-death passive
+- Visual Flavor: A warped devotional experiment draped in ragged medical vestments, grafted limbs, and wet pale biolight.
+- Placement:
+  - Helix Ward Depths `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `helix_growth_pit`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_failed_trial`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_growth_pit`, `helix_rot_choir`.
 - Phase Rules:
   - `awakened` at <= 0.5 HP ratio -> pattern ['mutant_bloom', 'graft_maul', 'spill_residue', 'mutant_bloom']
 - Death Effects: None
@@ -772,17 +982,20 @@ Generated from `data/enemies.json`.
   - `graft_maul`: Maul for 12
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 12 damage to default.
   - `spill_residue`: Summon a Sludge Whelp
     - Target: `self`
     - Cooldown: `2`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 1 `sludge_whelp`.
   - `mutant_bloom`: Bloom for 10 and heal 10
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `heal`
     - Effects:
       - Deal 10 damage to default.
       - Heal self for 10 HP.
@@ -795,8 +1008,15 @@ Generated from `data/enemies.json`.
 - Max HP: `54`
 - Tags: `frontline`, `mutate`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `toxin_crash`, `brace_tissue`
 - Summon IDs: None
 - Special Mechanics: Infection, Strength gain, Phase change
+- Visual Flavor: A swollen muscle horror with serum sacs, graft lines, and a frontal battering-ram silhouette.
+- Placement:
+  - Helix Ward Depths `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `helix_injection_crew`.
+  - Helix Ward Depths `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `helix_growth_pit`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_injection_crew`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_growth_pit`.
 - Phase Rules:
   - `mutated` at <= 0.5 HP ratio -> pattern ['mutant_rend', 'mutant_guard', 'mutant_rend']
 - Death Effects: None
@@ -805,6 +1025,7 @@ Generated from `data/enemies.json`.
   - `toxin_crash`: Crash for 11 and Infect 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 11 damage to default.
       - Apply 1 Infection to default.
@@ -816,6 +1037,7 @@ Generated from `data/enemies.json`.
   - `mutant_rend`: Mutant Rend for 14 and Infect 2
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `infect`
     - Effects:
       - Deal 14 damage to default.
       - Apply 2 Infection to default.
@@ -833,8 +1055,15 @@ Generated from `data/enemies.json`.
 - Max HP: `42`
 - Tags: `siphon`, `cleanse`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `transfusion`, `siphon`, `purge_serum`, `siphon`
 - Summon IDs: None
 - Special Mechanics: Cleanse
+- Visual Flavor: A clinical siphon-attendant with drain lines, bone-white apron panels, and predatory bedside calm.
+- Placement:
+  - Helix Ward Depths `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `helix_injection_crew`.
+  - Helix Ward Depths `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `helix_live_harvest`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_injection_crew`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_live_harvest`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -848,6 +1077,7 @@ Generated from `data/enemies.json`.
   - `siphon`: Drain for 6 and heal 4
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 6 damage to default.
       - Heal self for 4 HP.
@@ -865,8 +1095,12 @@ Generated from `data/enemies.json`.
 - Max HP: `140`
 - Tags: `summoner`, `mutate`, `harvest`
 - Bark Profile: `miremother_vexa`
+- Intent Pattern: `field_trial`, `serum_lance`, `culture_harvest`, `rupture_command`
 - Summon IDs: None
 - Special Mechanics: Infection, Strength gain, Summoning, Phase change, Ally-death passive
+- Visual Flavor: A regal Helix overseer grown into a mire-throne of vats, tendrils, and living biomass attendants.
+- Placement:
+  - Helix Ward Depths boss pool: final-route boss pool for `helix_ward`.
 - Phase Rules:
   - `unstable_design` at <= 0.45 HP ratio -> pattern ['stress_bloom', 'field_trial', 'culture_harvest', 'stress_bloom']
 - Death Effects: None
@@ -877,12 +1111,14 @@ Generated from `data/enemies.json`.
   - `field_trial`: Summon two Sludge Whelps
     - Target: `self`
     - Cooldown: `1`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Summon 2 `sludge_whelp`.
   - `serum_lance`: Lance for 10 and Infect 2
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 10 damage to default.
       - Apply 2 Infection to default.
@@ -896,6 +1132,7 @@ Generated from `data/enemies.json`.
   - `rupture_command`: Rupture for 8 and summon one Whelp
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `summon`
     - Conditions: `{"living_enemies_below": 5}`
     - Effects:
       - Deal 8 damage to default.
@@ -903,6 +1140,7 @@ Generated from `data/enemies.json`.
   - `stress_bloom`: Bloom for 14 and Infect 2
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 14 damage to default.
       - Apply 2 Infection to default.
@@ -915,8 +1153,15 @@ Generated from `data/enemies.json`.
 - Max HP: `24`
 - Tags: `fast`, `infect`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `slice`, `infected_lunge`, `slice`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A thin rushdown surgeon with blade limbs, specimen belts, and a fast incision-first posture.
+- Placement:
+  - Helix Ward Depths `combat` `easy`: floors 1-5 (weight 1) via `helix_cut_team`.
+  - Helix Ward Depths `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `helix_culture_line`, `helix_injection_crew`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_culture_line`, `helix_injection_crew`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_rot_choir`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -924,11 +1169,13 @@ Generated from `data/enemies.json`.
   - `slice`: Slice twice for 3
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 3 damage to default 2 times.
   - `infected_lunge`: Lunge for 7
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Conditions: `{"player_status_at_least": {"status": "infect", "value": 1}}`
     - Effects:
       - Deal 7 damage to default.
@@ -940,8 +1187,14 @@ Generated from `data/enemies.json`.
 - Max HP: `30`
 - Tags: `heal`, `buff`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `stabilize`, `tox_shot`, `catalyze`
 - Summon IDs: None
 - Special Mechanics: Infection, Strength gain
+- Visual Flavor: A devoted lab adept carrying serum injectors, clean masks, and glowing recovery fluids like sacred implements.
+- Placement:
+  - Helix Ward Depths `combat` `easy`: floors 1-5 (weight 1) via `helix_cut_team`, `helix_lab_spill`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_failed_trial`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_rot_choir`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -955,6 +1208,7 @@ Generated from `data/enemies.json`.
   - `tox_shot`: Sting for 4 and Infect 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `infect`
     - Effects:
       - Deal 4 damage to default.
       - Apply 1 Infection to default.
@@ -971,8 +1225,17 @@ Generated from `data/enemies.json`.
 - Max HP: `18`
 - Tags: `summon`, `toxic`
 - Bark Profile: `helix_ward`
+- Intent Pattern: `nibble`, `seep`
 - Summon IDs: None
 - Special Mechanics: Infection, Death effect
+- Visual Flavor: A low, wet toxic whelp of stitched flesh and chemical slime with a snapping maw and sickly green seepage.
+- Placement:
+  - Helix Ward Depths `combat` `easy`: floors 1-5 (weight 1) via `helix_lab_spill`, `helix_waste_feeders`.
+  - Helix Ward Depths `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 0.55) via `helix_culture_line`.
+  - Helix Ward Depths `combat` `hard`: floors 6-10 (weight 0.45), floors 11-15 (weight 1) via `helix_live_harvest`.
+  - Helix Ward Depths `elite` `medium`: floors 1-7 (weight 1), floors 8-15 (weight 0.25) via `helix_culture_line`.
+  - Helix Ward Depths `elite` `hard`: floors 1-7 (weight 0.45), floors 8-15 (weight 1) via `helix_live_harvest`, `helix_rot_choir`.
+  - Live summoners: Culture Shepherd (`culture_shepherd`), Failed Saint (`failed_saint`), Miremother Vexa (`miremother_vexa`).
 - Phase Rules: None
 - Death Effects:
   - Apply 1 Infection to player.
@@ -981,11 +1244,13 @@ Generated from `data/enemies.json`.
   - `nibble`: Nibble for 4
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 4 damage to default.
   - `seep`: Seep for 2 and Infect 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `infect`
     - Effects:
       - Deal 2 damage to default.
       - Apply 1 Infection to default.
@@ -997,8 +1262,12 @@ Generated from `data/enemies.json`.
 - Max HP: `155`
 - Tags: `regenerate`, `horror`, `mutate`
 - Bark Profile: `graft_saint`
+- Intent Pattern: `graft_wall`, `devotional_crush`, `sealing_flesh`, `toxic_spasm`
 - Summon IDs: None
 - Special Mechanics: Burn, Strength gain, Phase change
+- Visual Flavor: A towering martyr-horror stitched from sacred biotech, bone-white plating, and self-regenerating organ bloom.
+- Placement:
+  - Helix Ward Depths boss pool: final-route boss pool for `helix_ward`.
 - Phase Rules:
   - `martyr_form` at <= 0.5 HP ratio -> pattern ['violent_surge', 'devotional_crush', 'sealing_flesh', 'toxic_spasm']
 - Death Effects: None
@@ -1012,23 +1281,27 @@ Generated from `data/enemies.json`.
   - `devotional_crush`: Crush for 14
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `attack`
     - Effects:
       - Deal 14 damage to default.
   - `sealing_flesh`: Regenerate 12
     - Target: `self`
     - Cooldown: `2`
+    - Bark Trigger: `heal`
     - Conditions: `{"self_hp_below_ratio": 0.9}`
     - Effects:
       - Heal default for 12 HP.
   - `toxic_spasm`: Spasm for 9 and Burn 1
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `infect`
     - Effects:
       - Deal 9 damage to default.
       - Apply 1 Burn to default.
   - `violent_surge`: Surge for 18
     - Target: `player`
     - Cooldown: `0`
+    - Bark Trigger: `phase_change`
     - Effects:
       - Deal 18 damage to default.
       - Gain 1 Strength.
@@ -1042,8 +1315,12 @@ Generated from `data/enemies.json`.
 - Max HP: `65`
 - Tags: `legacy`
 - Bark Profile: None
+- Intent Pattern: `press`, `press`, `brace`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A generic corp enforcer in plain tactical armor with a baton-or-sidearm stance, intentionally placeholder-grade beside the authored Blackwire roster.
+- Placement:
+  - Placeholder / unplaced current-state use: Outskirts `elite` placeholder slot, City Streets `elite` placeholder slot, Helix Ward Depths `elite` placeholder slot, Blackwire Lockdown Sector `elite` placeholder slot, Cinder Jackals Edgeworks `elite` placeholder slot; not part of authored live encounter pools.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1066,8 +1343,12 @@ Generated from `data/enemies.json`.
 - Max HP: `110`
 - Tags: `legacy`
 - Bark Profile: None
+- Intent Pattern: `smash`, `brace`, `crush`, `smash`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A broad generic boss figure in heavy urban armor and a command coat, built as a placeholder apex human silhouette.
+- Placement:
+  - Placeholder / unplaced current-state use: Outskirts `boss` placeholder slot, City Streets `boss` placeholder slot, Helix Ward Depths `boss` placeholder slot, Blackwire Lockdown Sector `boss` placeholder slot, Cinder Jackals Edgeworks `boss` placeholder slot; not part of authored live encounter pools.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1095,8 +1376,12 @@ Generated from `data/enemies.json`.
 - Max HP: `40`
 - Tags: `legacy`
 - Bark Profile: None
+- Intent Pattern: `jab`, `brace`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A generic street thug in cheap leathers and a pipe-weapon stance, intentionally simple as placeholder enemy art.
+- Placement:
+  - Placeholder / unplaced current-state use: Outskirts `combat` placeholder slot, City Streets `combat` placeholder slot, Helix Ward Depths `combat` placeholder slot, Blackwire Lockdown Sector `combat` placeholder slot, Cinder Jackals Edgeworks `combat` placeholder slot; not part of authored live encounter pools.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1121,8 +1406,12 @@ Generated from `data/enemies.json`.
 - Max HP: `50`
 - Tags: `bleed`, `hunter`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `chain_hook`, `maul`, `blood_scent`
 - Summon IDs: None
 - Special Mechanics: Bleed
+- Visual Flavor: A brutal caravan raider in dust cloaks and scavenged plates, carrying a heavy hooked weapon for close kills.
+- Placement:
+  - Outskirts `elite` `elite`: floors 1-15 (weight 1) via `outskirts_reaver_ticker`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1152,8 +1441,14 @@ Generated from `data/enemies.json`.
 - Max HP: `26`
 - Tags: `pack`, `bleed`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `bite`, `hamstring`
 - Summon IDs: None
 - Special Mechanics: Bleed
+- Visual Flavor: A desert scavenger hound with bone ornaments, a torn harness, and blood-tracking jaws.
+- Placement:
+  - Outskirts `combat` `easy`: floors 1-5 (weight 1), floors 6-10 (weight 0.55), floors 11-15 (weight 0.25) via `outskirts_dune_raider_hound`.
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_raider_saboteur_pack`.
+  - Live summoners: Sandpack Alpha (`sandpack_alpha`).
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1177,8 +1472,14 @@ Generated from `data/enemies.json`.
 - Max HP: `24`
 - Tags: `fast`, `weak`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `shiv`, `sand_throw`
 - Summon IDs: None
 - Special Mechanics: Weak
+- Visual Flavor: A lean dune fighter in sun-bleached wraps and scavenged gear, sprinting with knife-forward aggression.
+- Placement:
+  - Outskirts `combat` `easy`: floors 1-5 (weight 1), floors 6-10 (weight 0.55), floors 11-15 (weight 0.25) via `outskirts_dune_raider_hound`.
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_raider_saboteur_pack`.
+  - Outskirts `elite` `elite`: floors 1-15 (weight 1) via `outskirts_junker_raider`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1202,8 +1503,12 @@ Generated from `data/enemies.json`.
 - Max HP: `28`
 - Tags: `clog`, `scavenger`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `scrap_dump`, `cut_wire`, `duck_cover`
 - Summon IDs: None
 - Special Mechanics: Status-card injection
+- Visual Flavor: A wiry saboteur with satchels, clog bombs, and dust-stained patchwork equipment.
+- Placement:
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_dust_vulture`, `outskirts_raider_saboteur_pack`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1232,8 +1537,13 @@ Generated from `data/enemies.json`.
 - Max HP: `22`
 - Tags: `burn`, `volatile`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `cinder_spit`, `flare_hide`, `fire_up`
 - Summon IDs: None
 - Special Mechanics: Burn, Strength gain
+- Visual Flavor: A pig-snouted explosive brute with furnace nostrils, cinder hide, and a hot-breath silhouette built for short violent bursts.
+- Placement:
+  - Outskirts `combat` `easy`: floors 1-5 (weight 1), floors 6-10 (weight 0.55), floors 11-15 (weight 0.25) via `outskirts_embersnout_ticker`.
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_salvage_scrap_fire`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1262,8 +1572,12 @@ Generated from `data/enemies.json`.
 - Max HP: `23`
 - Tags: `mark`, `burst`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `sightline`, `dive_fire`, `peck`
 - Summon IDs: None
 - Special Mechanics: Marked
+- Visual Flavor: A scavenger vulture hybrid with antenna wings, mark optics, and a high perched firing pose.
+- Placement:
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_dust_vulture`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1292,8 +1606,14 @@ Generated from `data/enemies.json`.
 - Max HP: `36`
 - Tags: `guard`, `plated`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `brace_plate`, `ram`
 - Summon IDs: None
 - Special Mechanics: None
+- Visual Flavor: A blocky frontline scavenger wrapped in welded scrap plates and a door-sized salvage shield.
+- Placement:
+  - Outskirts `combat` `easy`: floors 1-5 (weight 1), floors 6-10 (weight 0.55), floors 11-15 (weight 0.25) via `outskirts_leech_bulwark`.
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_salvage_scrap_fire`.
+  - Outskirts `elite` `elite`: floors 1-15 (weight 1) via `outskirts_junker_bulwark`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1316,8 +1636,12 @@ Generated from `data/enemies.json`.
 - Max HP: `118`
 - Tags: `beast`, `pack`, `bleed`, `summon`
 - Bark Profile: `sandpack_alpha`
+- Intent Pattern: `call_hound`, `rake`, `alpha_maul`, `blood_surge`, `feral_focus`
 - Summon IDs: None
 - Special Mechanics: Bleed, Strength gain, Summoning, Phase change
+- Visual Flavor: A dominant pack alpha crowned with bone trophies, scarred hide, and a dust-storm command presence.
+- Placement:
+  - Outskirts boss pool.
 - Phase Rules:
   - `blood_moon` at <= 0.45 HP ratio -> pattern ['blood_surge', 'call_hound', 'alpha_maul', 'rake']
 - Death Effects: None
@@ -1359,8 +1683,15 @@ Generated from `data/enemies.json`.
 - Max HP: `18`
 - Tags: `mark`, `machine`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `target_ping`, `buzz_saw`
 - Summon IDs: None
 - Special Mechanics: Marked
+- Visual Flavor: A small ticking machine scavenger with exposed gears, signal lights, and nuisance-bot personality.
+- Placement:
+  - Outskirts `combat` `easy`: floors 1-5 (weight 1), floors 6-10 (weight 0.55), floors 11-15 (weight 0.25) via `outskirts_embersnout_ticker`.
+  - Outskirts `combat` `medium`: floors 1-5 (weight 0.35), floors 6-10 (weight 1), floors 11-15 (weight 1) via `outskirts_salvage_scrap_fire`.
+  - Outskirts `elite` `elite`: floors 1-15 (weight 1) via `outskirts_reaver_ticker`.
+  - Live summoners: Wastes Colossus (`wastes_colossus`).
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1384,8 +1715,12 @@ Generated from `data/enemies.json`.
 - Max HP: `44`
 - Tags: `null`, `clog`, `tracker`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `dead_channel`, `lag_spike`, `paint_lock`
 - Summon IDs: None
 - Special Mechanics: Status-card injection, Marked, Nullified
+- Visual Flavor: A wasteland controller wrapped in scavenged signal gear, null-tech charms, and a ragged tracker silhouette.
+- Placement:
+  - Outskirts `elite` `elite`: floors 1-15 (weight 1) via `outskirts_junker_bulwark`, `outskirts_junker_raider`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1414,8 +1749,12 @@ Generated from `data/enemies.json`.
 - Max HP: `24`
 - Tags: `infect`, `siphon`
 - Bark Profile: `red_wastes`
+- Intent Pattern: `sip`, `coil`, `gorge`
 - Summon IDs: None
 - Special Mechanics: Infection
+- Visual Flavor: A parasitic desert leech slick with infected fluid and a hooked feeding mouth built for ugly close contact.
+- Placement:
+  - Outskirts `combat` `easy`: floors 1-5 (weight 1), floors 6-10 (weight 0.55), floors 11-15 (weight 0.25) via `outskirts_leech_bulwark`.
 - Phase Rules: None
 - Death Effects: None
 - Ally-Death Effects: None
@@ -1445,8 +1784,12 @@ Generated from `data/enemies.json`.
 - Max HP: `124`
 - Tags: `machine`, `mark`, `burn`, `summon`
 - Bark Profile: `wastes_colossus`
+- Intent Pattern: `sand_plating`, `searchlight`, `grinding_tread`, `flare_vent`, `loose_tickers`
 - Summon IDs: None
 - Special Mechanics: Burn, Marked, Summoning, Phase change
+- Visual Flavor: A giant red-wastes war construct of bone-lashed scrap, crushing bulk, and rust-burn exhaust stacks.
+- Placement:
+  - Outskirts boss pool.
 - Phase Rules:
   - `overdrive` at <= 0.5 HP ratio -> pattern ['flare_vent', 'searchlight', 'grinding_tread', 'loose_tickers', 'grinding_tread']
 - Death Effects: None

@@ -5,6 +5,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 ASSETS_ROOT = PROJECT_ROOT / "assets"
 ARTS_ROOT = PROJECT_ROOT / "arts"
 DATA_ROOT = PROJECT_ROOT / "data"
+DIRECT_AUDIO_ROOT = PROJECT_ROOT / "audio"
+ASSET_AUDIO_ROOT = ASSETS_ROOT / "audio"
 SPRITE_REFERENCE_PACK_ROOT = PROJECT_ROOT / "sprite_sheet_reference_pack"
 
 SCREEN_WIDTH = 1280
@@ -24,7 +26,7 @@ DEFAULT_FULLSCREEN = True
 DEFAULT_FAST_MODE = False
 DEFAULT_SHOW_HELP = False
 DEFAULT_MASTER_VOLUME = 0.8
-DEFAULT_MUSIC_VOLUME = 0.65
+DEFAULT_MUSIC_VOLUME = 0.5
 MIN_VOLUME = 0.0
 MAX_VOLUME = 1.0
 VOLUME_STEP = 0.1
@@ -36,6 +38,7 @@ DEFAULT_UI_SCALE = 1.0
 MIN_UI_SCALE = 0.9
 MAX_UI_SCALE = 1.25
 UI_SCALE_STEP = 0.1
+COMBAT_VISOR_OVERLAY_ALPHA = 30
 DEFAULT_SCREEN_SHAKE = True
 DEFAULT_HIGH_CONTRAST = False
 SETTINGS_FORMAT_VERSION = 1
@@ -58,7 +61,7 @@ CAMPAIGN_SCHEMA_VERSION = 1
 ENEMY_SCHEMA_VERSION = 2
 EVENT_SCHEMA_VERSION = 1
 RUN_MODIFIER_SCHEMA_VERSION = 1
-SAVE_FORMAT_VERSION = 13
+SAVE_FORMAT_VERSION = 14
 
 MAX_HAND_SIZE = 10
 PLAYER_STARTING_HP = 70
@@ -200,7 +203,47 @@ EVENT_TAGS = (
     "combat_prep",
     "merchant_style",
     "anomaly",
+    "aoe",
     "narrative",
+    "attack",
+    "bleed",
+    "boss_relic",
+    "burn",
+    "chain",
+    "cleanse",
+    "combo",
+    "control",
+    "corruption",
+    "cost_reduction",
+    "defense",
+    "draw",
+    "enemy_status",
+    "energy",
+    "exhaust",
+    "generation",
+    "heal",
+    "infect",
+    "kill",
+    "marked",
+    "offense",
+    "power",
+    "relic",
+    "retaliation",
+    "reward",
+    "scaling",
+    "self_damage",
+    "setup",
+    "shop",
+    "skill",
+    "special",
+    "status",
+    "strength",
+    "synergy",
+    "tradeoff",
+    "turn_counter",
+    "zero_cost",
+    "morality",
+    "nullified",
 )
 STATUS_TAGS = (
     "economy",
@@ -268,6 +311,13 @@ FINAL_MAP_ROUTE_IDS = {
 
 def resolve_asset_path(*parts: str) -> Path:
     return ASSETS_ROOT.joinpath(*parts)
+
+
+def resolve_audio_path(*parts: str) -> Path:
+    direct_path = DIRECT_AUDIO_ROOT.joinpath(*parts)
+    if direct_path.exists():
+        return direct_path
+    return ASSET_AUDIO_ROOT.joinpath(*parts)
 
 
 def resolve_art_path(*parts: str) -> Path:

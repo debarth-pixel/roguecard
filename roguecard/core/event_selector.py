@@ -87,6 +87,11 @@ class EventSelector:
         ]
 
     def _event_is_eligible(self, event: dict[str, Any], context: dict[str, Any]) -> bool:
+        character_ids = event.get("character_ids", [])
+        character_id = context.get("character_id")
+        if character_ids and character_id not in character_ids:
+            return False
+
         floor = context.get("current_floor")
         act = context.get("current_act", 1)
         min_floor = event.get("min_floor")
@@ -111,6 +116,9 @@ class EventSelector:
         deck_size = context.get("deck_size", 0)
         status_count = context.get("status_count", 0)
         active_modifier_ids = set(context.get("active_modifier_ids", []))
+        current_hp = int(context.get("current_hp", 0) or 0)
+        max_hp = max(1, int(context.get("max_hp", 1) or 1))
+        protocol_drift_pct = int(context.get("protocol_drift_pct", 0) or 0)
 
         credits_at_least = requirements.get("credits_at_least")
         if credits_at_least is not None and credits < credits_at_least:
@@ -131,6 +139,24 @@ class EventSelector:
         status_count_at_most = requirements.get("status_count_at_most")
         if status_count_at_most is not None and status_count > status_count_at_most:
             return False
+
+        protocol_drift_at_least = requirements.get("protocol_drift_at_least")
+        if protocol_drift_at_least is not None and protocol_drift_pct < protocol_drift_at_least:
+            return False
+
+        protocol_drift_below = requirements.get("protocol_drift_below")
+        if protocol_drift_below is not None and protocol_drift_pct >= protocol_drift_below:
+            return False
+
+        current_hp_at_least = requirements.get("current_hp_at_least")
+        if current_hp_at_least is not None and current_hp < current_hp_at_least:
+            return False
+
+        current_hp_below_percent = requirements.get("current_hp_below_percent")
+        if current_hp_below_percent is not None:
+            hp_percent = int(round((max(0, current_hp) / max_hp) * 100))
+            if hp_percent >= current_hp_below_percent:
+                return False
 
         modifier_active = requirements.get("modifier_active")
         if modifier_active is not None and modifier_active not in active_modifier_ids:

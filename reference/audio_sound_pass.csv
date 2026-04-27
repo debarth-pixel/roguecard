@@ -1,0 +1,36 @@
+area,screen_or_flow,trigger,music_or_sfx,chosen_asset,file_path,status,notes
+core,title screen,game boot / title active,music,title_song,audio/music/title_song.mp3,assigned,Title-only main theme with normal loop playback.
+core,character select,screen active,music,map_event_audio,audio/music/map_event_audio.mp3,assigned,Uses the calm non-combat runtime bed.
+core,modifier draft,screen active,music,map_event_audio,audio/music/map_event_audio.mp3,assigned,Uses the calm non-combat runtime bed.
+core,map exploration,screen active,music,map_event_audio,audio/music/map_event_audio.mp3,assigned,Default exploration and route-planning bed.
+core,event screen,screen active,music,map_event_audio,audio/music/map_event_audio.mp3,assigned,Events share the non-combat runtime bed.
+core,reward screen,screen active,music,map_event_audio,audio/music/map_event_audio.mp3,assigned,Rewards share the non-combat runtime bed.
+core,shop screen,screen active,music,map_event_audio,audio/music/map_event_audio.mp3,assigned,Merchant scene keeps the non-combat bed underneath terminal SFX.
+transition,non-combat to combat,state enters combat from map / event / shop / reward,music,to_combat_transition,audio/music/to_combat_transition.mp3,assigned,Plays immediately before combat music ramps in.
+combat,combat loop slot 1,combat entry or rotation,music,combat_1_intense,audio/music/combat_1_intense.mp3,assigned,Starts at low level then ramps up.
+combat,combat loop slot 2,after slot 1 completes,music,combat_2_lowpulse,audio/music/combat_2_lowpulse.mp3,assigned,Second combat loop track in the fixed sequence.
+combat,combat loop slot 3,after slot 2 completes,music,combat_3_medium,audio/music/combat_3_medium.mp3,assigned,Third combat loop track in the fixed sequence.
+combat,combat inter-track bridge,current combat track finishes,music,to_combat_transition,audio/music/to_combat_transition.mp3,assigned,Used between combat loop tracks instead of a hard cut.
+overlay,pause overlay,pause opened,music,,,unassigned,Inherits the current scene bed and does not start a new chosen track.
+overlay,settings overlay,settings opened,music,,,unassigned,Inherits the current scene bed and does not start a new chosen track.
+overlay,grayspine intel,intel opened,music,,,unassigned,Inherits the current scene bed and does not start a new chosen track.
+core,victory screen,state enters victory,music,,,unassigned,Current music fades to silence and no chosen victory track starts.
+core,game over screen,state enters game_over,music,,,unassigned,Current music fades to silence and no chosen defeat track starts.
+merchant,terminal boot,first active frame of a new shop session,sfx,merchant_terminal_turning_on,audio/merchant_terminal_turning_on.wav,assigned,Fires once per shop session boot sequence.
+merchant,terminal hover,mouse hover over merchant terminal buttons / tabs,sfx,hover_over_merchant_tiles,audio/hover_over_merchant_tiles.ogg,assigned,Limited to merchant terminal actions instead of global UI hover.
+merchant,terminal click,merchant menu selection or terminal confirmation,sfx,main_merchant_computer_click,audio/main_merchant_computer_click.wav,assigned,Plays for terminal selection and confirmation clicks.
+purge,shop purge success,confirm purge on selected deck card,sfx,card_purged_burn,audio/card_purged_burn.wav,assigned,Also drives the burn-away erase animation.
+purge,reward purge success,confirm purge reward option,sfx,card_purged_burn,audio/card_purged_burn.wav,assigned,Also drives the burn-away erase animation.
+purge,event purge success,confirm purge event target,sfx,card_purged_burn,audio/card_purged_burn.wav,assigned,Also drives the burn-away erase animation.
+combat,card play,play card action,sfx,,,placeholder_only,Existing generic card_play cue remains unchanged.
+combat,enemy hit,enemy HP decreases,sfx,,,placeholder_only,Existing generic enemy_hit cue remains unchanged.
+combat,player hit,player HP decreases,sfx,,,placeholder_only,Existing generic player_hit cue remains unchanged.
+combat,block gain,player or enemy block increases,sfx,,,placeholder_only,Existing generic block cue remains unchanged.
+combat,heal,player HP increases,sfx,,,placeholder_only,Existing generic heal cue remains unchanged.
+combat,turn end,end turn action,sfx,,,placeholder_only,Existing generic turn_end cue remains unchanged.
+ui,node selection,map node / reward option / event choice selection,sfx,,,placeholder_only,Existing generic node_select cue remains unchanged outside merchant terminal audio.
+ui,menu open,pause / settings / title / event / shop / reward UI confirmations,sfx,,,placeholder_only,Existing generic menu_open cue remains unchanged outside merchant terminal audio.
+ui,deny feedback,invalid or unavailable action,sfx,,,placeholder_only,Existing generic deny cue remains unchanged.
+ui,victory stinger,state enters victory,sfx,,,placeholder_only,Existing generic victory cue remains unchanged.
+ui,defeat stinger,state enters game_over,sfx,,,placeholder_only,Existing generic defeat cue remains unchanged.
+audit,unused audio folder,files under audio/unused,sfx,,,unassigned,Intentionally left untouched and not assigned anywhere in this pass.

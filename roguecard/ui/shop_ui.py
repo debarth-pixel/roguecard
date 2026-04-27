@@ -271,7 +271,9 @@ class ShopUI:
     def preload_assets(self) -> None:
         if pygame is None:
             return
-        self._load_image(MERCHANT_VAN_ART_PATH, prepare_cutout=True)
+        # Warm the decoded art without running the expensive cutout prep on boot.
+        # That keeps launch responsive while still avoiding a cold disk load later.
+        self._load_image(MERCHANT_VAN_ART_PATH)
 
     def set_sfx_callback(self, callback: Callable[[str], None] | None) -> None:
         self._sfx_callback = callback
@@ -355,7 +357,11 @@ class ShopUI:
 
         if event.type == pygame.MOUSEMOTION:
             hovered_action = self._action_at_position(layout, event.pos)
-            if hovered_action != self._last_hover_action and hovered_action is not None:
+            if (
+                hovered_action != self._last_hover_action
+                and hovered_action is not None
+                and self._action_supports_hover_sfx(layout, hovered_action)
+            ):
                 self._emit_sfx("button_hover")
             self._last_hover_action = hovered_action
             self._hovered_action = hovered_action
@@ -1281,6 +1287,12 @@ class ShopUI:
             return
         self._emit_sfx("button_click")
 
+    def _action_supports_hover_sfx(self, layout: dict[str, Any], action_id: str) -> bool:
+        action_entry = next((entry for entry in layout["action_entries"] if entry["action_id"] == action_id), None)
+        if action_entry is None:
+            return False
+        return action_entry.get("kind") in {"primary", "secondary", "confirm", "danger", "service"}
+
     def _emit_sfx(self, cue_id: str) -> None:
         if self._sfx_callback is None:
             return
@@ -1347,11 +1359,15 @@ class ShopUI:
         if pygame is None:
             raise RuntimeError("Pygame is required to load shop UI assets.")
 
-        try:
-            image = pygame.image.load(str(path)).convert_alpha()
-        except (FileNotFoundError, pygame.error):
-            image = pygame.Surface((64, 64), pygame.SRCALPHA)
-            image.fill((90, 180, 140, 180))
+        base_cache_key = str(path)
+        image = self._image_cache.get(base_cache_key)
+        if image is None:
+            try:
+                image = pygame.image.load(str(path)).convert_alpha()
+            except (FileNotFoundError, pygame.error):
+                image = pygame.Surface((64, 64), pygame.SRCALPHA)
+                image.fill((90, 180, 140, 180))
+            self._image_cache[base_cache_key] = image
 
         if prepare_cutout:
             image = self._prepare_merchant_van_cutout(image)
@@ -1364,17 +1380,34 @@ class ShopUI:
             return image
         cutout = image.copy()
         background_mask = pygame.mask.from_threshold(cutout, (8, 8, 8, 255), (8, 8, 8, 255))
-        edge_mask = pygame.mask.Mask(cutout.get_size())
-        for component in background_mask.connected_components():
-            bounding_rects = component.get_bounding_rects()
-            if not bounding_rects:
-                continue
-            bounds = bounding_rects[0]
-            if bounds.left <= 1 or bounds.top <= 1 or bounds.right >= cutout.get_width() - 1 or bounds.bottom >= cutout.get_height() - 1:
-                edge_mask.draw(component, (0, 0))
+        if background_mask.count() <= 0:
+            return cutout
+        edge_seed = self._find_mask_edge_seed(background_mask)
+        if edge_seed is None:
+            edge_mask = background_mask.connected_component()
+        else:
+            edge_mask = background_mask.connected_component(edge_seed)
         mask_surface = edge_mask.to_surface(setcolor=(255, 255, 255, 255), unsetcolor=(0, 0, 0, 0))
         cutout.blit(mask_surface, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
         return cutout
+
+    def _find_mask_edge_seed(self, mask: Any) -> tuple[int, int] | None:
+        width, height = mask.get_size()
+        if width <= 0 or height <= 0:
+            return None
+        last_x = width - 1
+        last_y = height - 1
+        for x in range(width):
+            if mask.get_at((x, 0)):
+                return (x, 0)
+            if mask.get_at((x, last_y)):
+                return (x, last_y)
+        for y in range(height):
+            if mask.get_at((0, y)):
+                return (0, y)
+            if mask.get_at((last_x, y)):
+                return (last_x, y)
+        return None
 
 
 def simulate_shop_ui() -> dict[str, Any]:

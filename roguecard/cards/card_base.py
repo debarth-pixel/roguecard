@@ -36,6 +36,9 @@ ALLOWED_CARD_EFFECT_TYPES = DIRECT_DAMAGE_EFFECT_TYPES | {
     "add_status_card",
     "cleanse_status",
     "remove_nullified",
+    "adjust_protocol_drift",
+    "remove_one_player_status",
+    "exhaust_status_card_in_hand",
     "random_one_of",
     "exhaust_drawn_card",
 }
@@ -46,6 +49,21 @@ ALLOWED_TRIGGER_CONDITION_KEYS = {
 }
 ALLOWED_EFFECT_TARGETS = {"self", "enemy", "all_enemies", "drawn_card"}
 ALLOWED_CARD_PILES = {"draw", "discard"}
+ALLOWED_CORRUPTION_RIDER_TRIGGERS = {"on_play", "on_stability_lost", "on_status_drawn"}
+ALLOWED_CORRUPTION_EFFECT_TYPES = {
+    "bonus_damage",
+    "bonus_hits",
+    "draw_cards",
+    "gain_energy",
+    "lose_hp",
+    "heal",
+    "add_status_card",
+    "adjust_protocol_drift",
+    "modify_next_attack_damage",
+    "set_random_hand_card_cost_until_played",
+    "damage_random_enemy",
+}
+ALLOWED_CORRUPTION_ONCE_PER_VALUES = {"turn", "combat"}
 
 
 @dataclass(frozen=True)
@@ -134,6 +152,12 @@ class CardBase:
     theme: CardTheme | None = None
     keywords: list[str] = field(default_factory=list)
     triggers: list[dict[str, Any]] = field(default_factory=list)
+    hidden: bool = False
+    reward_eligible: bool = True
+    shop_eligible: bool = True
+    temporary_by_default: bool = False
+    generation_tags: list[str] = field(default_factory=list)
+    corruption: dict[str, Any] | None = None
     resource_costs: list[CardResourceCost] = field(default_factory=list)
     resource_effects: list[CardResourceEffect] = field(default_factory=list)
     instance_id: str | None = None
@@ -160,6 +184,12 @@ class CardBase:
         theme_data = card_data.get("theme")
         keywords_data = card_data.get("keywords", [])
         triggers_data = card_data.get("triggers", [])
+        hidden = card_data.get("hidden", False)
+        reward_eligible = card_data.get("reward_eligible", not bool(hidden))
+        shop_eligible = card_data.get("shop_eligible", not bool(hidden))
+        temporary_by_default = card_data.get("temporary_by_default", False)
+        generation_tags_data = card_data.get("generation_tags", [])
+        corruption_data = card_data.get("corruption")
         resource_costs_data = card_data.get("resource_costs", [])
         resource_effects_data = card_data.get("resource_effects", [])
         instance_id = card_data.get("instance_id")
@@ -185,6 +215,18 @@ class CardBase:
             raise ValueError("Card keywords must be a list when provided.")
         if not isinstance(triggers_data, list):
             raise ValueError("Card triggers must be a list when provided.")
+        if not isinstance(hidden, bool):
+            raise ValueError(f"Card {card_id} hidden must be a boolean when provided.")
+        if not isinstance(reward_eligible, bool):
+            raise ValueError(f"Card {card_id} reward_eligible must be a boolean when provided.")
+        if not isinstance(shop_eligible, bool):
+            raise ValueError(f"Card {card_id} shop_eligible must be a boolean when provided.")
+        if not isinstance(temporary_by_default, bool):
+            raise ValueError(f"Card {card_id} temporary_by_default must be a boolean when provided.")
+        if not isinstance(generation_tags_data, list):
+            raise ValueError(f"Card {card_id} generation_tags must be a list when provided.")
+        if corruption_data is not None and not isinstance(corruption_data, dict):
+            raise ValueError(f"Card {card_id} corruption must be a dictionary when provided.")
         if not isinstance(resource_costs_data, list):
             raise ValueError("Card resource_costs must be a list when provided.")
         if not isinstance(resource_effects_data, list):
@@ -200,6 +242,8 @@ class CardBase:
         keywords = cls._validate_keywords(card_id, keywords_data)
         effects = [cls._validate_effect(card_id, effect, context="effect") for effect in effects_data]
         triggers = [cls._validate_trigger(card_id, trigger) for trigger in triggers_data]
+        generation_tags = cls._validate_string_list(card_id, generation_tags_data, "generation_tags")
+        corruption = None if corruption_data is None else cls._validate_corruption(card_id, corruption_data)
 
         if not effects and not triggers:
             raise ValueError(f"Card {card_id} must define at least one effect or trigger.")
@@ -230,6 +274,12 @@ class CardBase:
             theme=theme,
             keywords=keywords,
             triggers=triggers,
+            hidden=hidden,
+            reward_eligible=reward_eligible,
+            shop_eligible=shop_eligible,
+            temporary_by_default=temporary_by_default,
+            generation_tags=generation_tags,
+            corruption=corruption,
             resource_costs=resource_costs,
             resource_effects=resource_effects,
             instance_id=instance_id,
@@ -255,6 +305,160 @@ class CardBase:
             if keyword not in keywords:
                 keywords.append(keyword)
         return keywords
+
+    @classmethod
+    def _validate_string_list(cls, card_id: str, values: list[Any], field_name: str) -> list[str]:
+        validated: list[str] = []
+        for value in values:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"Card {card_id} {field_name} entries must be non-empty strings.")
+            normalized = value.strip()
+            if normalized not in validated:
+                validated.append(normalized)
+        return validated
+
+    @classmethod
+    def _validate_corruption(cls, card_id: str, corruption_data: dict[str, Any]) -> dict[str, Any]:
+        affinity = corruption_data.get("affinity")
+        riders_data = corruption_data.get("riders", [])
+        hide_until_seen = corruption_data.get("hide_until_protocol_drift_seen", True)
+        counts_as_corrupt_card = corruption_data.get("counts_as_corrupt_card", True)
+
+        if affinity is not None and (not isinstance(affinity, str) or not affinity.strip()):
+            raise ValueError(f"Card {card_id} corruption affinity must be a non-empty string when provided.")
+        if not isinstance(riders_data, list):
+            raise ValueError(f"Card {card_id} corruption riders must be a list.")
+        if not isinstance(hide_until_seen, bool):
+            raise ValueError(f"Card {card_id} hide_until_protocol_drift_seen must be a boolean.")
+        if not isinstance(counts_as_corrupt_card, bool):
+            raise ValueError(f"Card {card_id} counts_as_corrupt_card must be a boolean.")
+
+        validated_riders = [cls._validate_corruption_rider(card_id, rider) for rider in riders_data]
+        return {
+            "affinity": None if affinity is None else affinity.strip(),
+            "riders": validated_riders,
+            "hide_until_protocol_drift_seen": hide_until_seen,
+            "counts_as_corrupt_card": counts_as_corrupt_card,
+        }
+
+    @classmethod
+    def _validate_corruption_rider(cls, card_id: str, rider_data: Any) -> dict[str, Any]:
+        if not isinstance(rider_data, dict):
+            raise ValueError(f"Card {card_id} corruption riders must be dictionaries.")
+
+        rider_id = rider_data.get("id")
+        trigger = rider_data.get("trigger")
+        text = rider_data.get("text")
+        threshold = rider_data.get("requires_protocol_drift_at_least", 0)
+        effects = rider_data.get("effects", [])
+        once_per = rider_data.get("once_per")
+        if_any_card_cost_reduced_this_turn = rider_data.get("if_any_card_cost_reduced_this_turn", False)
+
+        if not isinstance(rider_id, str) or not rider_id:
+            raise ValueError(f"Card {card_id} corruption rider ids must be non-empty strings.")
+        if trigger not in ALLOWED_CORRUPTION_RIDER_TRIGGERS:
+            raise ValueError(f"Card {card_id} corruption rider {rider_id} uses unsupported trigger: {trigger}")
+        if not isinstance(text, str) or not text:
+            raise ValueError(f"Card {card_id} corruption rider {rider_id} must define text.")
+        if not isinstance(threshold, int) or threshold < 0 or threshold > 100:
+            raise ValueError(
+                f"Card {card_id} corruption rider {rider_id} requires_protocol_drift_at_least must be an integer in 0..100."
+            )
+        if not isinstance(effects, list) or not effects:
+            raise ValueError(f"Card {card_id} corruption rider {rider_id} must define at least one effect.")
+        if once_per is not None and once_per not in ALLOWED_CORRUPTION_ONCE_PER_VALUES:
+            raise ValueError(
+                f"Card {card_id} corruption rider {rider_id} once_per must be one of: "
+                f"{', '.join(sorted(ALLOWED_CORRUPTION_ONCE_PER_VALUES))}."
+            )
+        if not isinstance(if_any_card_cost_reduced_this_turn, bool):
+            raise ValueError(
+                f"Card {card_id} corruption rider {rider_id} if_any_card_cost_reduced_this_turn must be a boolean."
+            )
+
+        validated = {
+            "id": rider_id,
+            "trigger": trigger,
+            "text": text,
+            "requires_protocol_drift_at_least": threshold,
+            "effects": [cls._validate_corruption_effect(card_id, rider_id, effect) for effect in effects],
+            "if_any_card_cost_reduced_this_turn": if_any_card_cost_reduced_this_turn,
+        }
+        if once_per is not None:
+            validated["once_per"] = once_per
+        return validated
+
+    @classmethod
+    def _validate_corruption_effect(
+        cls,
+        card_id: str,
+        rider_id: str,
+        effect_data: Any,
+    ) -> dict[str, Any]:
+        if not isinstance(effect_data, dict):
+            raise ValueError(f"Card {card_id} corruption rider {rider_id} effects must be dictionaries.")
+
+        effect_type = effect_data.get("type")
+        if effect_type not in ALLOWED_CORRUPTION_EFFECT_TYPES:
+            raise ValueError(
+                f"Card {card_id} corruption rider {rider_id} uses unsupported effect type: {effect_type}"
+            )
+
+        validated: dict[str, Any] = {"type": effect_type}
+        if effect_type in {
+            "bonus_damage",
+            "draw_cards",
+            "gain_energy",
+            "lose_hp",
+            "heal",
+            "adjust_protocol_drift",
+            "modify_next_attack_damage",
+            "set_random_hand_card_cost_until_played",
+            "damage_random_enemy",
+        }:
+            value = effect_data.get("value")
+            if not isinstance(value, int):
+                raise ValueError(
+                    f"Card {card_id} corruption rider {rider_id} effect {effect_type} must define an integer value."
+                )
+            validated["value"] = value
+            return validated
+
+        if effect_type == "bonus_hits":
+            value = effect_data.get("value")
+            count = effect_data.get("count", 1)
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(
+                    f"Card {card_id} corruption rider {rider_id} bonus_hits must define a positive hit value."
+                )
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(
+                    f"Card {card_id} corruption rider {rider_id} bonus_hits must define a positive count."
+                )
+            validated["value"] = value
+            validated["count"] = count
+            return validated
+
+        if effect_type == "add_status_card":
+            card_ref = effect_data.get("card_id")
+            count = effect_data.get("count", 1)
+            pile = effect_data.get("pile", "discard")
+            if not isinstance(card_ref, str) or not card_ref:
+                raise ValueError(f"Card {card_id} corruption rider {rider_id} add_status_card must define card_id.")
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(
+                    f"Card {card_id} corruption rider {rider_id} add_status_card must define a positive count."
+                )
+            if pile not in ALLOWED_CARD_PILES:
+                raise ValueError(
+                    f"Card {card_id} corruption rider {rider_id} add_status_card uses unsupported pile: {pile}"
+                )
+            validated["card_id"] = card_ref
+            validated["count"] = count
+            validated["pile"] = pile
+            return validated
+
+        return validated
 
     @classmethod
     def _validate_trigger(cls, card_id: str, trigger_data: Any) -> dict[str, Any]:
@@ -326,6 +530,7 @@ class CardBase:
             "modify_next_attack_damage",
             "lifesteal_damage",
             "noop",
+            "adjust_protocol_drift",
         }:
             value = effect_data.get("value")
             if not isinstance(value, int):
@@ -369,6 +574,28 @@ class CardBase:
             validated["value"] = value
         elif effect_type == "remove_nullified":
             pass
+        elif effect_type == "remove_one_player_status":
+            status_ids = effect_data.get("status_ids")
+            if (
+                not isinstance(status_ids, list)
+                or not status_ids
+                or not all(isinstance(status_id, str) and status_id for status_id in status_ids)
+            ):
+                raise ValueError(
+                    f"Card {card_id} remove_one_player_status effects must define a non-empty status_ids list."
+                )
+            validated["status_ids"] = list(dict.fromkeys(status_ids))
+        elif effect_type == "exhaust_status_card_in_hand":
+            fallback_effects = effect_data.get("fallback_effects", [])
+            if fallback_effects not in (None, []):
+                if not isinstance(fallback_effects, list):
+                    raise ValueError(
+                        f"Card {card_id} exhaust_status_card_in_hand fallback_effects must be a list when provided."
+                    )
+                validated["fallback_effects"] = [
+                    cls._validate_effect(card_id, effect, context=context, allow_random=False)
+                    for effect in fallback_effects
+                ]
         elif effect_type == "random_one_of":
             if not allow_random:
                 raise ValueError(f"Card {card_id} random_one_of effects cannot be nested.")
@@ -444,7 +671,7 @@ class CardBase:
             "name": self.name,
             "cost": self.cost,
             "type": self.type,
-            "effects": [dict(effect) for effect in self.effects],
+            "effects": copy_effects(self.effects),
             "owners": list(self.owners),
             "shop_price": self.shop_price,
         }
@@ -454,6 +681,18 @@ class CardBase:
             card_data["keywords"] = list(self.keywords)
         if self.triggers:
             card_data["triggers"] = copy_triggers(self.triggers)
+        if self.hidden:
+            card_data["hidden"] = True
+        if not self.reward_eligible:
+            card_data["reward_eligible"] = False
+        if not self.shop_eligible:
+            card_data["shop_eligible"] = False
+        if self.temporary_by_default:
+            card_data["temporary_by_default"] = True
+        if self.generation_tags:
+            card_data["generation_tags"] = list(self.generation_tags)
+        if self.corruption is not None:
+            card_data["corruption"] = copy_corruption(self.corruption)
         if self.resource_costs:
             card_data["resource_costs"] = [cost.to_dict() for cost in self.resource_costs]
         if self.resource_effects:
@@ -471,6 +710,8 @@ def copy_effects(effects: list[dict[str, Any]]) -> list[dict[str, Any]]:
     copied: list[dict[str, Any]] = []
     for effect in effects:
         duplicate = dict(effect)
+        if "fallback_effects" in duplicate:
+            duplicate["fallback_effects"] = copy_effects(duplicate["fallback_effects"])
         if "options" in duplicate:
             duplicate["options"] = [
                 {
@@ -493,6 +734,18 @@ def copy_triggers(triggers: list[dict[str, Any]]) -> list[dict[str, Any]]:
         }
         for trigger in triggers
     ]
+
+
+def copy_corruption(corruption: dict[str, Any]) -> dict[str, Any]:
+    duplicate = dict(corruption)
+    duplicate["riders"] = [
+        {
+            **rider,
+            "effects": copy_effects(rider.get("effects", [])),
+        }
+        for rider in corruption.get("riders", [])
+    ]
+    return duplicate
 
 
 def simulate_card_base() -> dict[str, Any]:

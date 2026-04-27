@@ -1,1639 +1,2144 @@
 [
-  {
-    "id": "strike_01",
-    "name": "Strike",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 40,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "circuit_burst"
+    {
+        "id":  "strike_01",
+        "name":  "Strike",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  40,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  6
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 6
-      }
-    ]
-  },
-  {
-    "id": "defend_01",
-    "name": "Defend",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 39,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "signal_mesh"
+    {
+        "id":  "defend_01",
+        "name":  "Defend",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  39,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  5
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 5
-      }
-    ]
-  },
-  {
-    "id": "surge_strike_01",
-    "name": "Surge Strike",
-    "cost": 2,
-    "type": "attack",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 48,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "circuit_burst"
+    {
+        "id":  "surge_strike_01",
+        "name":  "Surge Strike",
+        "cost":  2,
+        "type":  "attack",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  48,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  12
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 12
-      }
-    ]
-  },
-  {
-    "id": "firewall_01",
-    "name": "Firewall",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 44,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "signal_mesh"
+    {
+        "id":  "firewall_01",
+        "name":  "Firewall",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  44,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  8
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 8
-      }
-    ]
-  },
-  {
-    "id": "patch_kit_01",
-    "name": "Patch Kit",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 43,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "patch_grid"
+    {
+        "id":  "patch_kit_01",
+        "name":  "Patch Kit",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  43,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "heal",
+                            "value":  4
+                        },
+                        {
+                            "type":  "cleanse_status",
+                            "status_id":  "burn",
+                            "value":  1
+                        },
+                        {
+                            "type":  "cleanse_status",
+                            "status_id":  "bleed",
+                            "value":  1
+                        },
+                        {
+                            "type":  "cleanse_status",
+                            "status_id":  "infect",
+                            "value":  1
+                        },
+                        {
+                            "type":  "remove_nullified"
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "heal",
-        "value": 4
-      },
-      {
-        "type": "cleanse_status",
-        "status_id": "burn",
-        "value": 1
-      },
-      {
-        "type": "cleanse_status",
-        "status_id": "bleed",
-        "value": 1
-      },
-      {
-        "type": "cleanse_status",
-        "status_id": "infect",
-        "value": 1
-      },
-      {
-        "type": "remove_nullified"
-      }
-    ]
-  },
-  {
-    "id": "cache_draw_01",
-    "name": "Cache Draw",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 45,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "signal_mesh"
+    {
+        "id":  "cache_draw_01",
+        "name":  "Cache Draw",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  45,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "draw",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "draw",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "overclock_01",
-    "name": "Overclock",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 46,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "circuit_burst"
+    {
+        "id":  "overclock_01",
+        "name":  "Overclock",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  46,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "energy",
+                            "value":  1
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ],
+        "keywords":  [
+                         "exhaust"
+                     ]
     },
-    "effects": [
-      {
-        "type": "energy",
-        "value": 1
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ],
-    "keywords": [
-      "exhaust"
-    ]
-  },
-  {
-    "id": "volley_01",
-    "name": "Volley",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 47,
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "circuit_burst"
+    {
+        "id":  "volley_01",
+        "name":  "Volley",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  47,
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  8
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 8
-      }
-    ]
-  },
-  {
-    "id": "status_burn_01",
-    "name": "Burn",
-    "cost": 0,
-    "type": "status",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 0,
-    "keywords": [
-      "combat_only",
-      "exhaust"
-    ],
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "circuit_burst"
+    {
+        "id":  "status_burn_01",
+        "name":  "Burn",
+        "cost":  0,
+        "type":  "status",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "keywords":  [
+                         "combat_only",
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "on_draw",
+                             "effects":  [
+                                             {
+                                                 "type":  "self_damage",
+                                                 "value":  2
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "on_draw",
-        "effects": [
-          {
-            "type": "self_damage",
-            "value": 2
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "status_glitch_01",
-    "name": "Glitch",
-    "cost": 0,
-    "type": "status",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 0,
-    "keywords": [
-      "combat_only",
-      "exhaust"
-    ],
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "signal_mesh"
+    {
+        "id":  "status_glitch_01",
+        "name":  "Glitch",
+        "cost":  0,
+        "type":  "status",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "keywords":  [
+                         "combat_only",
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "on_draw",
+                             "effects":  [
+                                             {
+                                                 "type":  "random_one_of",
+                                                 "options":  [
+                                                                 {
+                                                                     "weight":  1,
+                                                                     "summary":  "Glitch drains power.",
+                                                                     "effects":  [
+                                                                                     {
+                                                                                         "type":  "energy",
+                                                                                         "value":  -1
+                                                                                     }
+                                                                                 ]
+                                                                 },
+                                                                 {
+                                                                     "weight":  1,
+                                                                     "summary":  "Glitch bites back.",
+                                                                     "effects":  [
+                                                                                     {
+                                                                                         "type":  "self_damage",
+                                                                                         "value":  2
+                                                                                     }
+                                                                                 ]
+                                                                 }
+                                                             ]
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "on_draw",
-        "effects": [
-          {
-            "type": "random_one_of",
-            "options": [
-              {
-                "weight": 1,
-                "summary": "Glitch drains power.",
-                "effects": [
-                  {
-                    "type": "energy",
-                    "value": -1
-                  }
-                ]
-              },
-              {
-                "weight": 1,
-                "summary": "Glitch bites back.",
-                "effects": [
-                  {
-                    "type": "self_damage",
-                    "value": 2
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "status_lag_01",
-    "name": "Lag",
-    "cost": 0,
-    "type": "status",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 0,
-    "keywords": [
-      "combat_only",
-      "exhaust"
-    ],
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "signal_mesh"
+    {
+        "id":  "status_lag_01",
+        "name":  "Lag",
+        "cost":  0,
+        "type":  "status",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "keywords":  [
+                         "combat_only",
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "on_draw",
+                             "effects":  [
+                                             {
+                                                 "type":  "modify_next_card_cost",
+                                                 "value":  1
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "on_draw",
-        "effects": [
-          {
-            "type": "modify_next_card_cost",
-            "value": 1
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "status_junk_01",
-    "name": "Junk",
-    "cost": 0,
-    "type": "status",
-    "owners": [
-      "shared"
-    ],
-    "shop_price": 0,
-    "keywords": [
-      "combat_only"
-    ],
-    "theme": {
-      "faction": "shared",
-      "palette": "starter_neutral",
-      "art_style": "patch_grid"
+    {
+        "id":  "status_junk_01",
+        "name":  "Junk",
+        "cost":  0,
+        "type":  "status",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "keywords":  [
+                         "combat_only"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "noop",
+                            "value":  0
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "noop",
-        "value": 0
-      }
-    ]
-  },
-  {
-    "id": "enforcer_bash_protocol_01",
-    "name": "Bash Protocol",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 43,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "circuit_burst"
+    {
+        "id":  "enforcer_bash_protocol_01",
+        "name":  "Bash Protocol",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  43,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  7
+                        },
+                        {
+                            "type":  "apply_bleed",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 7
-      },
-      {
-        "type": "apply_bleed",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "enforcer_double_tap_01",
-    "name": "Double Tap",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 45,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "circuit_burst"
+    {
+        "id":  "enforcer_double_tap_01",
+        "name":  "Double Tap",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  45,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "multi_damage",
+                            "value":  4,
+                            "count":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "multi_damage",
-        "value": 4,
-        "count": 2
-      }
-    ]
-  },
-  {
-    "id": "enforcer_breaker_line_01",
-    "name": "Breaker Line",
-    "cost": 2,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 53,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "circuit_burst"
+    {
+        "id":  "enforcer_breaker_line_01",
+        "name":  "Breaker Line",
+        "cost":  2,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  53,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  11
+                        },
+                        {
+                            "type":  "apply_bleed",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 11
-      },
-      {
-        "type": "apply_bleed",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "enforcer_blood_rush_01",
-    "name": "Blood Rush",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 50,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "patch_grid"
+    {
+        "id":  "enforcer_blood_rush_01",
+        "name":  "Blood Rush",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  50,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  3
+                        },
+                        {
+                            "type":  "damage",
+                            "value":  12
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "blood",
+                           "riders":  [
+                                          {
+                                              "id":  "enforcer_blood_rush_drift_25",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  25,
+                                              "text":  "Drift 25+: Deal 4 extra damage.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_damage",
+                                                                  "value":  4
+                                                              }
+                                                          ]
+                                          },
+                                          {
+                                              "id":  "enforcer_blood_rush_drift_60",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  60,
+                                              "text":  "Drift 60+: Deal 4 extra damage. Lose 1 HP.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_damage",
+                                                                  "value":  4
+                                                              },
+                                                              {
+                                                                  "type":  "lose_hp",
+                                                                  "value":  1
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 3
-      },
-      {
-        "type": "damage",
-        "value": 12
-      }
-    ]
-  },
-  {
-    "id": "enforcer_crackdown_01",
-    "name": "Crackdown",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 48,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "signal_mesh"
+    {
+        "id":  "enforcer_crackdown_01",
+        "name":  "Crackdown",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  48,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  6
+                        },
+                        {
+                            "type":  "apply_vulnerable",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 6
-      },
-      {
-        "type": "apply_vulnerable",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "enforcer_riot_barrage_01",
-    "name": "Riot Barrage",
-    "cost": 2,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 54,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "circuit_burst"
+    {
+        "id":  "enforcer_riot_barrage_01",
+        "name":  "Riot Barrage",
+        "cost":  2,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  54,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "multi_damage",
+                            "value":  5,
+                            "count":  3
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "riot",
+                           "riders":  [
+                                          {
+                                              "id":  "enforcer_riot_barrage_drift_60",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  60,
+                                              "text":  "Drift 60+: Add 1 extra 3-damage hit. Lose 1 HP.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_hits",
+                                                                  "value":  3,
+                                                                  "count":  1
+                                                              },
+                                                              {
+                                                                  "type":  "lose_hp",
+                                                                  "value":  1
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "multi_damage",
-        "value": 5,
-        "count": 3
-      }
-    ]
-  },
-  {
-    "id": "enforcer_guard_stance_01",
-    "name": "Guard Stance",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 42,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "signal_mesh"
+    {
+        "id":  "enforcer_guard_stance_01",
+        "name":  "Guard Stance",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  42,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  8
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 8
-      }
-    ]
-  },
-  {
-    "id": "enforcer_battle_roar_01",
-    "name": "Battle Roar",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 43,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "signal_mesh"
+    {
+        "id":  "enforcer_battle_roar_01",
+        "name":  "Battle Roar",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  43,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "gain_strength",
+                            "value":  1
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "gain_strength",
-        "value": 1
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "enforcer_hard_commit_01",
-    "name": "Hard Commit",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 47,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "patch_grid"
+    {
+        "id":  "enforcer_hard_commit_01",
+        "name":  "Hard Commit",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  47,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  2
+                        },
+                        {
+                            "type":  "energy",
+                            "value":  2
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "riot",
+                           "riders":  [
+                                          {
+                                              "id":  "enforcer_hard_commit_drift_50",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  50,
+                                              "once_per":  "combat",
+                                              "text":  "Drift 50+: Gain 1 Energy. Gain 1% Drift.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "gain_energy",
+                                                                  "value":  1
+                                                              },
+                                                              {
+                                                                  "type":  "adjust_protocol_drift",
+                                                                  "value":  1
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 2
-      },
-      {
-        "type": "energy",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "enforcer_ram_guard_01",
-    "name": "Ram Guard",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 44,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "signal_mesh"
+    {
+        "id":  "enforcer_ram_guard_01",
+        "name":  "Ram Guard",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  44,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  6
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 6
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "enforcer_open_wound_01",
-    "name": "Open Wound",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 45,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "patch_grid"
+    {
+        "id":  "enforcer_open_wound_01",
+        "name":  "Open Wound",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  45,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  2
+                        },
+                        {
+                            "type":  "gain_strength",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 2
-      },
-      {
-        "type": "gain_strength",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "enforcer_feed_aggression_01",
-    "name": "Feed Aggression",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 46,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "signal_mesh"
+    {
+        "id":  "enforcer_feed_aggression_01",
+        "name":  "Feed Aggression",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  46,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "modify_next_attack_damage",
+                            "value":  5
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "modify_next_attack_damage",
-        "value": 5
-      }
-    ]
-  },
-  {
-    "id": "enforcer_war_engine_01",
-    "name": "War Engine",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 55,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "signal_mesh"
+    {
+        "id":  "enforcer_war_engine_01",
+        "name":  "War Engine",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  55,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "turn_start",
+                             "effects":  [
+                                             {
+                                                 "type":  "gain_strength",
+                                                 "value":  1
+                                             }
+                                         ]
+                         }
+                     ],
+        "corruption":  {
+                           "affinity":  "riot",
+                           "riders":  [
+                                          {
+                                              "id":  "enforcer_war_engine_drift_25",
+                                              "trigger":  "on_stability_lost",
+                                              "requires_protocol_drift_at_least":  25,
+                                              "once_per":  "combat",
+                                              "text":  "Drift 25+: When stability is lost, your next attack deals 4 more damage.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "modify_next_attack_damage",
+                                                                  "value":  4
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "turn_start",
-        "effects": [
-          {
-            "type": "gain_strength",
-            "value": 1
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "enforcer_chain_assault_01",
-    "name": "Chain Assault",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 57,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "circuit_burst"
+    {
+        "id":  "enforcer_chain_assault_01",
+        "name":  "Chain Assault",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  57,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "turn_start",
+                             "effects":  [
+                                             {
+                                                 "type":  "modify_next_attack_damage",
+                                                 "value":  3
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "turn_start",
-        "effects": [
-          {
-            "type": "modify_next_attack_damage",
-            "value": 3
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "enforcer_redline_core_01",
-    "name": "Redline Core",
-    "cost": 2,
-    "type": "power",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 60,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "patch_grid"
+    {
+        "id":  "enforcer_redline_core_01",
+        "name":  "Redline Core",
+        "cost":  2,
+        "type":  "power",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  60,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "turn_start",
+                             "effects":  [
+                                             {
+                                                 "type":  "self_damage",
+                                                 "value":  2
+                                             },
+                                             {
+                                                 "type":  "gain_strength",
+                                                 "value":  2
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "turn_start",
-        "effects": [
-          {
-            "type": "self_damage",
-            "value": 2
-          },
-          {
-            "type": "gain_strength",
-            "value": 2
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "operator_needle_ping_01",
-    "name": "Needle Ping",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 43,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_needle_ping_01",
+        "name":  "Needle Ping",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  43,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  4
+                        },
+                        {
+                            "type":  "apply_weak",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 4
-      },
-      {
-        "type": "apply_weak",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_quiet_cut_01",
-    "name": "Quiet Cut",
-    "cost": 0,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 41,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "circuit_burst"
+    {
+        "id":  "operator_quiet_cut_01",
+        "name":  "Quiet Cut",
+        "cost":  0,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  41,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  5
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 5
-      }
-    ]
-  },
-  {
-    "id": "operator_backdoor_01",
-    "name": "Backdoor",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 46,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_backdoor_01",
+        "name":  "Backdoor",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  46,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  7
+                        },
+                        {
+                            "type":  "modify_next_card_cost",
+                            "value":  -1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 7
-      },
-      {
-        "type": "modify_next_card_cost",
-        "value": -1
-      }
-    ]
-  },
-  {
-    "id": "operator_packet_storm_01",
-    "name": "Packet Storm",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 48,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "circuit_burst"
+    {
+        "id":  "operator_packet_storm_01",
+        "name":  "Packet Storm",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  48,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "multi_damage",
+                            "value":  3,
+                            "count":  2
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "multi_damage",
-        "value": 3,
-        "count": 2
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_relay_shot_01",
-    "name": "Relay Shot",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 47,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_relay_shot_01",
+        "name":  "Relay Shot",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  47,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  7
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 7
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_recompile_shot_01",
-    "name": "Recompile Shot",
-    "cost": 2,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 53,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "circuit_burst"
+    {
+        "id":  "operator_recompile_shot_01",
+        "name":  "Recompile Shot",
+        "cost":  2,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  53,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  10
+                        },
+                        {
+                            "type":  "modify_next_card_cost",
+                            "value":  -1
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "signal",
+                           "riders":  [
+                                          {
+                                              "id":  "operator_recompile_shot_drift_50",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  50,
+                                              "if_any_card_cost_reduced_this_turn":  true,
+                                              "text":  "Drift 50+: If any card cost was reduced this turn, deal 5 extra damage.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_damage",
+                                                                  "value":  5
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 10
-      },
-      {
-        "type": "modify_next_card_cost",
-        "value": -1
-      }
-    ]
-  },
-  {
-    "id": "operator_cache_cycle_01",
-    "name": "Cache Cycle",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 43,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_cache_cycle_01",
+        "name":  "Cache Cycle",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  43,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "draw",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "draw",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "operator_deflect_mesh_01",
-    "name": "Deflect Mesh",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 42,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_deflect_mesh_01",
+        "name":  "Deflect Mesh",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  42,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  6
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 6
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_priority_queue_01",
-    "name": "Priority Queue",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 45,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_priority_queue_01",
+        "name":  "Priority Queue",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  45,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "modify_next_card_cost",
+                            "value":  -1
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "signal",
+                           "riders":  [
+                                          {
+                                              "id":  "operator_priority_queue_drift_40",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  40,
+                                              "text":  "Drift 40+: Draw 1 card. Add 1 Lag to discard.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "draw_cards",
+                                                                  "value":  1
+                                                              },
+                                                              {
+                                                                  "type":  "add_status_card",
+                                                                  "card_id":  "status_lag_01",
+                                                                  "count":  1,
+                                                                  "pile":  "discard"
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "modify_next_card_cost",
-        "value": -1
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_reroute_01",
-    "name": "Reroute",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 41,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "patch_grid"
+    {
+        "id":  "operator_reroute_01",
+        "name":  "Reroute",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  41,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  8
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 8
-      }
-    ]
-  },
-  {
-    "id": "operator_cold_read_01",
-    "name": "Cold Read",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 49,
-    "keywords": [
-      "exhaust"
-    ],
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "patch_grid"
+    {
+        "id":  "operator_cold_read_01",
+        "name":  "Cold Read",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  49,
+        "keywords":  [
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "draw",
+                            "value":  3
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "draw",
-        "value": 3
-      }
-    ]
-  },
-  {
-    "id": "operator_lock_in_01",
-    "name": "Lock In",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 45,
-    "keywords": [
-      "retain"
-    ],
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_lock_in_01",
+        "name":  "Lock In",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  45,
+        "keywords":  [
+                         "retain"
+                     ],
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  4
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 4
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_auto_tuner_01",
-    "name": "Auto-Tuner",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 55,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_auto_tuner_01",
+        "name":  "Auto-Tuner",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  55,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "turn_start",
+                             "effects":  [
+                                             {
+                                                 "type":  "modify_next_card_cost",
+                                                 "value":  -1
+                                             }
+                                         ]
+                         }
+                     ],
+        "corruption":  {
+                           "affinity":  "signal",
+                           "riders":  [
+                                          {
+                                              "id":  "operator_auto_tuner_drift_25",
+                                              "trigger":  "on_stability_lost",
+                                              "requires_protocol_drift_at_least":  25,
+                                              "once_per":  "combat",
+                                              "text":  "Drift 25+: When stability is lost, reduce a random card in hand by 1 until played.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "set_random_hand_card_cost_until_played",
+                                                                  "value":  1
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "turn_start",
-        "effects": [
-          {
-            "type": "modify_next_card_cost",
-            "value": -1
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "operator_deep_cache_01",
-    "name": "Deep Cache",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 56,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "patch_grid"
+    {
+        "id":  "operator_deep_cache_01",
+        "name":  "Deep Cache",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  56,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "turn_start",
+                             "effects":  [
+                                             {
+                                                 "type":  "draw",
+                                                 "value":  1
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "turn_start",
-        "effects": [
-          {
-            "type": "draw",
-            "value": 1
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "operator_control_tower_01",
-    "name": "Control Tower",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 57,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_control_tower_01",
+        "name":  "Control Tower",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  57,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "after_card_played",
+                             "conditions":  {
+                                                "played_card_type":  "skill"
+                                            },
+                             "effects":  [
+                                             {
+                                                 "type":  "block",
+                                                 "value":  1
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "after_card_played",
-        "conditions": {
-          "played_card_type": "skill"
-        },
-        "effects": [
-          {
-            "type": "block",
-            "value": 1
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "bio_leech_jab_01",
-    "name": "Leech Jab",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 45,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_leech_jab_01",
+        "name":  "Leech Jab",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  45,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  5
+                        },
+                        {
+                            "type":  "apply_infect",
+                            "value":  1
+                        },
+                        {
+                            "type":  "heal",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 5
-      },
-      {
-        "type": "apply_infect",
-        "value": 1
-      },
-      {
-        "type": "heal",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "bio_hemorrhage_01",
-    "name": "Hemorrhage",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 49,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_hemorrhage_01",
+        "name":  "Hemorrhage",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  49,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  2
+                        },
+                        {
+                            "type":  "damage",
+                            "value":  11
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "blood",
+                           "riders":  [
+                                          {
+                                              "id":  "bio_hemorrhage_drift_25",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  25,
+                                              "text":  "Drift 25+: Deal 3 extra damage.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_damage",
+                                                                  "value":  3
+                                                              }
+                                                          ]
+                                          },
+                                          {
+                                              "id":  "bio_hemorrhage_drift_60",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  60,
+                                              "text":  "Drift 60+: Deal 5 extra damage. Lose 1 HP.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_damage",
+                                                                  "value":  5
+                                                              },
+                                                              {
+                                                                  "type":  "lose_hp",
+                                                                  "value":  1
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 2
-      },
-      {
-        "type": "damage",
-        "value": 11
-      }
-    ]
-  },
-  {
-    "id": "bio_parasite_fang_01",
-    "name": "Parasite Fang",
-    "cost": 2,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 54,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "circuit_burst"
+    {
+        "id":  "bio_parasite_fang_01",
+        "name":  "Parasite Fang",
+        "cost":  2,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  54,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  8
+                        },
+                        {
+                            "type":  "apply_infect",
+                            "value":  2
+                        },
+                        {
+                            "type":  "heal",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 8
-      },
-      {
-        "type": "apply_infect",
-        "value": 2
-      },
-      {
-        "type": "heal",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "bio_pain_probe_01",
-    "name": "Pain Probe",
-    "cost": 0,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 41,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_pain_probe_01",
+        "name":  "Pain Probe",
+        "cost":  0,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  41,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  1
+                        },
+                        {
+                            "type":  "damage",
+                            "value":  6
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 1
-      },
-      {
-        "type": "damage",
-        "value": 6
-      }
-    ]
-  },
-  {
-    "id": "bio_rot_slash_01",
-    "name": "Rot Slash",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 46,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "circuit_burst"
+    {
+        "id":  "bio_rot_slash_01",
+        "name":  "Rot Slash",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  46,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  7
+                        },
+                        {
+                            "type":  "add_status_card",
+                            "card_id":  "status_burn_01",
+                            "count":  1,
+                            "pile":  "discard"
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 7
-      },
-      {
-        "type": "add_status_card",
-        "card_id": "status_burn_01",
-        "count": 1,
-        "pile": "discard"
-      }
-    ]
-  },
-  {
-    "id": "bio_harvest_bite_01",
-    "name": "Harvest Bite",
-    "cost": 2,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 51,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_harvest_bite_01",
+        "name":  "Harvest Bite",
+        "cost":  2,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  51,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "multi_damage",
+                            "value":  4,
+                            "count":  2
+                        },
+                        {
+                            "type":  "apply_infect",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "multi_damage",
-        "value": 4,
-        "count": 2
-      },
-      {
-        "type": "apply_infect",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "bio_scar_tissue_01",
-    "name": "Scar Tissue",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 40,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "signal_mesh"
+    {
+        "id":  "bio_scar_tissue_01",
+        "name":  "Scar Tissue",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  40,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  7
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 7
-      }
-    ]
-  },
-  {
-    "id": "bio_triage_loop_01",
-    "name": "Triage Loop",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 44,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "signal_mesh"
+    {
+        "id":  "bio_triage_loop_01",
+        "name":  "Triage Loop",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  44,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "heal",
+                            "value":  4
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "heal",
-        "value": 4
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "bio_spare_organs_01",
-    "name": "Spare Organs",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 45,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_spare_organs_01",
+        "name":  "Spare Organs",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  45,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  2
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 2
-      },
-      {
-        "type": "draw",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "bio_coagulate_01",
-    "name": "Coagulate",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 43,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "signal_mesh"
+    {
+        "id":  "bio_coagulate_01",
+        "name":  "Coagulate",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  43,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "block",
+                            "value":  7
+                        },
+                        {
+                            "type":  "heal",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "block",
-        "value": 7
-      },
-      {
-        "type": "heal",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "bio_reclaimer_01",
-    "name": "Reclaimer",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 46,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_reclaimer_01",
+        "name":  "Reclaimer",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  46,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  2
+                        },
+                        {
+                            "type":  "energy",
+                            "value":  1
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "rot",
+                           "riders":  [
+                                          {
+                                              "id":  "bio_reclaimer_drift_50",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  50,
+                                              "once_per":  "combat",
+                                              "text":  "Drift 50+: Draw 1 card. Gain 1% Drift.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "draw_cards",
+                                                                  "value":  1
+                                                              },
+                                                              {
+                                                                  "type":  "adjust_protocol_drift",
+                                                                  "value":  1
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "self_damage",
-        "value": 2
-      },
-      {
-        "type": "energy",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "bio_blood_buffer_01",
-    "name": "Blood Buffer",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 44,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "signal_mesh"
+    {
+        "id":  "bio_blood_buffer_01",
+        "name":  "Blood Buffer",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  44,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "heal",
+                            "value":  3
+                        },
+                        {
+                            "type":  "block",
+                            "value":  5
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "heal",
-        "value": 3
-      },
-      {
-        "type": "block",
-        "value": 5
-      }
-    ]
-  },
-  {
-    "id": "bio_symbiote_mesh_01",
-    "name": "Symbiote Mesh",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 56,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "signal_mesh"
+    {
+        "id":  "bio_symbiote_mesh_01",
+        "name":  "Symbiote Mesh",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  56,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "on_self_damage",
+                             "effects":  [
+                                             {
+                                                 "type":  "heal",
+                                                 "value":  2
+                                             }
+                                         ]
+                         }
+                     ],
+        "corruption":  {
+                           "affinity":  "blood",
+                           "riders":  [
+                                          {
+                                              "id":  "bio_symbiote_mesh_drift_25",
+                                              "trigger":  "on_stability_lost",
+                                              "requires_protocol_drift_at_least":  25,
+                                              "once_per":  "combat",
+                                              "text":  "Drift 25+: When stability is lost, heal 2 HP.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "heal",
+                                                                  "value":  2
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "on_self_damage",
-        "effects": [
-          {
-            "type": "heal",
-            "value": 2
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "bio_pain_circuit_01",
-    "name": "Pain Circuit",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 57,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "patch_grid"
+    {
+        "id":  "bio_pain_circuit_01",
+        "name":  "Pain Circuit",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  57,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "patch_grid"
+                  },
+        "triggers":  [
+                         {
+                             "hook":  "turn_start",
+                             "effects":  [
+                                             {
+                                                 "type":  "gain_strength",
+                                                 "value":  1
+                                             },
+                                             {
+                                                 "type":  "add_status_card",
+                                                 "card_id":  "status_junk_01",
+                                                 "count":  1,
+                                                 "pile":  "discard"
+                                             }
+                                         ]
+                         }
+                     ],
+        "effects":  [
+
+                    ]
     },
-    "triggers": [
-      {
-        "hook": "turn_start",
-        "effects": [
-          {
-            "type": "gain_strength",
-            "value": 1
-          },
-          {
-            "type": "add_status_card",
-            "card_id": "status_junk_01",
-            "count": 1,
-            "pile": "discard"
-          }
-        ]
-      }
-    ],
-    "effects": []
-  },
-  {
-    "id": "bio_rot_harvest_01",
-    "name": "Rot Harvest",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 59,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "circuit_burst"
+    {
+        "id":  "bio_rot_harvest_01",
+        "name":  "Rot Harvest",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  59,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "circuit_burst"
+                  },
+        "triggers":  [
+                         {
+                             "hook":  "on_status_drawn",
+                             "effects":  [
+                                             {
+                                                 "type":  "energy",
+                                                 "value":  1
+                                             },
+                                             {
+                                                 "type":  "heal",
+                                                 "value":  1
+                                             },
+                                             {
+                                                 "type":  "exhaust_drawn_card"
+                                             }
+                                         ]
+                         }
+                     ],
+        "effects":  [
+
+                    ],
+        "corruption":  {
+                           "affinity":  "rot",
+                           "riders":  [
+                                          {
+                                              "id":  "bio_rot_harvest_drift_60",
+                                              "trigger":  "on_status_drawn",
+                                              "requires_protocol_drift_at_least":  60,
+                                              "once_per":  "turn",
+                                              "text":  "Drift 60+: The first status drawn each turn also deals 2 damage to a random enemy.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "damage_random_enemy",
+                                                                  "value":  2
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "triggers": [
-      {
-        "hook": "on_status_drawn",
-        "effects": [
-          {
-            "type": "energy",
-            "value": 1
-          },
-          {
-            "type": "heal",
-            "value": 1
-          },
-          {
-            "type": "exhaust_drawn_card"
-          }
-        ]
-      }
-    ],
-    "effects": []
-  },
-  {
-    "id": "enforcer_gouge_01",
-    "name": "Gouge",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 48,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "patch_grid"
+    {
+        "id":  "enforcer_gouge_01",
+        "name":  "Gouge",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  48,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  5
+                        },
+                        {
+                            "type":  "apply_bleed",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 5
-      },
-      {
-        "type": "apply_bleed",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "enforcer_spiked_harness_01",
-    "name": "Spiked Harness",
-    "cost": 1,
-    "type": "power",
-    "owners": [
-      "enforcer"
-    ],
-    "shop_price": 56,
-    "theme": {
-      "faction": "enforcer",
-      "palette": "enforcer_crimson",
-      "art_style": "patch_grid"
+    {
+        "id":  "enforcer_spiked_harness_01",
+        "name":  "Spiked Harness",
+        "cost":  1,
+        "type":  "power",
+        "owners":  [
+                       "enforcer"
+                   ],
+        "shop_price":  56,
+        "theme":  {
+                      "faction":  "enforcer",
+                      "palette":  "enforcer_crimson",
+                      "art_style":  "patch_grid"
+                  },
+        "effects":  [
+
+                    ],
+        "triggers":  [
+                         {
+                             "hook":  "on_self_damage",
+                             "effects":  [
+                                             {
+                                                 "type":  "block",
+                                                 "value":  3
+                                             }
+                                         ]
+                         }
+                     ]
     },
-    "effects": [],
-    "triggers": [
-      {
-        "hook": "on_self_damage",
-        "effects": [
-          {
-            "type": "block",
-            "value": 3
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "operator_static_haze_01",
-    "name": "Static Haze",
-    "cost": 1,
-    "type": "skill",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 48,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "signal_mesh"
+    {
+        "id":  "operator_static_haze_01",
+        "name":  "Static Haze",
+        "cost":  1,
+        "type":  "skill",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  48,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "apply_weak",
+                            "value":  2
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "apply_weak",
-        "value": 2
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "id": "operator_zero_day_burst_01",
-    "name": "Zero-Day Burst",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "operator"
-    ],
-    "shop_price": 50,
-    "theme": {
-      "faction": "operator",
-      "palette": "operator_teal",
-      "art_style": "circuit_burst"
+    {
+        "id":  "operator_zero_day_burst_01",
+        "name":  "Zero-Day Burst",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "operator"
+                   ],
+        "shop_price":  50,
+        "theme":  {
+                      "faction":  "operator",
+                      "palette":  "operator_teal",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "multi_damage",
+                            "value":  2,
+                            "count":  3
+                        },
+                        {
+                            "type":  "modify_next_card_cost",
+                            "value":  -1
+                        }
+                    ],
+        "corruption":  {
+                           "affinity":  "signal",
+                           "riders":  [
+                                          {
+                                              "id":  "operator_zero_day_burst_drift_60",
+                                              "trigger":  "on_play",
+                                              "requires_protocol_drift_at_least":  60,
+                                              "text":  "Drift 60+: Add 1 extra 2-damage hit. Add 1 Lag to discard.",
+                                              "effects":  [
+                                                              {
+                                                                  "type":  "bonus_hits",
+                                                                  "value":  2,
+                                                                  "count":  1
+                                                              },
+                                                              {
+                                                                  "type":  "add_status_card",
+                                                                  "card_id":  "status_lag_01",
+                                                                  "count":  1,
+                                                                  "pile":  "discard"
+                                                              }
+                                                          ]
+                                          }
+                                      ]
+                       }
     },
-    "effects": [
-      {
-        "type": "multi_damage",
-        "value": 2,
-        "count": 3
-      },
-      {
-        "type": "modify_next_card_cost",
-        "value": -1
-      }
-    ]
-  },
-  {
-    "id": "bio_septic_round_01",
-    "name": "Septic Round",
-    "cost": 1,
-    "type": "attack",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 48,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "circuit_burst"
+    {
+        "id":  "bio_septic_round_01",
+        "name":  "Septic Round",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  48,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  4
+                        },
+                        {
+                            "type":  "apply_infect",
+                            "value":  2
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "damage",
-        "value": 4
-      },
-      {
-        "type": "apply_infect",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "id": "bio_waste_recycler_01",
-    "name": "Waste Recycler",
-    "cost": 0,
-    "type": "skill",
-    "owners": [
-      "bio_hacker"
-    ],
-    "shop_price": 47,
-    "theme": {
-      "faction": "bio_hacker",
-      "palette": "bio_hacker_verdant",
-      "art_style": "signal_mesh"
+    {
+        "id":  "bio_waste_recycler_01",
+        "name":  "Waste Recycler",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "bio_hacker"
+                   ],
+        "shop_price":  47,
+        "theme":  {
+                      "faction":  "bio_hacker",
+                      "palette":  "bio_hacker_verdant",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "add_status_card",
+                            "card_id":  "status_junk_01",
+                            "count":  1,
+                            "pile":  "discard"
+                        },
+                        {
+                            "type":  "energy",
+                            "value":  1
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        }
+                    ]
     },
-    "effects": [
-      {
-        "type": "add_status_card",
-        "card_id": "status_junk_01",
-        "count": 1,
-        "pile": "discard"
-      },
-      {
-        "type": "energy",
-        "value": 1
-      },
-      {
-        "type": "draw",
-        "value": 1
-      }
-    ]
-  }
+    {
+        "id":  "drift_error_knife_01",
+        "name":  "Error Knife",
+        "cost":  0,
+        "type":  "attack",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "hidden":  true,
+        "reward_eligible":  false,
+        "shop_eligible":  false,
+        "temporary_by_default":  true,
+        "generation_tags":  [
+                                "corruption",
+                                "protocol_drift"
+                            ],
+        "keywords":  [
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "self_damage",
+                            "value":  2
+                        },
+                        {
+                            "type":  "damage",
+                            "value":  9
+                        }
+                    ]
+    },
+    {
+        "id":  "drift_unsafe_overclock_01",
+        "name":  "Unsafe Overclock",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "hidden":  true,
+        "reward_eligible":  false,
+        "shop_eligible":  false,
+        "temporary_by_default":  true,
+        "generation_tags":  [
+                                "corruption",
+                                "protocol_drift"
+                            ],
+        "keywords":  [
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "energy",
+                            "value":  2
+                        },
+                        {
+                            "type":  "adjust_protocol_drift",
+                            "value":  2
+                        },
+                        {
+                            "type":  "add_status_card",
+                            "card_id":  "status_lag_01",
+                            "count":  1,
+                            "pile":  "discard"
+                        }
+                    ]
+    },
+    {
+        "id":  "drift_null_refund_01",
+        "name":  "Null Refund",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "hidden":  true,
+        "reward_eligible":  false,
+        "shop_eligible":  false,
+        "temporary_by_default":  true,
+        "generation_tags":  [
+                                "corruption",
+                                "protocol_drift"
+                            ],
+        "keywords":  [
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "remove_one_player_status",
+                            "status_ids":  [
+                                               "suppressed",
+                                               "nullified"
+                                           ]
+                        },
+                        {
+                            "type":  "draw",
+                            "value":  1
+                        },
+                        {
+                            "type":  "adjust_protocol_drift",
+                            "value":  2
+                        }
+                    ]
+    },
+    {
+        "id":  "drift_mirror_cache_01",
+        "name":  "Mirror Cache",
+        "cost":  0,
+        "type":  "skill",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "hidden":  true,
+        "reward_eligible":  false,
+        "shop_eligible":  false,
+        "temporary_by_default":  true,
+        "generation_tags":  [
+                                "corruption",
+                                "protocol_drift"
+                            ],
+        "keywords":  [
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "signal_mesh"
+                  },
+        "effects":  [
+                        {
+                            "type":  "draw",
+                            "value":  2
+                        },
+                        {
+                            "type":  "exhaust_status_card_in_hand",
+                            "fallback_effects":  [
+                                                     {
+                                                         "type":  "add_status_card",
+                                                         "card_id":  "status_glitch_01",
+                                                         "count":  1,
+                                                         "pile":  "discard"
+                                                     }
+                                                 ]
+                        }
+                    ]
+    },
+    {
+        "id":  "drift_black_ice_bloom_01",
+        "name":  "Black Ice Bloom",
+        "cost":  1,
+        "type":  "attack",
+        "owners":  [
+                       "shared"
+                   ],
+        "shop_price":  0,
+        "hidden":  true,
+        "reward_eligible":  false,
+        "shop_eligible":  false,
+        "temporary_by_default":  true,
+        "generation_tags":  [
+                                "corruption",
+                                "protocol_drift"
+                            ],
+        "keywords":  [
+                         "exhaust"
+                     ],
+        "theme":  {
+                      "faction":  "shared",
+                      "palette":  "starter_neutral",
+                      "art_style":  "circuit_burst"
+                  },
+        "effects":  [
+                        {
+                            "type":  "damage",
+                            "value":  10
+                        },
+                        {
+                            "type":  "apply_weak",
+                            "value":  1
+                        },
+                        {
+                            "type":  "apply_vulnerable",
+                            "value":  1
+                        },
+                        {
+                            "type":  "add_status_card",
+                            "card_id":  "status_glitch_01",
+                            "count":  1,
+                            "pile":  "discard"
+                        }
+                    ]
+    }
 ]

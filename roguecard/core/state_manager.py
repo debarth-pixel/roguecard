@@ -57,6 +57,11 @@ SHOP_MENU_STATUS_MESSAGES = {
     "purge": "Purge channel active. Choose a deck card to remove.",
     "cleanse": "Cleanse channel active.",
 }
+SIGNATURE_EVENT_IDS_BY_CHARACTER = {
+    "enforcer": "riot_drill_square_01",
+    "operator": "cheap_implant_rack_01",
+    "bio_hacker": "infection_gallery_01",
+}
 
 
 class StateManager:
@@ -97,6 +102,7 @@ class StateManager:
         self.active_character_select: dict[str, Any] | None = None
         self.run_modifiers: list[dict[str, Any]] = []
         self.modifier_runtime_flags: dict[str, Any] = self._default_modifier_runtime_flags()
+        self.run_state: dict[str, Any] = self._default_run_state()
         self.event_history: list[dict[str, Any]] = []
         self.character_id: str | None = None
         self.campaign_state: dict[str, Any] | None = None
@@ -117,6 +123,7 @@ class StateManager:
         self.active_character_select = {"selected_character_id": None}
         self.run_modifiers = []
         self.modifier_runtime_flags = self._default_modifier_runtime_flags()
+        self.run_state = self._default_run_state()
         self.event_history = []
         self.current_state = "character_select"
         self.status_message = "Choose a runner before drafting a modifier."
@@ -215,6 +222,8 @@ class StateManager:
             raise ValueError("Status cards cannot be played.")
         target = self.combat_manager.get_enemy(target_id) if target_id else None
         play_context = self._combat_card_context(card)
+        corruption_resolution = self._prepare_on_play_corruption(card)
+        play_context["damage_bonus"] += corruption_resolution["bonus_damage"]
         resolution = self.combat_manager.resolve_action(
             {
                 "card": card,
@@ -224,6 +233,11 @@ class StateManager:
                 "repeat_count": play_context["repeat_count"],
                 "block_penalty": play_context["block_penalty"],
             }
+        )
+        self._resolve_on_play_corruption(
+            card,
+            target=target,
+            corruption_resolution=corruption_resolution,
         )
         self._record_combat_card_play(card, resolution)
         combat_flags = self._combat_runtime_flags()
@@ -672,7 +686,7 @@ class StateManager:
             combat_snapshot["enemy_phase"] = copy.deepcopy(
                 self._combat_runtime_flags().get("enemy_phase", self._default_enemy_phase_state())
             )
-        return {
+        snapshot = {
             "current_state": self.current_state,
             "status_message": self.status_message,
             "run_seed": self.run_seed,
@@ -682,6 +696,7 @@ class StateManager:
             "character_select": self._snapshot_character_select(),
             "modifier_draft": self._snapshot_modifier_draft(),
             "run_modifiers": self.run_modifier_engine.snapshot(self.run_modifiers),
+            "run_state": self._snapshot_run_state(),
             "map": self._snapshot_map(),
             "combat": combat_snapshot,
             "event": self._snapshot_event(),
@@ -690,6 +705,8 @@ class StateManager:
             "player": self.player.get_state() if self.player is not None else None,
             "player_hand": self._snapshot_hand(),
         }
+        self._annotate_snapshot_cards(snapshot)
+        return snapshot
 
     def build_save_data(self) -> dict[str, Any]:
         if self.run_seed is None:
@@ -704,6 +721,7 @@ class StateManager:
                 "character": self.character_id,
                 "campaign": None,
                 "character_select": self._serialize_character_select(),
+                "run_state": copy.deepcopy(self.run_state),
                 "player": None,
                 "deck": None,
                 "map": None,
@@ -729,6 +747,7 @@ class StateManager:
             "character": self._active_character_id(),
             "campaign": self._serialize_campaign(),
             "character_select": None,
+            "run_state": copy.deepcopy(self.run_state),
             "player": self._serialize_player(),
             "deck": self._serialize_deck(self.player.deck_manager),
             "map": self._serialize_map(),
@@ -757,6 +776,7 @@ class StateManager:
         character_id = save_data.get("character")
         campaign_data = save_data.get("campaign")
         character_select_data = save_data.get("character_select")
+        run_state_data = save_data.get("run_state")
         player_data = save_data.get("player")
         deck_data = save_data.get("deck")
         map_data = save_data.get("map")
@@ -801,6 +821,7 @@ class StateManager:
         self.active_character_select = None
         self.run_modifiers = []
         self.modifier_runtime_flags = self._default_modifier_runtime_flags()
+        self.run_state = self._restore_run_state(run_state_data)
         self.event_history = []
         self.player = None
         self.campaign_state = None
@@ -853,6 +874,7 @@ class StateManager:
         self._begin_combat_modifier_runtime()
         self.current_state = "combat"
         self.combat_manager.start_combat()
+        self._resolve_run_state_combat_start()
         self._apply_combat_modifier_effects("combat_start")
         self._apply_combat_modifier_effects("on_turn_start")
         self._apply_combat_modifier_effects("turn_one")
@@ -1037,12 +1059,18 @@ class StateManager:
         choices = []
         for choice in event_definition["choices"]:
             available, disabled_reason = self._event_choice_availability(choice)
+            preview_rows = self._event_choice_preview_rows(choice)
             choices.append(
                 {
                     "id": choice["id"],
                     "label": choice["label"],
                     "description": choice["description"],
+                    "preview_rows": preview_rows,
                     "choice_type": choice["choice_type"],
+                    "requirements": copy.deepcopy(choice.get("requirements", {})),
+                    "effects": copy.deepcopy(choice.get("effects", [])),
+                    "outcomes": copy.deepcopy(choice.get("outcomes", [])),
+                    "ui_role": choice.get("ui_role", "normal"),
                     "available": available and not self.active_event["resolved"],
                     "disabled_reason": disabled_reason,
                     "selected": self.active_event.get("selected_choice_id") == choice["id"],
@@ -1053,6 +1081,8 @@ class StateManager:
             "event_id": event_definition["id"],
             "title": event_definition["title"],
             "body": event_definition["body"],
+            "tags": list(event_definition["tags"]),
+            "primary_tag": event_definition["primary_tag"],
             "choices": choices,
             "selected_choice_id": self.active_event.get("selected_choice_id"),
             "selected_choice_type": self._selected_event_choice_type(event_definition),
@@ -1212,6 +1242,25 @@ class StateManager:
         if status_count_at_most is not None and len(self.run_modifiers) > status_count_at_most:
             return False, f"Requires at most {status_count_at_most} active statuses."
 
+        protocol_drift_pct = max(0, int(self.run_state.get("protocol_drift_pct", 0)))
+        protocol_drift_at_least = requirements.get("protocol_drift_at_least")
+        if protocol_drift_at_least is not None and protocol_drift_pct < protocol_drift_at_least:
+            return False, f"Requires Protocol Drift {protocol_drift_at_least}%+."
+
+        protocol_drift_below = requirements.get("protocol_drift_below")
+        if protocol_drift_below is not None and protocol_drift_pct >= protocol_drift_below:
+            return False, f"Requires Protocol Drift below {protocol_drift_below}%."
+
+        current_hp_at_least = requirements.get("current_hp_at_least")
+        if current_hp_at_least is not None and self.player.current_hp < current_hp_at_least:
+            return False, f"Requires at least {current_hp_at_least} HP."
+
+        current_hp_below_percent = requirements.get("current_hp_below_percent")
+        if current_hp_below_percent is not None:
+            current_hp_pct = int(round((self.player.current_hp / max(1, self.player.max_hp)) * 100))
+            if current_hp_pct >= current_hp_below_percent:
+                return False, f"Requires HP below {current_hp_below_percent}%."
+
         modifier_active = requirements.get("modifier_active")
         if modifier_active is not None and not self.run_modifier_engine.has_modifier(self.run_modifiers, modifier_active):
             modifier = self.run_modifier_library.get_modifier(modifier_active)
@@ -1278,6 +1327,87 @@ class StateManager:
         if choice["choice_type"] == "purge":
             return "Card purged from the deck."
         return "You move on without changing the run."
+
+    def _event_choice_preview_rows(self, choice: dict[str, Any]) -> list[dict[str, str]]:
+        if choice.get("choice_type") == "risk":
+            return []
+
+        preview_rows: list[dict[str, str]] = []
+        preview_drift = max(0, min(100, int(self.run_state.get("protocol_drift_pct", 0))))
+        total_drift_delta = 0
+        for effect in choice.get("effects", []):
+            if effect["type"] == "adjust_protocol_drift":
+                adjusted = max(0, min(100, preview_drift + int(effect["amount"])))
+                total_drift_delta += adjusted - preview_drift
+                preview_drift = adjusted
+            elif effect["type"] == "queue_next_combat_effect":
+                preview_rows.append(
+                    {
+                        "kind": "next_combat",
+                        "label": self._queued_next_combat_effect_summary(effect["effect"]),
+                    }
+                )
+
+        if total_drift_delta != 0:
+            preview_rows.insert(
+                0,
+                {
+                    "kind": "protocol_drift",
+                    "label": self._format_protocol_drift_delta(total_drift_delta),
+                },
+            )
+        return preview_rows
+
+    def _format_protocol_drift_delta(self, delta: int) -> str:
+        if delta > 0:
+            return f"+{delta}% Drift"
+        if delta < 0:
+            return f"-{abs(delta)}% Drift"
+        return "0% Drift"
+
+    def _queued_next_combat_effect_summary(self, effect: dict[str, Any]) -> str:
+        effect_type = effect["type"]
+        if effect_type == "gain_energy":
+            return f"Next combat: +{effect['value']} Energy"
+        if effect_type == "draw_cards":
+            return f"Next combat: Draw {effect['value']}"
+        if effect_type == "gain_block":
+            return f"Next combat: +{effect['value']} Block"
+        if effect_type == "apply_player_status":
+            return f"Next combat: +{effect['value']} {effect['status_id'].replace('_', ' ').title()}"
+        if effect_type == "add_status_card":
+            card_name = self.card_library.get_card(effect["card_id"]).name
+            count = int(effect.get("count", 1))
+            pile = effect.get("pile", "discard")
+            return f"Next combat: +{count} {card_name} to {pile}"
+        if effect_type == "add_temporary_card_to_hand":
+            card_name = self.card_library.get_card(effect["card_id"]).name
+            return f"Next combat: Temp {card_name}"
+        return "Next combat effect queued"
+
+    def _event_effect_source_id(self, effect_type: str) -> str:
+        if self.active_event is None:
+            return effect_type
+        choice_id = self.active_event.get("selected_choice_id", "choice")
+        return f"event:{self.active_event['event_id']}:{choice_id}:{effect_type}"
+
+    def _queue_next_combat_effect(self, effect: dict[str, Any]) -> dict[str, Any]:
+        queued_effect = self._normalize_queued_next_combat_effect(effect)
+        self.run_state.setdefault("queued_next_combat_effects", []).append(copy.deepcopy(queued_effect))
+        return queued_effect
+
+    def _remove_card_from_deck_by_id(self, card_id: str, *, count: int = 1) -> int:
+        removed_count = 0
+        deck = self.player.deck_manager.starting_deck
+        while removed_count < count:
+            match_index = next((index for index, card in enumerate(deck) if getattr(card, "id", None) == card_id), None)
+            if match_index is None:
+                break
+            self.player.deck_manager.remove_from_starting_deck(match_index)
+            removed_count += 1
+        if removed_count > 0:
+            self.player.deck_manager.normalize_overworld_deck()
+        return removed_count
 
     def _event_outcome(self, choice: dict[str, Any]) -> dict[str, Any]:
         rng = self._state_rng(f"event_outcome:{self.active_event['event_id']}:{choice['id']}")
@@ -1369,6 +1499,31 @@ class StateManager:
             elif effect_type == "damage":
                 damage = self.player.take_damage(effect["value"])
                 details.append(f"Took {damage} damage.")
+            elif effect_type == "adjust_protocol_drift":
+                drift_change = self._adjust_protocol_drift(
+                    effect["amount"],
+                    source_id=self._event_effect_source_id(effect_type),
+                )
+                if drift_change["delta"] > 0:
+                    details.append(f"Protocol Drift increased by {drift_change['delta']}%.")
+                elif drift_change["delta"] < 0:
+                    details.append(f"Protocol Drift decreased by {abs(drift_change['delta'])}%.")
+                else:
+                    details.append("Protocol Drift was unchanged.")
+            elif effect_type == "queue_next_combat_effect":
+                queued_effect = self._queue_next_combat_effect(effect["effect"])
+                details.append(self._queued_next_combat_effect_summary(queued_effect))
+            elif effect_type == "remove_card_from_deck_by_id":
+                removed_count = self._remove_card_from_deck_by_id(
+                    effect["card_id"],
+                    count=effect.get("count", 1),
+                )
+                deck_changed = deck_changed or removed_count > 0
+                card_name = self.card_library.get_card(effect["card_id"]).name
+                if removed_count > 0:
+                    details.append(f"Removed {removed_count} {card_name} from the deck.")
+                else:
+                    details.append(f"No {card_name} was removed.")
             elif effect_type == "purge_card":
                 if target_id is None:
                     raise ValueError("This event effect requires a selected deck target.")
@@ -1434,6 +1589,48 @@ class StateManager:
         if self.current_state == "combat" and self.combat_manager is not None:
             return [self._combat_card_snapshot(card) for card in self.player.deck_manager.hand]
         return [card.to_dict() for card in self.player.deck_manager.hand]
+
+    def _annotate_snapshot_cards(self, payload: Any) -> None:
+        if isinstance(payload, dict):
+            if self._looks_like_card_snapshot(payload):
+                self._decorate_card_snapshot(payload)
+            for value in payload.values():
+                self._annotate_snapshot_cards(value)
+            return
+        if isinstance(payload, list):
+            for value in payload:
+                self._annotate_snapshot_cards(value)
+
+    def _looks_like_card_snapshot(self, payload: dict[str, Any]) -> bool:
+        required_keys = {"id", "name", "cost", "type", "effects"}
+        return required_keys.issubset(payload)
+
+    def _decorate_card_snapshot(self, card_data: dict[str, Any]) -> None:
+        corruption = card_data.get("corruption")
+        if not isinstance(corruption, dict):
+            return
+
+        protocol_drift_pct = int(self.run_state.get("protocol_drift_pct", 0))
+        protocol_drift_seen = bool(self.run_state.get("protocol_drift_seen", False))
+        hide_until_seen = bool(corruption.get("hide_until_protocol_drift_seen", True))
+        if hide_until_seen and not protocol_drift_seen:
+            card_data["corruption_display"] = []
+            card_data["corruption_hidden"] = True
+            return
+
+        riders = []
+        for rider in corruption.get("riders", []):
+            threshold = int(rider.get("requires_protocol_drift_at_least", 0))
+            riders.append(
+                {
+                    "id": rider.get("id"),
+                    "text": rider.get("text", ""),
+                    "threshold": threshold,
+                    "active": protocol_drift_pct >= threshold,
+                }
+            )
+        card_data["corruption_display"] = riders
+        card_data["corruption_hidden"] = False
 
     def _current_node_type(self) -> str | None:
         if self.map_graph is None or self.selected_node_id is None:
@@ -1633,6 +1830,124 @@ class StateManager:
             "combat": self._default_combat_runtime_flags(),
         }
 
+    def _default_run_state(self) -> dict[str, Any]:
+        return {
+            "protocol_drift_pct": 0,
+            "protocol_drift_seen": False,
+            "pending_stability_loss_pulses": 0,
+            "queued_next_combat_effects": [],
+        }
+
+    def _snapshot_run_state(self) -> dict[str, Any]:
+        protocol_drift_pct = max(0, min(100, int(self.run_state.get("protocol_drift_pct", 0))))
+        band = self._protocol_drift_band(protocol_drift_pct)
+        return {
+            "protocol_drift_pct": protocol_drift_pct,
+            "protocol_drift_seen": bool(self.run_state.get("protocol_drift_seen", False)),
+            "pending_stability_loss_pulses": max(0, int(self.run_state.get("pending_stability_loss_pulses", 0))),
+            "queued_next_combat_effects": copy.deepcopy(self.run_state.get("queued_next_combat_effects", [])),
+            "band_index": band["index"],
+            "band_label": band["label"],
+        }
+
+    def _restore_run_state(self, run_state_data: Any) -> dict[str, Any]:
+        if not isinstance(run_state_data, dict):
+            raise ValueError("Save data is missing run_state details.")
+        restored = self._default_run_state()
+
+        protocol_drift_pct = run_state_data.get("protocol_drift_pct")
+        if not isinstance(protocol_drift_pct, int):
+            raise ValueError("run_state protocol_drift_pct must be an integer.")
+        restored["protocol_drift_pct"] = max(0, min(100, protocol_drift_pct))
+
+        protocol_drift_seen = run_state_data.get("protocol_drift_seen", False)
+        if not isinstance(protocol_drift_seen, bool):
+            raise ValueError("run_state protocol_drift_seen must be a boolean.")
+        restored["protocol_drift_seen"] = protocol_drift_seen or restored["protocol_drift_pct"] > 0
+
+        pending_pulses = run_state_data.get("pending_stability_loss_pulses", 0)
+        if not isinstance(pending_pulses, int) or pending_pulses < 0:
+            raise ValueError("run_state pending_stability_loss_pulses must be a non-negative integer.")
+        restored["pending_stability_loss_pulses"] = min(1, pending_pulses)
+
+        queued_effects = run_state_data.get("queued_next_combat_effects", [])
+        if not isinstance(queued_effects, list):
+            raise ValueError("run_state queued_next_combat_effects must be a list.")
+        restored["queued_next_combat_effects"] = [
+            self._normalize_queued_next_combat_effect(effect)
+            for effect in queued_effects
+        ]
+        return restored
+
+    def _normalize_queued_next_combat_effect(self, effect: Any) -> dict[str, Any]:
+        if not isinstance(effect, dict):
+            raise ValueError("Queued next combat effects must be dictionaries.")
+        effect_type = effect.get("type")
+        if effect_type not in {
+            "gain_energy",
+            "draw_cards",
+            "gain_block",
+            "apply_player_status",
+            "add_status_card",
+            "add_temporary_card_to_hand",
+        }:
+            raise ValueError(f"Unsupported queued next combat effect type: {effect_type}")
+
+        validated = {"type": effect_type}
+        if effect_type in {"gain_energy", "draw_cards", "gain_block"}:
+            value = effect.get("value")
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(f"Queued next combat effect {effect_type} must define a positive integer value.")
+            validated["value"] = value
+            return validated
+
+        if effect_type == "apply_player_status":
+            status_id = effect.get("status_id")
+            value = effect.get("value", 1)
+            if not isinstance(status_id, str) or not status_id:
+                raise ValueError("Queued apply_player_status effects must define status_id.")
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError("Queued apply_player_status effects must define a positive integer value.")
+            validated["status_id"] = status_id
+            validated["value"] = value
+            return validated
+
+        if effect_type == "add_status_card":
+            card_id = effect.get("card_id")
+            count = effect.get("count", 1)
+            pile = effect.get("pile", "discard")
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError("Queued add_status_card effects must define card_id.")
+            self.card_library.get_card(card_id)
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError("Queued add_status_card effects must define a positive integer count.")
+            if pile not in {"draw", "discard"}:
+                raise ValueError(f"Queued add_status_card effects use unsupported pile: {pile}")
+            validated["card_id"] = card_id
+            validated["count"] = count
+            validated["pile"] = pile
+            return validated
+
+        card_id = effect.get("card_id")
+        if not isinstance(card_id, str) or not card_id:
+            raise ValueError("Queued add_temporary_card_to_hand effects must define card_id.")
+        self.card_library.get_card(card_id)
+        validated["card_id"] = card_id
+        return validated
+
+    def _protocol_drift_band(self, protocol_drift_pct: int) -> dict[str, Any]:
+        bands = (
+            {"index": 0, "label": "Stable", "min": 0, "max": 19},
+            {"index": 1, "label": "Noisy", "min": 20, "max": 39},
+            {"index": 2, "label": "Fractured", "min": 40, "max": 59},
+            {"index": 3, "label": "Corrupt", "min": 60, "max": 79},
+            {"index": 4, "label": "Critical", "min": 80, "max": 100},
+        )
+        for band in bands:
+            if band["min"] <= protocol_drift_pct <= band["max"]:
+                return dict(band)
+        return dict(bands[-1])
+
     def _default_combat_runtime_flags(self) -> dict[str, Any]:
         return {
             "active_modifier_ids": [],
@@ -1641,10 +1956,13 @@ class StateManager:
             "card_type_counts_this_turn": {},
             "current_turn_attack_played": False,
             "last_turn_attack_played": False,
+            "any_card_cost_reduced_this_turn": False,
             "first_block_penalty_remaining": 0,
             "pending_energy_next_turn": 0,
             "triggered_modifier_ids_this_turn": [],
             "triggered_modifier_ids_this_combat": [],
+            "triggered_corruption_ids_this_turn": [],
+            "triggered_corruption_ids_this_combat": [],
             "modifier_state": {},
             "runtime_event_index": 0,
             "enemy_phase": self._default_enemy_phase_state(),
@@ -1680,6 +1998,96 @@ class StateManager:
             combat_flags = self._default_combat_runtime_flags()
             self.modifier_runtime_flags["combat"] = combat_flags
         return combat_flags
+
+    def _adjust_protocol_drift(
+        self,
+        amount: int,
+        *,
+        source_id: str,
+        source_chain: list[str] | None = None,
+    ) -> dict[str, int]:
+        if not isinstance(amount, int):
+            raise ValueError("Protocol Drift adjustments must be integers.")
+
+        old_value = max(0, min(100, int(self.run_state.get("protocol_drift_pct", 0))))
+        new_value = max(0, min(100, old_value + amount))
+        delta = new_value - old_value
+        self.run_state["protocol_drift_pct"] = new_value
+        self.run_state["protocol_drift_seen"] = bool(self.run_state.get("protocol_drift_seen", False) or new_value > 0)
+
+        if delta > 0:
+            if self.current_state == "combat" and self.combat_manager is not None:
+                self._handle_combat_runtime_event(
+                    {
+                        "hook": "on_stability_lost",
+                        "amount": delta,
+                        "old_value": old_value,
+                        "new_value": new_value,
+                        "source_id": source_id,
+                        "source_chain": list(source_chain or []),
+                    }
+                )
+            else:
+                self.run_state["pending_stability_loss_pulses"] = min(
+                    1,
+                    int(self.run_state.get("pending_stability_loss_pulses", 0)) + 1,
+                )
+
+        return {"old_value": old_value, "new_value": new_value, "delta": delta}
+
+    def _resolve_run_state_combat_start(self) -> None:
+        if self.current_state != "combat" or self.combat_manager is None:
+            return
+
+        pending_pulses = int(self.run_state.get("pending_stability_loss_pulses", 0))
+        if pending_pulses > 0:
+            self.run_state["pending_stability_loss_pulses"] = 0
+            self._handle_combat_runtime_event(
+                {
+                    "hook": "on_stability_lost",
+                    "amount": pending_pulses,
+                    "old_value": int(self.run_state.get("protocol_drift_pct", 0)),
+                    "new_value": int(self.run_state.get("protocol_drift_pct", 0)),
+                    "source_id": "pending_protocol_drift",
+                    "source_chain": ["pending_protocol_drift"],
+                }
+            )
+
+        if int(self.run_state.get("protocol_drift_pct", 0)) >= 100:
+            self.combat_manager._add_status_cards_to_player("status_glitch_01", 1, "discard")
+
+        queued_effects = list(self.run_state.get("queued_next_combat_effects", []))
+        self.run_state["queued_next_combat_effects"] = []
+        for effect in queued_effects:
+            self._apply_modifier_effect(self._normalize_queued_next_combat_effect(effect))
+
+    def _apply_player_status_effect(self, status_id: str, amount: int) -> str | None:
+        if self.current_state != "combat" or self.combat_manager is None:
+            return None
+
+        key = str(status_id).strip().lower()
+        applied = 0
+        if key == "suppressed":
+            applied = self.player.apply_suppressed(amount)
+        elif key == "nullified":
+            if amount > 0:
+                self.player.apply_nullified()
+                applied = 1
+        elif key == "infect":
+            applied = self.player.apply_infect(amount)
+        elif key == "burn":
+            applied = self.player.apply_burn(amount)
+        elif key == "bleed":
+            applied = self.player.apply_bleed(amount)
+        elif key == "marked":
+            applied = self.player.apply_marked(amount)
+        else:
+            raise ValueError(f"Unsupported player combat status: {status_id}")
+
+        if applied <= 0:
+            return None
+        self._handle_combat_runtime_event({"hook": "on_player_status_applied", "status_id": key, "amount": applied})
+        return f"Gained {applied} {key.replace('_', ' ').title()}."
 
     def _acquire_run_modifier(
         self,
@@ -1873,6 +2281,9 @@ class StateManager:
         if effect_type == "gain_energy":
             self.player.energy += effect["value"]
             return [f"Gained {effect['value']} Energy."]
+        if effect_type == "apply_player_status":
+            applied_label = self._apply_player_status_effect(effect["status_id"], effect["value"])
+            return [] if applied_label is None else [applied_label]
         if effect_type == "gain_strength":
             if self._player_positive_gain_blocked("gain_strength", effect["value"]):
                 return ["Gained 0 Strength."]
@@ -2066,6 +2477,13 @@ class StateManager:
             self.player.add_temporary_combat_card(card)
             self.player.deck_manager.hand.append(card)
             return [f"Added temporary {card.name} to hand."]
+        if effect_type == "add_temporary_card_to_hand":
+            if self.current_state != "combat":
+                return []
+            card = self.card_library.create_card(effect["card_id"])
+            self.player.add_temporary_combat_card(card)
+            self.player.deck_manager.hand.append(card)
+            return [f"Added temporary {card.name} to hand."]
         if effect_type == "set_modifier_flag":
             self._set_modifier_flag(effect.get("modifier_id"), effect["flag_id"])
             return []
@@ -2199,10 +2617,19 @@ class StateManager:
         hook_name = event.get("hook")
         if not isinstance(hook_name, str) or not hook_name:
             return
+        if hook_name == "adjust_protocol_drift_effect":
+            self._adjust_protocol_drift(
+                int(event.get("amount", 0)),
+                source_id=str(event.get("source_card_id") or "combat_effect"),
+                source_chain=list(event.get("source_chain", [])) if isinstance(event.get("source_chain"), list) else None,
+            )
+            return
 
         combat_flags = self._combat_runtime_flags()
         combat_flags["runtime_event_index"] = int(combat_flags.get("runtime_event_index", 0)) + 1
         runtime_event_index = int(combat_flags.get("runtime_event_index", 0))
+        if hook_name == "on_card_cost_reduced":
+            combat_flags["any_card_cost_reduced_this_turn"] = True
         triggered_this_turn = set(combat_flags.get("triggered_modifier_ids_this_turn", []))
         triggered_this_combat = set(combat_flags.get("triggered_modifier_ids_this_combat", []))
         combo_index = 0
@@ -2272,6 +2699,206 @@ class StateManager:
 
         combat_flags["triggered_modifier_ids_this_turn"] = sorted(triggered_this_turn)
         combat_flags["triggered_modifier_ids_this_combat"] = sorted(triggered_this_combat)
+        self._apply_corruption_runtime_event(event)
+
+    def _prepare_on_play_corruption(self, card: Any) -> dict[str, Any]:
+        prepared = {
+            "bonus_damage": 0,
+            "extra_hits": [],
+            "post_effects": [],
+        }
+        for rider in self._matching_corruption_riders(card, "on_play"):
+            if rider.get("if_any_card_cost_reduced_this_turn") and not self._combat_runtime_flags().get(
+                "any_card_cost_reduced_this_turn",
+                False,
+            ):
+                continue
+            if not self._corruption_rider_is_available(rider):
+                continue
+            for effect in rider.get("effects", []):
+                effect_type = effect["type"]
+                if effect_type == "bonus_damage":
+                    prepared["bonus_damage"] += effect["value"]
+                elif effect_type == "bonus_hits":
+                    prepared["extra_hits"].append(
+                        {
+                            "value": effect["value"],
+                            "count": int(effect.get("count", 1)),
+                            "rider_id": rider["id"],
+                        }
+                    )
+                else:
+                    prepared["post_effects"].append({"rider_id": rider["id"], **effect})
+            self._mark_corruption_rider_triggered(rider)
+        return prepared
+
+    def _resolve_on_play_corruption(
+        self,
+        card: Any,
+        *,
+        target: Any | None,
+        corruption_resolution: dict[str, Any],
+    ) -> None:
+        if self.current_state != "combat" or self.combat_manager is None:
+            return
+
+        for bonus_hit in corruption_resolution.get("extra_hits", []):
+            for _ in range(int(bonus_hit.get("count", 1))):
+                active_target = target
+                if active_target is None or not getattr(active_target, "is_alive", lambda: False)():
+                    active_target = self._random_living_enemy()
+                if active_target is None:
+                    break
+                self.combat_manager.apply_damage(
+                    self.player,
+                    active_target,
+                    int(bonus_hit["value"]),
+                    feedback_context={
+                        "source_card_id": getattr(card, "id", None),
+                        "source_card_type": getattr(card, "type", None),
+                        "source_corruption_rider_id": bonus_hit["rider_id"],
+                    },
+                )
+
+        for effect in corruption_resolution.get("post_effects", []):
+            self._apply_corruption_effect(
+                effect,
+                source_card=card,
+                rider_id=effect.get("rider_id"),
+                event={"hook": "on_play", "source_chain": [effect.get("rider_id")]},
+            )
+
+    def _apply_corruption_runtime_event(self, event: dict[str, Any]) -> None:
+        hook_name = event.get("hook")
+        if hook_name not in {"on_stability_lost", "on_status_drawn"}:
+            return
+        for card in list(self.player.active_powers):
+            for rider in self._matching_corruption_riders(card, hook_name):
+                if not self._corruption_rider_is_available(rider):
+                    continue
+                source_chain = event.get("source_chain", [])
+                if isinstance(source_chain, list) and rider["id"] in source_chain:
+                    continue
+                for effect in rider.get("effects", []):
+                    self._apply_corruption_effect(effect, source_card=card, rider_id=rider["id"], event=event)
+                self._mark_corruption_rider_triggered(rider)
+
+    def _matching_corruption_riders(self, card: Any, trigger: str) -> list[dict[str, Any]]:
+        corruption = getattr(card, "corruption", None)
+        if not isinstance(corruption, dict):
+            return []
+        protocol_drift_pct = int(self.run_state.get("protocol_drift_pct", 0))
+        matching: list[dict[str, Any]] = []
+        for rider in corruption.get("riders", []):
+            if rider.get("trigger") != trigger:
+                continue
+            if protocol_drift_pct < int(rider.get("requires_protocol_drift_at_least", 0)):
+                continue
+            matching.append(rider)
+        return matching
+
+    def _corruption_rider_is_available(self, rider: dict[str, Any]) -> bool:
+        once_per = rider.get("once_per")
+        if once_per is None:
+            return True
+        combat_flags = self._combat_runtime_flags()
+        gate_key = str(rider["id"])
+        if once_per == "turn":
+            return gate_key not in set(combat_flags.get("triggered_corruption_ids_this_turn", []))
+        if once_per == "combat":
+            return gate_key not in set(combat_flags.get("triggered_corruption_ids_this_combat", []))
+        return True
+
+    def _mark_corruption_rider_triggered(self, rider: dict[str, Any]) -> None:
+        once_per = rider.get("once_per")
+        if once_per is None:
+            return
+        combat_flags = self._combat_runtime_flags()
+        gate_key = str(rider["id"])
+        if once_per == "turn":
+            triggered = set(combat_flags.get("triggered_corruption_ids_this_turn", []))
+            triggered.add(gate_key)
+            combat_flags["triggered_corruption_ids_this_turn"] = sorted(triggered)
+        elif once_per == "combat":
+            triggered = set(combat_flags.get("triggered_corruption_ids_this_combat", []))
+            triggered.add(gate_key)
+            combat_flags["triggered_corruption_ids_this_combat"] = sorted(triggered)
+
+    def _apply_corruption_effect(
+        self,
+        effect: dict[str, Any],
+        *,
+        source_card: Any,
+        rider_id: str | None,
+        event: dict[str, Any],
+    ) -> None:
+        effect_type = effect["type"]
+        mapped_effect: dict[str, Any] | None = None
+        if effect_type == "draw_cards":
+            mapped_effect = {"type": "draw_cards", "value": effect["value"]}
+        elif effect_type == "gain_energy":
+            mapped_effect = {"type": "gain_energy", "value": effect["value"]}
+        elif effect_type == "heal":
+            mapped_effect = {"type": "heal", "value": effect["value"]}
+        elif effect_type == "add_status_card":
+            mapped_effect = {
+                "type": "add_status_card",
+                "card_id": effect["card_id"],
+                "count": effect.get("count", 1),
+                "pile": effect.get("pile", "discard"),
+            }
+        elif effect_type == "modify_next_attack_damage":
+            mapped_effect = {"type": "modify_next_attack_damage", "value": effect["value"]}
+        elif effect_type == "damage_random_enemy":
+            mapped_effect = {"type": "damage_random_enemy", "value": effect["value"]}
+
+        if mapped_effect is not None:
+            mapped_effect["modifier_id"] = rider_id or getattr(source_card, "id", "card_corruption")
+            self._apply_modifier_effect(mapped_effect, event={
+                **event,
+                "card_id": getattr(source_card, "id", None),
+                "card_type": getattr(source_card, "type", None),
+            })
+            return
+
+        if effect_type == "lose_hp":
+            applied = self.combat_manager.lose_hp_with_feedback(
+                self.player,
+                effect["value"],
+                source=self.player,
+                feedback_context={
+                    "source_card_id": getattr(source_card, "id", None),
+                    "source_card_type": getattr(source_card, "type", None),
+                    "source_corruption_rider_id": rider_id,
+                },
+            )
+            if applied > 0:
+                self._handle_combat_runtime_event(
+                    {
+                        "hook": "on_self_damage",
+                        "self_damage": applied,
+                        "source_card_id": getattr(source_card, "id", None),
+                        "source_corruption_rider_id": rider_id,
+                    }
+                )
+            return
+
+        if effect_type == "set_random_hand_card_cost_until_played":
+            self._reduce_random_hand_card_cost_until_played(
+                int(effect["value"]),
+                source_modifier_id=rider_id or getattr(source_card, "id", "card_corruption"),
+            )
+            return
+
+        if effect_type == "adjust_protocol_drift":
+            source_chain = list(event.get("source_chain", [])) if isinstance(event.get("source_chain"), list) else []
+            if rider_id is not None:
+                source_chain.append(rider_id)
+            self._adjust_protocol_drift(
+                int(effect["value"]),
+                source_id=f"corruption:{rider_id or getattr(source_card, 'id', 'card')}",
+                source_chain=source_chain,
+            )
 
     def _modifier_effect_matches_event(self, effect: dict[str, Any], event: dict[str, Any]) -> bool:
         status_ids = effect.get("status_ids")
@@ -2437,13 +3064,44 @@ class StateManager:
         rng = self._state_rng(f"modifier_hand_pick:{effect.get('modifier_id', 'modifier')}:{event_index}")
         return rng.choice(hand)
 
+    def _reduce_random_hand_card_cost_until_played(
+        self,
+        amount: int,
+        *,
+        source_modifier_id: str | None = None,
+    ) -> str | None:
+        if amount <= 0:
+            return None
+        target_card = self._choose_random_hand_card({"modifier_id": source_modifier_id or "corruption"})
+        if target_card is None:
+            return None
+        previous_cost = self._card_payable_cost(target_card)
+        new_cost = max(0, previous_cost - amount)
+        if new_cost >= previous_cost:
+            return None
+        target_card.set_temporary_cost_override(new_cost)
+        if self.current_state == "combat":
+            self._handle_combat_runtime_event(
+                {
+                    "hook": "on_card_cost_reduced",
+                    "amount": previous_cost - new_cost,
+                    "card_id": target_card.id,
+                    "source_modifier_id": source_modifier_id,
+                }
+            )
+        return f"{target_card.name} now costs {new_cost} until played."
+
     def _create_random_temporary_card(self, effect: dict[str, Any]) -> Any | None:
         if self.player.deck_manager is None:
             return None
         owner_ids = ["shared"]
         if self.character_id is not None:
             owner_ids.append(self.character_id)
-        candidates = self.card_library.find_cards(owners=owner_ids, exclude_types=["status"])
+        candidates = self.card_library.find_cards(
+            owners=owner_ids,
+            exclude_types=["status"],
+            hidden=False,
+        )
         common_like_candidates = [card for card in candidates if int(getattr(card, "shop_price", 0)) <= 45]
         if common_like_candidates:
             candidates = common_like_candidates
@@ -2532,7 +3190,9 @@ class StateManager:
         combat_flags["cards_played_this_turn"] = 0
         combat_flags["card_type_counts_this_turn"] = {}
         combat_flags["current_turn_attack_played"] = False
+        combat_flags["any_card_cost_reduced_this_turn"] = False
         combat_flags["triggered_modifier_ids_this_turn"] = []
+        combat_flags["triggered_corruption_ids_this_turn"] = []
         combat_flags["modifier_state"] = {}
         pending_energy = int(combat_flags.get("pending_energy_next_turn", 0))
         if pending_energy > 0:
@@ -2742,6 +3402,7 @@ class StateManager:
             "credits": self.player.credits,
             "deck_size": len(self.player.deck_manager.starting_deck),
             "status_count": len(self.run_modifiers),
+            "protocol_drift_pct": int(self.run_state.get("protocol_drift_pct", 0)),
             "active_modifier_ids": [record["id"] for record in self.run_modifiers],
             "event_history": copy.deepcopy(self.event_history),
             "character_id": self._active_character_id(),
@@ -2771,6 +3432,24 @@ class StateManager:
                 seen_ids.append(event_id)
         return seen_ids
 
+    def _signature_event_candidate(
+        self,
+        candidate_events: list[dict[str, Any]],
+        context: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        signature_event_id = SIGNATURE_EVENT_IDS_BY_CHARACTER.get(str(context.get("character_id", "")))
+        if signature_event_id is None or signature_event_id in self._seen_event_ids():
+            return None
+        signature_event = next(
+            (event_definition for event_definition in candidate_events if event_definition["id"] == signature_event_id),
+            None,
+        )
+        if signature_event is None:
+            return None
+        if not self.event_selector.weighted_candidates([signature_event], context):
+            return None
+        return signature_event
+
     def _generate_event_state(self) -> dict[str, Any]:
         candidate_events = [
             event_definition
@@ -2782,7 +3461,9 @@ class StateManager:
 
         context = self._event_selection_context()
         rng = self._state_rng("event_pick")
-        chosen_event = self.event_selector.choose_event(candidate_events, context, rng)
+        chosen_event = self._signature_event_candidate(candidate_events, context)
+        if chosen_event is None:
+            chosen_event = self.event_selector.choose_event(candidate_events, context, rng)
         self._record_event_history(chosen_event)
         return {
             "event_id": chosen_event["id"],
@@ -3304,16 +3985,46 @@ class StateManager:
             seen_card_ids=seen_card_ids,
             sold_out_card_ids=sold_out_card_ids,
             current_unsold_ids=current_unsold_ids,
+            pool_type="shop",
         )
 
     def _character_offer_cards(self) -> list[Any]:
         character_id = self._active_character_id()
         if character_id is None:
             return []
-        return self.card_library.find_cards(owners=[character_id], exclude_types=["status"])
+        return self.card_library.find_cards(
+            owners=[character_id],
+            exclude_types=["status"],
+            hidden=False,
+            reward_eligible=True,
+        )
 
     def _shared_offer_cards(self) -> list[Any]:
-        return self.card_library.find_cards(owners=["shared"], exclude_types=["status"])
+        return self.card_library.find_cards(
+            owners=["shared"],
+            exclude_types=["status"],
+            hidden=False,
+            reward_eligible=True,
+        )
+
+    def _character_shop_cards(self) -> list[Any]:
+        character_id = self._active_character_id()
+        if character_id is None:
+            return []
+        return self.card_library.find_cards(
+            owners=[character_id],
+            exclude_types=["status"],
+            hidden=False,
+            shop_eligible=True,
+        )
+
+    def _shared_shop_cards(self) -> list[Any]:
+        return self.card_library.find_cards(
+            owners=["shared"],
+            exclude_types=["status"],
+            hidden=False,
+            shop_eligible=True,
+        )
 
     def _select_offer_card_ids(
         self,
@@ -3323,6 +4034,7 @@ class StateManager:
         seen_card_ids: list[str],
         sold_out_card_ids: list[str],
         current_unsold_ids: list[str],
+        pool_type: str = "reward",
     ) -> list[str]:
         if slot_count <= 0:
             return []
@@ -3335,8 +4047,12 @@ class StateManager:
         chosen_ids: list[str] = []
         power_taken = False
 
-        character_cards = self._character_offer_cards()
-        shared_cards = self._shared_offer_cards()
+        if pool_type == "shop":
+            character_cards = self._character_shop_cards()
+            shared_cards = self._shared_shop_cards()
+        else:
+            character_cards = self._character_offer_cards()
+            shared_cards = self._shared_offer_cards()
 
         def candidate_ids(cards: list[Any], *, card_type: str | None = None, fresh_only: bool = False) -> list[str]:
             ids = [
@@ -4236,7 +4952,19 @@ class StateManager:
             if not isinstance(value, bool):
                 raise ValueError(f"{key} must be a boolean.")
             restored["combat"][key] = value
+        any_card_cost_reduced_this_turn = combat_flags.get(
+            "any_card_cost_reduced_this_turn",
+            restored["combat"]["any_card_cost_reduced_this_turn"],
+        )
+        if not isinstance(any_card_cost_reduced_this_turn, bool):
+            raise ValueError("any_card_cost_reduced_this_turn must be a boolean.")
+        restored["combat"]["any_card_cost_reduced_this_turn"] = any_card_cost_reduced_this_turn
         for key in {"triggered_modifier_ids_this_turn", "triggered_modifier_ids_this_combat"}:
+            value = combat_flags.get(key, restored["combat"][key])
+            if not isinstance(value, list) or not all(isinstance(entry, str) for entry in value):
+                raise ValueError(f"{key} must be a list of strings.")
+            restored["combat"][key] = list(dict.fromkeys(value))
+        for key in {"triggered_corruption_ids_this_turn", "triggered_corruption_ids_this_combat"}:
             value = combat_flags.get(key, restored["combat"][key])
             if not isinstance(value, list) or not all(isinstance(entry, str) for entry in value):
                 raise ValueError(f"{key} must be a list of strings.")

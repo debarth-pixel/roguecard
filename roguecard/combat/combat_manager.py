@@ -1465,6 +1465,63 @@ class CombatManager:
             results.append(self._resolution_record(effect_type, 1, applied, target, echoed=echoed))
             return results, block_penalty
 
+        if effect_type == "remove_one_player_status":
+            applied = 0
+            for status_id in effect.get("status_ids", []):
+                key = str(status_id).strip().lower()
+                if key == "nullified":
+                    removed = 1 if self.player.remove_nullified() else 0
+                else:
+                    removed = self.player.cleanse_combat_status(key, 1)
+                if removed > 0:
+                    applied = removed
+                    break
+            results.append(
+                self._resolution_record(effect_type, 1, applied, self.player, echoed=echoed)
+            )
+            return results, block_penalty
+
+        if effect_type == "adjust_protocol_drift":
+            self._emit_runtime_event(
+                {
+                    "hook": "adjust_protocol_drift_effect",
+                    "amount": effect["value"],
+                    "source_card_id": getattr(card, "id", None),
+                    "source_chain": [getattr(card, "id", None)],
+                }
+            )
+            results.append(self._resolution_record(effect_type, effect["value"], effect["value"], self.player, echoed=echoed))
+            return results, block_penalty
+
+        if effect_type == "exhaust_status_card_in_hand":
+            target_status = next(
+                (
+                    hand_card
+                    for hand_card in self.player.deck_manager.hand
+                    if hand_card is not card and getattr(hand_card, "type", "") == "status"
+                ),
+                None,
+            )
+            if target_status is not None:
+                self.player.deck_manager.exhaust_card(target_status)
+                self._notify_card_exhausted(target_status)
+                results.append(self._resolution_record(effect_type, 1, 1, self.player, echoed=echoed))
+                return results, block_penalty
+            fallback_results: list[dict[str, Any]] = []
+            local_block_penalty = block_penalty
+            for nested_effect in effect.get("fallback_effects", []):
+                effect_results, local_block_penalty = self._resolve_card_effect(
+                    effect=nested_effect,
+                    card=card,
+                    explicit_target=explicit_target,
+                    damage_bonus=damage_bonus,
+                    block_penalty=local_block_penalty,
+                    echoed=echoed,
+                )
+                fallback_results.extend(effect_results)
+            fallback_results.append(self._resolution_record(effect_type, 1, 0, self.player, echoed=echoed))
+            return fallback_results, local_block_penalty
+
         if effect_type == "modify_next_card_cost":
             if self._player_positive_status_blocked("modify_next_card_cost", effect["value"]):
                 results.append(self._resolution_record(effect_type, effect["value"], 0, self.player, echoed=echoed))

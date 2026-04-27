@@ -230,7 +230,7 @@ class MapTabletView:
         return self._transition is not None
 
     def suppress_top_bar(self, current_state: str) -> bool:
-        return current_state == "map" or self._transition is not None
+        return self._transition is not None
 
     def _render_map_mode(
         self,

@@ -12,6 +12,8 @@ from core.run_modifier_library import RunModifierLibrary
 
 ALLOWED_EVENT_CHOICE_TYPES = {"effect", "purge", "risk"}
 ALLOWED_EVENT_RARITIES = {"common", "uncommon", "rare", "special"}
+ALLOWED_EVENT_UI_ROLES = {"normal", "secret_corruption"}
+MAX_EVENT_CHOICES = 4
 ALLOWED_EVENT_EFFECT_TYPES = {
     "gain_credits",
     "lose_credits",
@@ -26,6 +28,9 @@ ALLOWED_EVENT_EFFECT_TYPES = {
     "heal",
     "damage",
     "purge_card",
+    "adjust_protocol_drift",
+    "queue_next_combat_effect",
+    "remove_card_from_deck_by_id",
 }
 ALLOWED_INT_EVENT_REQUIREMENTS = {
     "credits_at_least",
@@ -33,8 +38,20 @@ ALLOWED_INT_EVENT_REQUIREMENTS = {
     "missing_hp_at_least",
     "deck_size_at_least",
     "status_count_at_most",
+    "protocol_drift_at_least",
+    "protocol_drift_below",
+    "current_hp_at_least",
+    "current_hp_below_percent",
 }
 ALLOWED_MODIFIER_EVENT_REQUIREMENTS = {"modifier_active", "modifier_missing"}
+ALLOWED_QUEUED_NEXT_COMBAT_EFFECT_TYPES = {
+    "gain_energy",
+    "draw_cards",
+    "gain_block",
+    "apply_player_status",
+    "add_status_card",
+    "add_temporary_card_to_hand",
+}
 ALLOWED_RANDOM_MODIFIER_FIELDS = {
     "type",
     "source_type",
@@ -139,8 +156,8 @@ class EventLibrary:
             raise ValueError("Event body must be a non-empty string.")
         if not isinstance(choices, list) or not choices:
             raise ValueError(f"Event {event_id} must define at least one choice.")
-        if len(choices) > 3:
-            raise ValueError(f"Event {event_id} may define at most 3 choices.")
+        if len(choices) > MAX_EVENT_CHOICES:
+            raise ValueError(f"Event {event_id} may define at most {MAX_EVENT_CHOICES} choices.")
         if rarity not in ALLOWED_EVENT_RARITIES:
             raise ValueError(f"Event {event_id} has unsupported rarity: {rarity}")
         if not isinstance(base_weight, (int, float)) or base_weight < 0:
@@ -160,6 +177,11 @@ class EventLibrary:
                 raise ValueError(f"Event {event_id} contains duplicate choice id: {choice['id']}")
             seen_choice_ids.add(choice["id"])
             validated_choices.append(choice)
+        secret_choice_count = sum(
+            1 for choice in validated_choices if choice["ui_role"] == "secret_corruption"
+        )
+        if secret_choice_count > 1:
+            raise ValueError(f"Event {event_id} may define at most one secret corruption UI choice.")
 
         return {
             "id": event_id,
@@ -197,6 +219,7 @@ class EventLibrary:
         requirements = choice_data.get("requirements", {})
         effects = choice_data.get("effects", [])
         outcomes = choice_data.get("outcomes", [])
+        ui_role = choice_data.get("ui_role", "normal")
         character_ids = self._validate_character_ids(choice_data.get("character_ids", []), event_id, scope=f"choice {choice_id}")
 
         if not isinstance(choice_id, str) or not choice_id:
@@ -209,6 +232,8 @@ class EventLibrary:
             raise ValueError(f"Event {event_id} choice {choice_id} has unsupported type: {choice_type}")
         if not isinstance(requirements, dict):
             raise ValueError(f"Event {event_id} choice {choice_id} requirements must be a dictionary.")
+        if not isinstance(ui_role, str) or ui_role not in ALLOWED_EVENT_UI_ROLES:
+            raise ValueError(f"Event {event_id} choice {choice_id} has unsupported ui_role: {ui_role}")
 
         validated_requirements = self._validate_requirements(requirements, event_id, scope=f"choice {choice_id}")
 
@@ -242,6 +267,7 @@ class EventLibrary:
             "character_ids": character_ids,
             "effects": validated_effects,
             "outcomes": validated_outcomes,
+            "ui_role": ui_role,
         }
 
     def _validate_character_ids(self, raw_character_ids: Any, event_id: str, *, scope: str) -> list[str]:
@@ -295,6 +321,10 @@ class EventLibrary:
                 if not isinstance(value, int) or value < 0:
                     raise ValueError(
                         f"Event {event_id} {scope} requirement {key} must be a non-negative integer."
+                    )
+                if key == "current_hp_below_percent" and value > 100:
+                    raise ValueError(
+                        f"Event {event_id} {scope} requirement current_hp_below_percent must be in 0..100."
                     )
                 validated[key] = value
                 continue
@@ -386,12 +416,117 @@ class EventLibrary:
         if effect_type == "purge_card":
             return {"type": effect_type}
 
+        if effect_type == "adjust_protocol_drift":
+            amount = effect_data.get("amount")
+            if not isinstance(amount, int):
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} adjust_protocol_drift must define an integer amount."
+                )
+            return {"type": effect_type, "amount": amount}
+
+        if effect_type == "queue_next_combat_effect":
+            return {
+                "type": effect_type,
+                "effect": self._validate_queued_next_combat_effect(effect_data, event_id, choice_id),
+            }
+
+        if effect_type == "remove_card_from_deck_by_id":
+            card_id = effect_data.get("card_id")
+            count = effect_data.get("count", 1)
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} remove_card_from_deck_by_id must define card_id."
+                )
+            self.card_library.get_card(card_id)
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} remove_card_from_deck_by_id count must be a positive integer."
+                )
+            return {"type": effect_type, "card_id": card_id, "count": count}
+
         value = effect_data.get("value")
         if not isinstance(value, int) or value < 0:
             raise ValueError(
                 f"Event {event_id} choice {choice_id} effect {effect_type} must define a non-negative integer value."
             )
         return {"type": effect_type, "value": value}
+
+    def _validate_queued_next_combat_effect(
+        self,
+        effect_data: dict[str, Any],
+        event_id: str,
+        choice_id: str,
+    ) -> dict[str, Any]:
+        queued_effect = effect_data.get("effect")
+        if not isinstance(queued_effect, dict):
+            raise ValueError(
+                f"Event {event_id} choice {choice_id} queue_next_combat_effect must define an effect payload."
+            )
+
+        effect_type = queued_effect.get("type")
+        if effect_type not in ALLOWED_QUEUED_NEXT_COMBAT_EFFECT_TYPES:
+            raise ValueError(
+                f"Event {event_id} choice {choice_id} queue_next_combat_effect uses unsupported payload type: {effect_type}"
+            )
+
+        validated: dict[str, Any] = {"type": effect_type}
+        if effect_type in {"gain_energy", "draw_cards", "gain_block"}:
+            value = queued_effect.get("value")
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued {effect_type} value must be a positive integer."
+                )
+            validated["value"] = value
+            return validated
+
+        if effect_type == "apply_player_status":
+            status_id = queued_effect.get("status_id")
+            value = queued_effect.get("value", 1)
+            if not isinstance(status_id, str) or not status_id:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued apply_player_status must define status_id."
+                )
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued apply_player_status value must be a positive integer."
+                )
+            validated["status_id"] = status_id
+            validated["value"] = value
+            return validated
+
+        if effect_type == "add_status_card":
+            card_id = queued_effect.get("card_id")
+            count = queued_effect.get("count", 1)
+            pile = queued_effect.get("pile", "discard")
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued add_status_card must define card_id."
+                )
+            self.card_library.get_card(card_id)
+            if not isinstance(count, int) or count <= 0:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued add_status_card count must be a positive integer."
+                )
+            if pile not in {"draw", "discard"}:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued add_status_card uses unsupported pile: {pile}"
+                )
+            validated["card_id"] = card_id
+            validated["count"] = count
+            validated["pile"] = pile
+            return validated
+
+        if effect_type == "add_temporary_card_to_hand":
+            card_id = queued_effect.get("card_id")
+            if not isinstance(card_id, str) or not card_id:
+                raise ValueError(
+                    f"Event {event_id} choice {choice_id} queued add_temporary_card_to_hand must define card_id."
+                )
+            self.card_library.get_card(card_id)
+            validated["card_id"] = card_id
+            return validated
+
+        return validated
 
     def _validate_random_modifier_effect(
         self,

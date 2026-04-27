@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 try:
     import pygame
@@ -20,6 +21,7 @@ from config import (
     SETTINGS_PANEL_WIDTH,
     SETTINGS_TAB_HEIGHT,
     SETTINGS_TAB_WIDTH,
+    SHOP_PURGE_OFFER_ID,
     STATUS_ICON_GAP,
     STATUS_ICON_SIZE,
     STATUS_TOOLTIP_WIDTH,
@@ -27,12 +29,20 @@ from config import (
     VOLUME_STEP,
     resolve_asset_path,
 )
+from ui.card_renderer import draw_card
 from ui.character_select_ui import CharacterSelectUI
+from ui.combat_layout import build_combat_layout
 from ui.combat_ui import CombatUI
+from ui.combat_ui_assets import combat_ui_assets
 from ui.event_ui import EventUI
 from ui.grayspine_intel_ui import GrayspineIntelUI
 from ui.map_tablet_view import MapTabletView
 from ui.map_ui import MapUI
+from ui.machine_hud import (
+    CYAN as MACHINE_CYAN,
+    HEALTH_RED as MACHINE_HEALTH_RED,
+    YELLOW as MACHINE_YELLOW,
+)
 from ui.modifier_draft_ui import ModifierDraftUI
 from ui.relic_assets import relic_assets
 from ui.reward_ui import RewardUI
@@ -58,6 +68,8 @@ from ui.ui_system import (
     draw_modal_scrim,
     draw_panel,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 class UIManager:
@@ -85,11 +97,19 @@ class UIManager:
         self._pause_pressed_action: str | None = None
         self._pause_selected_index = 0
         self._modifier_hovered_id: str | None = None
+        self._audio_callback: Callable[[str], None] | None = None
+        self._purge_feedback: dict[str, Any] | None = None
+        self._top_bar_warning_signature: tuple[str, ...] | None = None
+
+    def set_audio_callback(self, callback: Callable[[str], None] | None) -> None:
+        self._audio_callback = callback
+        self.shop_ui.set_sfx_callback(callback)
 
     def preload_assets(self) -> None:
         sprite_sheet_assets.preload()
         relic_assets.preload()
         status_icon_assets.preload()
+        combat_ui_assets.preload()
         self.character_select_ui.preload_assets()
         self.map_ui.preload_assets()
         self.combat_ui.preload_assets()
@@ -196,6 +216,13 @@ class UIManager:
         if isinstance(state_snapshot, dict) and state_snapshot.get("shop") is not None:
             shop_view_state = self._shop_view_state(state_snapshot)
         self.shop_ui.update(delta_time, shop_view_state, transition_active=self.map_tablet_view.is_transition_active())
+        if self._purge_feedback is not None:
+            self._purge_feedback["elapsed"] = min(
+                self._purge_feedback["duration"],
+                self._purge_feedback["elapsed"] + max(0.0, delta_time),
+            )
+            if self._purge_feedback["elapsed"] >= self._purge_feedback["duration"]:
+                self._purge_feedback = None
 
     def apply_snapshot_feedback(
         self,
@@ -209,6 +236,7 @@ class UIManager:
         before_shop = None if before_snapshot.get("shop") is None else self._shop_view_state(before_snapshot)
         after_shop = None if after_snapshot.get("shop") is None else self._shop_view_state(after_snapshot)
         self.shop_ui.handle_snapshot_feedback(action_type, before_shop, after_shop)
+        self._apply_purge_feedback(action_type, before_snapshot, after_snapshot)
 
     def begin_map_to_combat_transition(self, state_snapshot: dict[str, Any]) -> None:
         if state_snapshot.get("map") is None or state_snapshot.get("combat") is None:
@@ -271,6 +299,7 @@ class UIManager:
         else:
             surface.fill((18, 21, 28))
 
+        self._render_purge_feedback(surface)
         if self._should_render_top_bar(current_state):
             self._render_top_bar(surface, state_snapshot)
         self._render_notice(
@@ -333,6 +362,7 @@ class UIManager:
             "active_bark": combat_state.get("active_bark"),
             "player_hand": hand,
             "run_modifiers": list((state_snapshot.get("run_modifiers") or {}).get("active", [])),
+            "run_state": state_snapshot.get("run_state"),
             "map_id": campaign.get("map_id"),
             "map_index": campaign.get("map_index"),
             "branch_faction": campaign.get("branch_faction"),
@@ -431,8 +461,11 @@ class UIManager:
     def _render_top_bar(self, surface: Any, state_snapshot: dict[str, Any]) -> None:
         presentation = state_snapshot.get("presentation", {})
         high_contrast = presentation.get("high_contrast", False)
-        layout = self._top_bar_layout(state_snapshot)
+        layout = self._top_bar_layout(state_snapshot, surface.get_size())
         is_combat = state_snapshot.get("current_state") == "combat"
+        if is_combat:
+            self._render_combat_machine_top_bar(surface, layout, high_contrast=high_contrast)
+            return
         accent = (220, 230, 255) if high_contrast else COLOR_CYAN
         state_rect = pygame.Rect(*layout["state_rect"])
         summary_rect = pygame.Rect(*layout["summary_rect"])
@@ -511,8 +544,117 @@ class UIManager:
         pause_label = self._small_font.render("Pause", True, label_color)
         surface.blit(pause_label, pause_label.get_rect(center=pause_rect.center))
 
-    def _top_bar_layout(self, state_snapshot: dict[str, Any]) -> dict[str, Any]:
+    def _render_combat_machine_top_bar(self, surface: Any, layout: dict[str, Any], *, high_contrast: bool) -> None:
+        del high_contrast
+        hud_rect = pygame.Rect(*layout["machine_hud_rect"])
+        combat_ui_assets.blit(surface, "top_machine_hud_frame", hud_rect)
+
+        for segment in layout["segments"]:
+            rect = pygame.Rect(*segment["rect"])
+            label = self._fit_single_line(str(segment["label"]), self._small_font, rect.width - 34)
+            sublabel = self._fit_single_line(str(segment.get("sublabel", "")), self._tiny_font, rect.width - 34)
+            if (label != str(segment["label"]) or sublabel != str(segment.get("sublabel", ""))) and len(str(segment["label"])) <= 14:
+                signature = (str(segment["label"]), str(rect.width))
+                if signature != self._top_bar_warning_signature:
+                    LOGGER.warning("Combat top HUD clipped short label %s in %spx.", segment["label"], rect.width)
+                    self._top_bar_warning_signature = signature
+            line_rect = pygame.Rect(rect.x + 9, rect.y + 8, 4, max(16, rect.height - 18))
+            pygame.draw.rect(surface, segment["accent"], line_rect, border_radius=2)
+            label_surface = self._small_font.render(label.upper(), True, (236, 244, 255))
+            sublabel_surface = self._tiny_font.render(sublabel.upper(), True, segment["accent"])
+            surface.blit(label_surface, (rect.x + 24, rect.y + 5))
+            surface.blit(sublabel_surface, (rect.x + 24, rect.y + 26))
+
+        intel_rect = layout.get("intel_rect")
+        if intel_rect is not None:
+            intel = pygame.Rect(*intel_rect)
+            label_color = MACHINE_YELLOW if self._pause_hovered_action == "top_intel" else (236, 244, 255)
+            label = self._small_font.render("INTEL", True, label_color)
+            surface.blit(label, label.get_rect(center=intel.center))
+
+        pause_rect = pygame.Rect(*layout["pause_rect"])
+        pause_asset = "pause_button_pressed" if self._pause_pressed_action == "top_pause" else "pause_button_normal"
+        combat_ui_assets.blit(surface, pause_asset, pause_rect)
+        pause_color = (18, 24, 36) if self._pause_pressed_action == "top_pause" else (236, 244, 255)
+        if self._pause_hovered_action == "top_pause":
+            pause_color = (255, 246, 190)
+        pause_label = self._small_font.render("PAUSE", True, pause_color)
+        surface.blit(pause_label, pause_label.get_rect(center=pause_rect.center))
+
+    def _top_bar_layout(self, state_snapshot: dict[str, Any], surface_size: tuple[int, int] | None = None) -> dict[str, Any]:
         current_state = state_snapshot["current_state"]
+        if current_state == "combat":
+            intel_available = isinstance(state_snapshot.get("grayspine_intel"), dict)
+            combat_layout = build_combat_layout(surface_size, intel_available=intel_available)
+            pause_rect = combat_layout.top_pause_rect
+            intel_rect = combat_layout.top_intel_rect
+            hud_rect = combat_layout.top_hud_rect
+            character = state_snapshot.get("character") if isinstance(state_snapshot.get("character"), dict) else {}
+            campaign = state_snapshot.get("campaign") if isinstance(state_snapshot.get("campaign"), dict) else {}
+            combat_state = state_snapshot.get("combat") if isinstance(state_snapshot.get("combat"), dict) else {}
+            player = combat_state.get("player") if isinstance(combat_state.get("player"), dict) else state_snapshot.get("player", {})
+            map_name = campaign.get("map_name", "Outskirts") if isinstance(campaign, dict) else "Outskirts"
+            map_index = campaign.get("map_index", 1) if isinstance(campaign, dict) else 1
+            map_label = f"M{map_index} {map_name}" if isinstance(map_index, int) and map_index > 0 else str(map_name)
+            segment_specs = [
+                {
+                    "label": "Combat",
+                    "sublabel": "Mode",
+                    "accent": MACHINE_CYAN,
+                    "active": True,
+                    "preferred_width": 118,
+                    "minimum_width": 106,
+                },
+                {
+                    "label": str(character.get("name", "Runner")),
+                    "sublabel": "Runner",
+                    "accent": tuple(character.get("accent_color", [232, 88, 72])),
+                    "preferred_width": 182,
+                    "minimum_width": 132,
+                },
+                {
+                    "label": map_label,
+                    "sublabel": "Sector",
+                    "accent": MACHINE_CYAN,
+                    "preferred_width": 184,
+                    "minimum_width": 150,
+                },
+                {
+                    "label": f"HP {player.get('current_hp', 0)}/{player.get('max_hp', 0)}",
+                    "sublabel": "Systems",
+                    "accent": MACHINE_HEALTH_RED,
+                    "preferred_width": 142,
+                    "minimum_width": 124,
+                },
+                {
+                    "label": f"{player.get('credits', 0)} cr",
+                    "sublabel": "Credits",
+                    "accent": MACHINE_YELLOW,
+                    "preferred_width": 118,
+                    "minimum_width": 96,
+                },
+            ]
+            gap = max(6, int(round((surface_size or (1280, 720))[0] * 0.006)))
+            inner_x = hud_rect[0] + max(14, int(round(hud_rect[3] * 0.32)))
+            inner_width = max(1, hud_rect[2] - ((inner_x - hud_rect[0]) * 2))
+            available_width = max(1, inner_width - (gap * (len(segment_specs) - 1)))
+            segment_widths = self._combat_top_segment_widths(segment_specs, available_width)
+            segments = []
+            cursor_x = inner_x
+            for spec, width in zip(segment_specs, segment_widths):
+                segments.append({**spec, "rect": (cursor_x, hud_rect[1] + 8, width, hud_rect[3] - 16)})
+                cursor_x += width + gap
+            return {
+                "state_rect": segments[0]["rect"],
+                "summary_rect": hud_rect,
+                "machine_hud_rect": hud_rect,
+                "state_label": "Combat",
+                "intel_rect": intel_rect,
+                "pause_rect": pause_rect,
+                "segments": segments,
+                "secondary_text": "",
+                "modifier_icons": [],
+            }
         state_label = {
             "modifier_draft": "Relic Draft",
             "map": "Map",
@@ -579,10 +721,56 @@ class UIManager:
             "modifier_icons": modifier_icons,
         }
 
+    def _combat_top_segment_widths(self, segment_specs: list[dict[str, Any]], available_width: int) -> list[int]:
+        measured: list[int] = []
+        preferred: list[int] = []
+        for spec in segment_specs:
+            label = str(spec.get("label", "")).upper()
+            sublabel = str(spec.get("sublabel", "")).upper()
+            label_width = self._small_font.size(label)[0] if self._small_font is not None else len(label) * 11
+            sublabel_width = self._tiny_font.size(sublabel)[0] if self._tiny_font is not None else len(sublabel) * 7
+            content_width = max(label_width, sublabel_width) + 38
+            minimum = max(int(spec.get("minimum_width", 96)), content_width)
+            measured.append(minimum)
+            preferred.append(max(minimum, int(spec.get("preferred_width", minimum))))
+        preferred_total = sum(preferred)
+        if preferred_total <= available_width:
+            slack = available_width - preferred_total
+            weights = [max(1, width - minimum) for width, minimum in zip(preferred, measured)]
+            total_weight = max(1, sum(weights))
+            widths = [width + int(slack * (weight / total_weight)) for width, weight in zip(preferred, weights)]
+            widths[-1] += available_width - sum(widths)
+            return widths
+
+        minimum_total = sum(measured)
+        if minimum_total <= available_width:
+            slack = available_width - minimum_total
+            weights = [max(1, target - minimum) for target, minimum in zip(preferred, measured)]
+            total_weight = max(1, sum(weights))
+            widths = [minimum + int(slack * (weight / total_weight)) for minimum, weight in zip(measured, weights)]
+            widths[-1] += available_width - sum(widths)
+            return widths
+
+        ratio = available_width / max(1, minimum_total)
+        widths = [max(78, int(width * ratio)) for width in measured]
+        widths[-1] += available_width - sum(widths)
+        if widths[-1] < 72:
+            deficit = 72 - widths[-1]
+            widths[-1] = 72
+            for index in range(len(widths) - 2, -1, -1):
+                take = min(deficit, max(0, widths[index] - 78))
+                widths[index] -= take
+                deficit -= take
+                if deficit <= 0:
+                    break
+        return widths
+
     def _top_bar_stat_items(self, state_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         player = state_snapshot.get("player")
         character = state_snapshot.get("character")
         campaign = state_snapshot.get("campaign")
+        run_state = state_snapshot.get("run_state")
+        current_state = state_snapshot.get("current_state")
         items: list[dict[str, Any]] = []
         if isinstance(character, dict):
             accent = tuple(character.get("accent_color", [120, 150, 190]))
@@ -606,10 +794,32 @@ class UIManager:
                     "accent": COLOR_GOLD,
                 }
             )
+        if current_state != "combat" and isinstance(run_state, dict):
+            items.append(self._protocol_drift_segment(run_state))
         progress_label = self._top_bar_progress_label(state_snapshot)
         if progress_label is not None:
             items.append({"label": progress_label, "accent": COLOR_CYAN, "active": True})
         return items
+
+    def _protocol_drift_segment(self, run_state: dict[str, Any]) -> dict[str, Any]:
+        protocol_drift_pct = max(0, min(100, int(run_state.get("protocol_drift_pct", 0) or 0)))
+        band_label = str(run_state.get("band_label", "Stable"))
+        band_index = max(0, min(4, int(run_state.get("band_index", 0) or 0)))
+        return {
+            "label": f"Drift {protocol_drift_pct}% {band_label}",
+            "accent": self._protocol_drift_accent(band_index),
+            "active": protocol_drift_pct > 0,
+        }
+
+    def _protocol_drift_accent(self, band_index: int) -> tuple[int, int, int]:
+        colors = (
+            (118, 138, 166),
+            (106, 198, 208),
+            (110, 182, 244),
+            (244, 176, 92),
+            (255, 118, 96),
+        )
+        return colors[max(0, min(len(colors) - 1, band_index))]
 
     def _top_bar_progress_label(self, state_snapshot: dict[str, Any]) -> str | None:
         map_state = state_snapshot.get("map")
@@ -1338,11 +1548,159 @@ class UIManager:
             {"id": "presentation_scale", "group": "display", "label": "Display Scale", "description": "Fit the 1280x720 canvas comfortably inside the display.", "kind": "step", "value": presentation.get("presentation_scale", 1.0), "value_text": f"{int(presentation.get('presentation_scale', 1.0) * 100)}%"},
             {"id": "ui_scale", "group": "display", "label": "UI Text Scale", "description": "Scale text and labels for readability.", "kind": "step", "value": presentation.get("ui_scale", 1.0), "value_text": f"{int(presentation.get('ui_scale', 1.0) * 100)}%"},
             {"id": "screen_shake", "group": "display", "label": "Screen Shake", "description": "Toggle impact shake on heavy feedback moments.", "kind": "toggle", "value": presentation.get("screen_shake", True), "value_text": "Enabled" if presentation.get("screen_shake", True) else "Disabled"},
+            {"id": "combat_layout_debug", "group": "display", "label": "Combat Layout Debug", "description": "Show reserved combat screen regions for layout tuning.", "kind": "toggle", "value": presentation.get("combat_layout_debug", False), "value_text": "Enabled" if presentation.get("combat_layout_debug", False) else "Disabled"},
             {"id": "master_volume", "group": "audio", "label": "SFX Volume", "description": "Adjust sound effect volume for combat and UI cues.", "kind": "step", "value": presentation.get("master_volume", 0.8), "value_text": f"{int(presentation.get('master_volume', 0.8) * 100)}%"},
-            {"id": "music_volume", "group": "audio", "label": "Music Volume", "description": "Reserve volume for music playback when tracks are added.", "kind": "step", "value": presentation.get("music_volume", 0.65), "value_text": f"{int(presentation.get('music_volume', 0.65) * 100)}%"},
+            {"id": "music_volume", "group": "audio", "label": "Music Volume", "description": "Adjust background music volume for title, map, events, and combat.", "kind": "step", "value": presentation.get("music_volume", 0.5), "value_text": f"{int(presentation.get('music_volume', 0.5) * 100)}%"},
             {"id": "muted", "group": "audio", "label": "Mute Audio", "description": "Silence all current and future audio output.", "kind": "toggle", "value": presentation.get("muted", False), "value_text": "Muted" if presentation.get("muted", False) else "Live"},
-            {"id": "high_contrast", "group": "audio", "label": "High Contrast", "description": "Boost contrast and reduce reliance on subtle color differences.", "kind": "toggle", "value": presentation.get("high_contrast", False), "value_text": "Enabled" if presentation.get("high_contrast", False) else "Disabled"},
+            {"id": "high_contrast", "group": "display", "label": "High Contrast", "description": "Boost contrast and reduce reliance on subtle color differences.", "kind": "toggle", "value": presentation.get("high_contrast", False), "value_text": "Enabled" if presentation.get("high_contrast", False) else "Disabled"},
         ]
+
+    def _apply_purge_feedback(
+        self,
+        action_type: str,
+        before_snapshot: dict[str, Any],
+        after_snapshot: dict[str, Any],
+    ) -> None:
+        if pygame is None:
+            return
+        feedback = None
+        if action_type == "confirm_shop_purchase":
+            feedback = self._shop_purge_feedback(before_snapshot, after_snapshot)
+        elif action_type == "confirm_reward_selection":
+            feedback = self._reward_purge_feedback(before_snapshot, after_snapshot)
+        elif action_type == "confirm_event_choice":
+            feedback = self._event_purge_feedback(before_snapshot, after_snapshot)
+        if feedback is None:
+            return
+        self._purge_feedback = {
+            "card": feedback["card"],
+            "rect": tuple(feedback["rect"]),
+            "elapsed": 0.0,
+            "duration": 0.72,
+        }
+        self._emit_audio_cue("card_purged_burn")
+
+    def _shop_purge_feedback(
+        self,
+        before_snapshot: dict[str, Any],
+        after_snapshot: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        before_shop_state = before_snapshot.get("shop")
+        after_shop_state = after_snapshot.get("shop")
+        if not isinstance(before_shop_state, dict) or not isinstance(after_shop_state, dict):
+            return None
+        if before_shop_state.get("selected_offer_id") != SHOP_PURGE_OFFER_ID:
+            return None
+        selected_purge_index = before_shop_state.get("selected_purge_index")
+        if not isinstance(selected_purge_index, int):
+            return None
+        before_targets = list(before_shop_state.get("purge_targets") or [])
+        after_targets = list(after_shop_state.get("purge_targets") or [])
+        if len(after_targets) >= len(before_targets):
+            return None
+        layout = self.shop_ui.build_layout(self._shop_view_state(before_snapshot))
+        entry = next((candidate for candidate in layout.get("purge_entries", []) if candidate.get("deck_index") == selected_purge_index), None)
+        if entry is None:
+            return None
+        return {"card": entry["card"], "rect": entry["rect"]}
+
+    def _reward_purge_feedback(
+        self,
+        before_snapshot: dict[str, Any],
+        after_snapshot: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        before_reward = before_snapshot.get("reward")
+        after_reward = after_snapshot.get("reward")
+        if not isinstance(before_reward, dict) or not isinstance(after_reward, dict):
+            return None
+        if int(after_reward.get("deck_size", 0)) >= int(before_reward.get("deck_size", 0)):
+            return None
+        layout = self.reward_ui.build_layout(self._reward_view_state(before_snapshot))
+        active_section = layout.get("active_section")
+        if not isinstance(active_section, dict) or active_section.get("type") != "purge_offer":
+            return None
+        selected_option_id = active_section.get("selected_option_id")
+        if not isinstance(selected_option_id, str):
+            return None
+        entry = next((candidate for candidate in layout.get("option_entries", []) if candidate.get("option_id") == selected_option_id), None)
+        if entry is None:
+            return None
+        return {"card": entry["card"], "rect": entry["rect"]}
+
+    def _event_purge_feedback(
+        self,
+        before_snapshot: dict[str, Any],
+        after_snapshot: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        before_event = before_snapshot.get("event")
+        after_event = after_snapshot.get("event")
+        if not isinstance(before_event, dict) or not isinstance(after_event, dict):
+            return None
+        if before_event.get("selected_choice_type") != "purge":
+            return None
+        selected_target_id = before_event.get("selected_target_id")
+        if not isinstance(selected_target_id, str):
+            return None
+        if int(after_event.get("deck_size", 0)) >= int(before_event.get("deck_size", 0)):
+            return None
+        layout = self.event_ui.build_layout(self._event_view_state(before_snapshot))
+        entry = next((candidate for candidate in layout.get("purge_targets", []) if candidate.get("option_id") == selected_target_id), None)
+        if entry is None:
+            return None
+        return {"card": entry["card"], "rect": entry["rect"]}
+
+    def _render_purge_feedback(self, surface: Any) -> None:
+        if pygame is None or surface is None or self._purge_feedback is None:
+            return
+        rect = pygame.Rect(*self._purge_feedback["rect"])
+        if rect.width <= 0 or rect.height <= 0:
+            return
+        progress = min(1.0, self._purge_feedback["elapsed"] / max(0.01, self._purge_feedback["duration"]))
+        scale = max(0.72, 1.0 - (progress * 0.18))
+        width = max(48, int(round(rect.width * scale)))
+        height = max(40, int(round(rect.height * scale)))
+        render_rect = pygame.Rect(
+            rect.centerx - (width // 2),
+            rect.centery - (height // 2) - int(round(progress * 18)),
+            width,
+            height,
+        )
+        card_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        fonts = {
+            "title": self._small_font or self._tiny_font,
+            "body": self._tiny_font or self._small_font,
+            "tiny": self._micro_font or self._tiny_font or self._small_font,
+        }
+        draw_card(
+            card_surface,
+            (0, 0, width, height),
+            self._purge_feedback["card"],
+            fonts,
+            variant="mini",
+        )
+        burned_height = min(height, int(round(height * min(1.0, progress * 1.08))))
+        if burned_height > 0:
+            burn_top = max(0, height - burned_height)
+            card_surface.fill((0, 0, 0, 0), pygame.Rect(0, burn_top, width, burned_height))
+            ember_surface = pygame.Surface((width, max(18, height // 4)), pygame.SRCALPHA)
+            ember_alpha = max(0, int(round((1.0 - progress) * 180)))
+            for index in range(6):
+                ember_rect = pygame.Rect(
+                    max(0, int((width * (index / 6.0)) - 8)),
+                    0 if index % 2 == 0 else 4,
+                    max(10, width // 8),
+                    10 + (index % 3) * 4,
+                )
+                color = (255, 164 - (index * 14), 84, ember_alpha)
+                pygame.draw.ellipse(ember_surface, color, ember_rect)
+            card_surface.blit(ember_surface, (0, max(0, burn_top - 10)))
+        card_surface.set_alpha(max(0, int(round((1.0 - progress) * 255))))
+        surface.blit(card_surface, render_rect.topleft)
+
+    def _emit_audio_cue(self, cue_id: str) -> None:
+        if self._audio_callback is None:
+            return
+        self._audio_callback(cue_id)
 
     def _settings_action_to_event(
         self,
@@ -1448,6 +1806,14 @@ class UIManager:
     ) -> None:
         draw_wrapped_text(surface, text, position, font, width=width)
 
+    def _fit_single_line(self, text: str, font: Any, width: int) -> str:
+        if not text or font.size(text.upper())[0] <= width:
+            return text
+        clipped = text
+        while len(clipped) > 3 and font.size(f"{clipped.upper()}...")[0] > width:
+            clipped = clipped[:-1].rstrip()
+        return f"{clipped}..." if clipped else text[:1]
+
     def _wrap_lines(self, text: str | None, font: Any, width: int) -> list[str]:
         if text is None:
             return []
@@ -1548,7 +1914,7 @@ def simulate_ui_manager() -> dict[str, Any]:
                 "fast_mode": False,
                 "muted": False,
                 "master_volume": 0.8,
-                "music_volume": 0.65,
+                "music_volume": 0.5,
                 "presentation_scale": 1.0,
                 "ui_scale": 1.0,
                 "screen_shake": True,
@@ -1576,7 +1942,7 @@ def simulate_ui_manager() -> dict[str, Any]:
                 "fast_mode": False,
                 "muted": False,
                 "master_volume": 0.8,
-                "music_volume": 0.65,
+                "music_volume": 0.5,
                 "presentation_scale": 1.0,
                 "ui_scale": 1.0,
                 "screen_shake": True,

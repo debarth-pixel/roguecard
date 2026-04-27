@@ -1,0 +1,956 @@
+{
+  "cards": {
+    "strike_01": {
+      "visual_flavor": "A clean generic strike: blade edge, baton hit, or muzzle impact with no class bias. The most neutral attack art in the set."
+    },
+    "defend_01": {
+      "visual_flavor": "A simple compact shield module or forearm plate. Starter cards should be plain and universal."
+    },
+    "surge_strike_01": {
+      "visual_flavor": "A harder-hitting charged strike wrapped in blue electrical force. Shared offense, larger and brighter than Strike."
+    },
+    "firewall_01": {
+      "visual_flavor": "A reinforced thermal shield wall or burning security barrier. One barricade silhouette with contained flame."
+    },
+    "patch_kit_01": {
+      "visual_flavor": "A med-and-repair kit with cleanser spray, bandage tape, and neutral serum ampoules. Utility item shot, not a character scene."
+    },
+    "cache_draw_01": {
+      "visual_flavor": "A generic data cache chip stack or magazine of blank cards. Utility icon with readable shape."
+    },
+    "overclock_01": {
+      "visual_flavor": "A compact booster chip or battery tap flaring blue-white. Shared tech power-up; no class bias."
+    },
+    "volley_01": {
+      "visual_flavor": "A quick burst of multiple rounds or repeated muzzle flashes. Three short beats, neutral tech palette."
+    },
+    "status_burn_01": {
+      "visual_flavor": "A burning warning chit or ember-eaten scrap ticket with a small orange glow. Keep status cards simpler and more symbolic than normal cards."
+    },
+    "status_glitch_01": {
+      "visual_flavor": "A broken display mask or error face with scrambled pixels and torn scanlines. Status card art should feel like a hazard ticket, not a full scene."
+    },
+    "status_lag_01": {
+      "visual_flavor": "A buffering ring or progress bar frozen mid-load with drag arrows. Abstract UI hazard imagery is fine here."
+    },
+    "status_junk_01": {
+      "visual_flavor": "A pile of bolts, broken chips, bent plates, and useless machine trash. Simple pile silhouette, easy to read."
+    },
+    "enforcer_bash_protocol_01": {
+      "visual_flavor": "An armored baton or steel fist impact with fresh red slash trails and a brutal bleed marker. Heavy contact frame; no fancy environment."
+    },
+    "enforcer_double_tap_01": {
+      "visual_flavor": "Two quick muzzle flares or mirrored baton strikes hitting in immediate succession. Keep the composition symmetric and punchy."
+    },
+    "enforcer_breaker_line_01": {
+      "visual_flavor": "A breach maul or breaker hammer splitting armor in a single harsh line. This should feel like armor-breaking force."
+    },
+    "enforcer_blood_rush_01": {
+      "visual_flavor": "A reckless forward lunge driven by a self-cut palm and a brutal cleaver or stock strike. Show commitment and momentum, not finesse."
+    },
+    "enforcer_crackdown_01": {
+      "visual_flavor": "A stun baton and lock-on reticle pinning the target into a vulnerable opening. The vulnerability setup is more important than raw impact."
+    },
+    "enforcer_riot_barrage_01": {
+      "visual_flavor": "A triple-hit barrage of shotgun blasts, shells, or baton flashes in a hard rhythm. Use three beats of motion, not a busy firefight."
+    },
+    "enforcer_guard_stance_01": {
+      "visual_flavor": "A riot shield braced low with sparks skipping off its edge. Pure defensive silhouette, simple and iconic."
+    },
+    "enforcer_battle_roar_01": {
+      "visual_flavor": "A masked enforcer barking through a vox grille, projecting a crimson shockwave. The voice burst should be the main shape."
+    },
+    "enforcer_hard_commit_01": {
+      "visual_flavor": "A danger-marked overdrive switch rammed fully forward. This is a decision image: one switch, one surge, no scene clutter."
+    },
+    "enforcer_ram_guard_01": {
+      "visual_flavor": "A shield-first shoulder rush keeping a defensive plate between user and target. Blend protection and impact in one silhouette."
+    },
+    "enforcer_open_wound_01": {
+      "visual_flavor": "A deliberate palm slash or wound-port being opened to feed strength. Controlled self-harm, not gore."
+    },
+    "enforcer_feed_aggression_01": {
+      "visual_flavor": "A red stimulant injector or adrenal canister slammed into an armored gauntlet. The buff source should read instantly."
+    },
+    "enforcer_war_engine_01": {
+      "visual_flavor": "A compact war engine or piston heart building pressure every turn. Mechanical strength-gain icon rather than a full mech."
+    },
+    "enforcer_chain_assault_01": {
+      "visual_flavor": "A chain-fed attack rig, shell feeder, or strike counter spooling up the next hit. Use machinery and repetition instead of a character pose."
+    },
+    "enforcer_redline_core_01": {
+      "visual_flavor": "A glowing reactor heart with hazard needles, red gauges, and overheating vents. One clear core object; it should feel dangerous to run."
+    },
+    "operator_needle_ping_01": {
+      "visual_flavor": "A precision flechette or needle round tagged with a weakening signal blip. Small shot, smart debuff, teal ping line."
+    },
+    "operator_quiet_cut_01": {
+      "visual_flavor": "A matte-black vibro knife slicing cleanly with minimal flare. Short, silent, and efficient."
+    },
+    "operator_backdoor_01": {
+      "visual_flavor": "A data knife or exploit spike plugged into a secure port. The hack-insertion moment should be the image."
+    },
+    "operator_packet_storm_01": {
+      "visual_flavor": "A swarm of data packets or micro-drones flooding a target lane. The storm should feel controlled, not messy."
+    },
+    "operator_relay_shot_01": {
+      "visual_flavor": "A shot bouncing through relay nodes or a signal repeater sightline. Use one projectile path with relay beacons."
+    },
+    "operator_recompile_shot_01": {
+      "visual_flavor": "A charged rifle shot breaking into teal code fragments as the next move gets cheaper. One rifle or beam plus code breakup is enough."
+    },
+    "operator_cache_cycle_01": {
+      "visual_flavor": "A rotating holo-cache carousel or stack of smart cartridges cycling forward. This should read as elegant card flow."
+    },
+    "operator_deflect_mesh_01": {
+      "visual_flavor": "A clean hex-mesh barrier unfolding from a wrist projector. Emphasize the mesh pattern and neat geometry."
+    },
+    "operator_priority_queue_01": {
+      "visual_flavor": "Stacked priority bars, arrow tracks, and a queue chip bubbling to the top. Simple UI-object composition is ideal."
+    },
+    "operator_reroute_01": {
+      "visual_flavor": "A cable junction panel bending current into a new path. Readable block or arrow silhouette over flashy effects."
+    },
+    "operator_cold_read_01": {
+      "visual_flavor": "A wafer-thin dossier or holographic case file opening into a pale blue scan. Keep it cool, analytical, and slightly detached."
+    },
+    "operator_lock_in_01": {
+      "visual_flavor": "A targeting clamp or software lock icon freezing a decision in place. Stable composition; nothing chaotic."
+    },
+    "operator_auto_tuner_01": {
+      "visual_flavor": "A sleek tuning module with dial, waveform, and cost bars dropping into perfect alignment. Calm precision, teal UI glow, one device."
+    },
+    "operator_deep_cache_01": {
+      "visual_flavor": "A hidden vault drawer or encrypted memory block opening one layer deeper. Less action, more hidden value."
+    },
+    "operator_control_tower_01": {
+      "visual_flavor": "A compact antenna tower or drone uplink with concentric signal rings. The tower silhouette should dominate."
+    },
+    "bio_leech_jab_01": {
+      "visual_flavor": "A narrow syringe gauntlet punching in and siphoning glowing fluid back through clear tubing. One strong jab shape plus return-flow hose is enough."
+    },
+    "bio_hemorrhage_01": {
+      "visual_flavor": "A self-piercing injector blade or puncture gun drawing neon blood to fuel a violent forward strike. The self-damage cost should read through a small blood pull, not a gore splash."
+    },
+    "bio_parasite_fang_01": {
+      "visual_flavor": "A heavier parasite harpoon or injector-fang with hooked mandibles and pumping serum canisters. This should read as a premium infect finisher."
+    },
+    "bio_pain_probe_01": {
+      "visual_flavor": "A slim biopsy spike or shock-lancet thrusting forward with a sharp green flash. Fast, compact, and needle-like."
+    },
+    "bio_rot_slash_01": {
+      "visual_flavor": "A corroded scalpel or mono-blade leaving a toxic ember slash and a burning residue ticket behind it. The burn-status tie-in should be visible as residue, ash, or a cursed scrap."
+    },
+    "bio_harvest_bite_01": {
+      "visual_flavor": "A biomech jaw or injector-fang assembly snapping shut twice, spitting infected green droplets. Lean into predatory biotech rather than a normal knife attack."
+    },
+    "bio_scar_tissue_01": {
+      "visual_flavor": "Layered scar tissue and synthetic mesh knitting into a hard defensive patch. Favor close-up body-tech texture over a scene."
+    },
+    "bio_triage_loop_01": {
+      "visual_flavor": "A compact auto-doc halo cycling syringes around a medical ring and heart monitor pulse. This should feel like clinical speed and efficiency."
+    },
+    "bio_spare_organs_01": {
+      "visual_flavor": "A field cooler of cloned organs and preserved tissue packs ready for emergency use. Keep the silhouette tidy and game-readable."
+    },
+    "bio_coagulate_01": {
+      "visual_flavor": "A clotting spray or gel cartridge hardening into a dark biogel plate over an arm or rib panel. Show flesh-and-tech sealing together instead of a full character scene."
+    },
+    "bio_reclaimer_01": {
+      "visual_flavor": "A cracked stim canister or recycler pump feeding reclaimed charge into a gauntlet. Show loss-for-power conversion rather than a heal effect."
+    },
+    "bio_blood_buffer_01": {
+      "visual_flavor": "A suspended blood-buffer canister swelling into a protective bio-shield, with green-lit tubing and a semi-translucent crimson fluid core. Keep it as one centered medical object with a readable shield silhouette."
+    },
+    "bio_symbiote_mesh_01": {
+      "visual_flavor": "A living symbiote mesh wrapping an arm or torso and pulsing with mutual healing light. Make the mesh feel alive but not monstrous."
+    },
+    "bio_pain_circuit_01": {
+      "visual_flavor": "A rib-mounted pain-feedback circuit board with exposed leads, one junk cartridge, and a harsh green pulse. Make it feel like a permanent body mod, not a handheld item."
+    },
+    "bio_rot_harvest_01": {
+      "visual_flavor": "A grimy rot harvester crucible converting burned status scraps into green energy and a heartbeat pulse. Use a small furnace or grinder silhouette with status trash being consumed."
+    },
+    "enforcer_gouge_01": {
+      "visual_flavor": "A hooked blade tearing across armor with a mean red bleed trail. Sharper and nastier than Bash Protocol."
+    },
+    "enforcer_spiked_harness_01": {
+      "visual_flavor": "A brutal chest harness of spikes and reactive plates that flash when struck. Show defensive retaliation through spikes and short red sparks."
+    },
+    "operator_static_haze_01": {
+      "visual_flavor": "A fog of screen snow and teal static arcs clouding the target's output. The weak effect should feel electronic, not mystical."
+    },
+    "operator_zero_day_burst_01": {
+      "visual_flavor": "A burst of exploit shards or digital bugs striking three times in sequence. Three crisp beats of impact and teal fragments."
+    },
+    "bio_septic_round_01": {
+      "visual_flavor": "A toxic syringe round or septic casing rupturing with thick green droplets. Read as ammunition with infection, not generic poison."
+    },
+    "bio_waste_recycler_01": {
+      "visual_flavor": "A stained recycler grinder chewing junk into charge and card flow. One junk chute, one spinning chamber, one output glow."
+    },
+    "drift_error_knife_01": {
+      "visual_flavor": "A zero-cost corrupted knife made from red error text, its edge broken into sharp UI fragments."
+    },
+    "drift_unsafe_overclock_01": {
+      "visual_flavor": "A cracked booster chip venting warning light, too bright and too hot for a safe install."
+    },
+    "drift_null_refund_01": {
+      "visual_flavor": "A black refund chit with a null glyph punched through it, folding value back into a dead account."
+    },
+    "drift_mirror_cache_01": {
+      "visual_flavor": "A mirrored cache drawer reflecting duplicate card silhouettes through blue-black glass."
+    },
+    "drift_black_ice_bloom_01": {
+      "visual_flavor": "A black-ice flower blooming from a frozen data shard, petals edged with hostile code."
+    }
+  },
+  "enemies": {
+    "audit_hound": {
+      "visual_flavor": "A lean compliance hound of matte navy armor, white scanner eyes, and tracked-jaw plating built like a police dog crossed with an audit drone."
+    },
+    "compliance_engine_ax9": {
+      "visual_flavor": "A hulking corridor-pacification engine with slab shields, riot shutters, cyan warning bars, and a siege-cannon chest."
+    },
+    "director_vale": {
+      "visual_flavor": "A severe executive commander in tailored black tactical wear, a white data visor, and control drones orbiting like bodyguards."
+    },
+    "null_baton_officer": {
+      "visual_flavor": "A cold security officer with a collapsible null baton, crisp visor stripe, and a compact suppression harness."
+    },
+    "patrol_drone": {
+      "visual_flavor": "A hovering patrol drone with a camera eye, a cyan tracking cone, and a clipped utility chassis built for checkpoint work."
+    },
+    "riot_guard": {
+      "visual_flavor": "A broad armored guard behind a rectangular riot shield with heavy boots, cyan compliance lights, and a blunt baton silhouette."
+    },
+    "sentry_node": {
+      "visual_flavor": "A squat deployable turret-node with folding legs, a dish eye, and fortified shutter plating around a compact gun core."
+    },
+    "signal_analyst": {
+      "visual_flavor": "A thin control specialist framed by floating reticles, signal bars, and mark-projection screens instead of brute armor."
+    },
+    "suppression_sniper": {
+      "visual_flavor": "A long-barreled suppression marksman with a rigid firing frame, pale targeting beam, and a severe anti-personnel silhouette."
+    },
+    "turret_handler": {
+      "visual_flavor": "A support tech dragging a portable turret cradle, cable spools, and folding mount hardware through a lockstep corridor."
+    },
+    "ashfang_rook": {
+      "visual_flavor": "A scarred war-chief in layered road leathers, ember cape strips, and a hooked command weapon raised over a roaring pack."
+    },
+    "burner": {
+      "visual_flavor": "A scavenger bomber with a fuel-canister backpack, torch nozzle, and a soot-black mask lit by furnace orange."
+    },
+    "burner_mite": {
+      "visual_flavor": "A tiny volatile scrap-creature glowing from within with ember seams, hot vents, and a skittering bomb-like silhouette."
+    },
+    "chain_brute": {
+      "visual_flavor": "A massive bruiser swinging chain-wrapped metal with a slab frame, weld scars, and momentum-driven posture."
+    },
+    "dust_knife": {
+      "visual_flavor": "A fast desert cutthroat with paired blades, wrapped face cloth, and a low forward-leaning silhouette built for quick blood."
+    },
+    "furnace_hound": {
+      "visual_flavor": "A tracked scrap war-beast with a furnace maw, smokestack spine, and glowing heat vents like an industrial predator."
+    },
+    "road_hyena": {
+      "visual_flavor": "A rangy scrapland beast with plated ribs, oil-stained fur, and a pack-hunter grin stretched over mean teeth."
+    },
+    "scavver": {
+      "visual_flavor": "A thin scavenger ganger in patched scrap armor, quick limbs, and looted gear hanging from every strap."
+    },
+    "scrap_caller": {
+      "visual_flavor": "A raider summoner beating a scrap totem or horn rig, with dangling chains and pack-signaling smoke around them."
+    },
+    "scrap_gunner": {
+      "visual_flavor": "A swaggering gunner braced behind a brutal homemade firearm, ammo belts, and dust-blown goggles."
+    },
+    "junction_9_sentinel": {
+      "visual_flavor": "An old civic-defense automaton of white-gray armor plates, signal pylons, and sealed municipal authority geometry."
+    },
+    "spine_warden_null": {
+      "visual_flavor": "A severe adaptive guardian in pale machine armor with blank null-glyph panels and a saintlike control halo."
+    },
+    "toll_reeve": {
+      "visual_flavor": "A route-lord in tollkeeper regalia with an armored cloak, tax sigils, and a weaponized checkpoint silhouette."
+    },
+    "culture_shepherd": {
+      "visual_flavor": "A biotech handler with culture tanks, hanging specimen bags, and hooked tools guiding living fodder."
+    },
+    "failed_saint": {
+      "visual_flavor": "A warped devotional experiment draped in ragged medical vestments, grafted limbs, and wet pale biolight."
+    },
+    "gland_brute": {
+      "visual_flavor": "A swollen muscle horror with serum sacs, graft lines, and a frontal battering-ram silhouette."
+    },
+    "leech_nurse": {
+      "visual_flavor": "A clinical siphon-attendant with drain lines, bone-white apron panels, and predatory bedside calm."
+    },
+    "miremother_vexa": {
+      "visual_flavor": "A regal Helix overseer grown into a mire-throne of vats, tendrils, and living biomass attendants."
+    },
+    "scalpel_runner": {
+      "visual_flavor": "A thin rushdown surgeon with blade limbs, specimen belts, and a fast incision-first posture."
+    },
+    "serum_acolyte": {
+      "visual_flavor": "A devoted lab adept carrying serum injectors, clean masks, and glowing recovery fluids like sacred implements."
+    },
+    "sludge_whelp": {
+      "visual_flavor": "A low, wet toxic whelp of stitched flesh and chemical slime with a snapping maw and sickly green seepage."
+    },
+    "graft_saint": {
+      "visual_flavor": "A towering martyr-horror stitched from sacred biotech, bone-white plating, and self-regenerating organ bloom."
+    },
+    "enemy_elite_01": {
+      "visual_flavor": "A generic corp enforcer in plain tactical armor with a baton-or-sidearm stance, intentionally placeholder-grade beside the authored Blackwire roster."
+    },
+    "enemy_boss_01": {
+      "visual_flavor": "A broad generic boss figure in heavy urban armor and a command coat, built as a placeholder apex human silhouette."
+    },
+    "enemy_basic_01": {
+      "visual_flavor": "A generic street thug in cheap leathers and a pipe-weapon stance, intentionally simple as placeholder enemy art."
+    },
+    "caravan_reaver": {
+      "visual_flavor": "A brutal caravan raider in dust cloaks and scavenged plates, carrying a heavy hooked weapon for close kills."
+    },
+    "carrion_hound": {
+      "visual_flavor": "A desert scavenger hound with bone ornaments, a torn harness, and blood-tracking jaws."
+    },
+    "dune_raider": {
+      "visual_flavor": "A lean dune fighter in sun-bleached wraps and scavenged gear, sprinting with knife-forward aggression."
+    },
+    "dust_saboteur": {
+      "visual_flavor": "A wiry saboteur with satchels, clog bombs, and dust-stained patchwork equipment."
+    },
+    "embersnout": {
+      "visual_flavor": "A pig-snouted explosive brute with furnace nostrils, cinder hide, and a hot-breath silhouette built for short violent bursts."
+    },
+    "relay_vulture": {
+      "visual_flavor": "A scavenger vulture hybrid with antenna wings, mark optics, and a high perched firing pose."
+    },
+    "salvage_bulwark": {
+      "visual_flavor": "A blocky frontline scavenger wrapped in welded scrap plates and a door-sized salvage shield."
+    },
+    "sandpack_alpha": {
+      "visual_flavor": "A dominant pack alpha crowned with bone trophies, scarred hide, and a dust-storm command presence."
+    },
+    "scrap_ticker": {
+      "visual_flavor": "A small ticking machine scavenger with exposed gears, signal lights, and nuisance-bot personality."
+    },
+    "signal_junker": {
+      "visual_flavor": "A wasteland controller wrapped in scavenged signal gear, null-tech charms, and a ragged tracker silhouette."
+    },
+    "waste_leech": {
+      "visual_flavor": "A parasitic desert leech slick with infected fluid and a hooked feeding mouth built for ugly close contact."
+    },
+    "wastes_colossus": {
+      "visual_flavor": "A giant red-wastes war construct of bone-lashed scrap, crushing bulk, and rust-burn exhaust stacks."
+    }
+  },
+  "run_modifiers": {
+    "adrenal_surge": {
+      "visual_flavor": "A snap-in combat stim ampoule and injector pen glowing with reckless orange charge and first-turn heat."
+    },
+    "arterial_reservoir": {
+      "visual_flavor": "A hanging arterial tank of dark red fluid with pressure dials and a bleed overflow pipe."
+    },
+    "ash_veil": {
+      "visual_flavor": "A soot-black veil catching ember sparks along its hem as it dulls incoming burn."
+    },
+    "auction_seeder": {
+      "visual_flavor": "A gilded auction seedbox with bid tabs, sale lights, and branching price markers ready to bloom into more options."
+    },
+    "authority_bypass": {
+      "visual_flavor": "A tri-channel bypass module with three keyed faces and an illicit jumper wire bridging all of them at once."
+    },
+    "black_ice_scar": {
+      "visual_flavor": "A shard-black implant sliver with frosted blue edges and a permanent wound-line running through it."
+    },
+    "blood_indexer": {
+      "visual_flavor": "A blood-stained index wheel with tally teeth and red markers advancing toward overflow."
+    },
+    "blood_money": {
+      "visual_flavor": "A blood-smeared payout chit or brass coin purse with red ledger marks and a predatory shine."
+    },
+    "blood_pact": {
+      "visual_flavor": "A ritual contract blade or oath tag tied with red cord and a still-wet thumbprint."
+    },
+    "bone_receipt": {
+      "visual_flavor": "A rigid receipt spike threaded with bone-white tabs and pain turned into a formal tally."
+    },
+    "butcher_hooks": {
+      "visual_flavor": "A pair of industrial butcher hooks on a cable hub, stained steel with one sharp red accent. Keep the silhouette simple enough to read as a small cutout icon."
+    },
+    "carbon_weave": {
+      "visual_flavor": "A beveled square of carbon-fiber weave with stitched or riveted corners. Preserve the simple plate silhouette from the current sheet."
+    },
+    "champion_contract": {
+      "visual_flavor": "A victor's contract slate signed in gold and pinned with a medal ribbon and a clean white seal."
+    },
+    "cinder_feedback": {
+      "visual_flavor": "A heat-damaged feedback coil wrapped in ash cloth, ready to spit stored fire back at the room."
+    },
+    "clean_slate": {
+      "visual_flavor": "A handheld tablet with a clean blue screen and a physical eraser block clipped to one edge. Readable and simple; almost stationery-tech."
+    },
+    "containment_loop": {
+      "visual_flavor": "A sealed containment collar ring with clear vials and a calm green lock light holding infection at bay."
+    },
+    "controlled_bleed_valve": {
+      "visual_flavor": "A surgical pressure valve with a crimson drip gauge and a return-feed tube for repeated cuts."
+    },
+    "debt_mark": {
+      "visual_flavor": "A stamped debtor brand plate with descending credit ticks and collection sigils."
+    },
+    "debt_spike": {
+      "visual_flavor": "A predatory finance spike or contract stylus with barbed edges and courier branding."
+    },
+    "deep_pockets": {
+      "visual_flavor": "A hardened chip wallet overstuffed with stacked credit slugs and zipper rings pulling at the seams."
+    },
+    "echo": {
+      "visual_flavor": "A mirrored waveform token with duplicate edges and a pale afterimage trailing behind it."
+    },
+    "efficient": {
+      "visual_flavor": "A clean zero-cost command chip with trimmed edges, teal timing marks, and perfect economy."
+    },
+    "execution_array": {
+      "visual_flavor": "A compact execution module with a sensor eye and three deployable blades or rails. Rare relic; make it elegant and dangerous."
+    },
+    "execution_relay": {
+      "visual_flavor": "A lean kill-switch router with an optic eye and a clean relay path from status marker to finishing strike."
+    },
+    "exposure_grid": {
+      "visual_flavor": "A projector puck casting a weak-point lattice over armor seams and opened targets."
+    },
+    "field_dampener": {
+      "visual_flavor": "A palm-sized dampening puck or collar coil with concentric rings that absorb hostile status energy. Show containment, not offense."
+    },
+    "flash_cache": {
+      "visual_flavor": "A compact datastick with a bright cyan cache core. Simple 3/4 angle, cutout-friendly."
+    },
+    "flesh_dividend": {
+      "visual_flavor": "A biotech dividend engine of pumps, blood meters, and profit needles turning self-harm into a payout."
+    },
+    "fractured_armor": {
+      "visual_flavor": "A cracked armor plate held together by failing welds and stress braces."
+    },
+    "fresh_kill_chain": {
+      "visual_flavor": "A trophy chain loaded with kill tokens and sharpened clasps, built to spin one death into the next advantage."
+    },
+    "ghost_budget": {
+      "visual_flavor": "A translucent ledger chip with discount arrows, ghosted numerals, and a clean white spending lock."
+    },
+    "ghost_warranty": {
+      "visual_flavor": "A translucent warranty chip flickering with ghosted receipt text and shop-terminal glow."
+    },
+    "glitch_state": {
+      "visual_flavor": "A corrupted status badge of jittering pixels, split colors, and unstable signal tears."
+    },
+    "glass_engine": {
+      "visual_flavor": "A fragile engine capsule of glass chambers and exposed pressure lines glowing with unstable power."
+    },
+    "grave_lantern": {
+      "visual_flavor": "A black lantern venting red bleed haze and pale green weakening fumes. Use one lantern silhouette and subtle dual-color vapor."
+    },
+    "grave_matrix": {
+      "visual_flavor": "A black status lattice or grave-matrix frame humming with paired weakness and exposed-seam glyphs."
+    },
+    "grave_pick": {
+      "visual_flavor": "A compact grave pick or powered miner's pick with a small energy cell in the shaft. Uncommon relic; simple but slightly mean."
+    },
+    "grave_sprinkler": {
+      "visual_flavor": "A funerary sprinkler head spraying red mist and pale weakening vapor in a cold circular pattern."
+    },
+    "grave_static": {
+      "visual_flavor": "A tomb-radio handset crackling with dead signal and status noise over a dark speaker grille."
+    },
+    "grave_toll": {
+      "visual_flavor": "A small iron toll bell on a chain, worn smooth by deaths counted one at a time."
+    },
+    "high_roller": {
+      "visual_flavor": "A sharp-edged casino marker plated in gold and hazard red, flashy enough to promise winnings and trouble."
+    },
+    "jam_battery": {
+      "visual_flavor": "A thick battery block with spent status strips jammed into charging teeth along its spine."
+    },
+    "jam_cycler": {
+      "visual_flavor": "A grinder gearbox or cassette shredder with jammed status strips caught in its teeth. It should feel like it chews through status cards."
+    },
+    "lag_harvest": {
+      "visual_flavor": "A slow-turn capacitor or hourglass battery fed by the drag and friction of status junk."
+    },
+    "lean_market": {
+      "visual_flavor": "A bargain-market receipt roll wrapped around a cracked price gun and a starving little lockbox."
+    },
+    "market_ghost": {
+      "visual_flavor": "A phantom price tag or shop-spirit keyfob hovering with pale green markdown light."
+    },
+    "market_key": {
+      "visual_flavor": "A brass-steel key with a green chip insert and secure cut teeth. Keep the shape elegant and iconic."
+    },
+    "marker_scrambler": {
+      "visual_flavor": "A jammer disc fuzzing target reticles with static rings and scrambled white brackets."
+    },
+    "momentum": {
+      "visual_flavor": "A forward-tilted speed emblem of rev bars and attack chevrons, always leaning into the next hit."
+    },
+    "mortuary_router": {
+      "visual_flavor": "An embalmer router box with a red kill-light, card slots, and precise channels for weaponized cleanup."
+    },
+    "mummified_wire": {
+      "visual_flavor": "A wrapped cable bundle with dried insulator strips, preserved nodes, and occult-looking power discipline."
+    },
+    "null_damper": {
+      "visual_flavor": "A blanking muffler coil or nullifier puck with a muted signal emblem. Control relic; feel suppressive and defensive."
+    },
+    "open_circuit_brand": {
+      "visual_flavor": "A heated branding iron with a broken-circuit sigil and a live orange seam down the center."
+    },
+    "overclock_relay": {
+      "visual_flavor": "A heavy relay cube with a cooling fan, cables, and a small orange status LED. Preserve the squat box silhouette from the current sheet."
+    },
+    "overheat": {
+      "visual_flavor": "A hazard-red heat regulator with warning needles buried in the danger zone."
+    },
+    "parasite_seal": {
+      "visual_flavor": "A quarantine seal stamped over a specimen vial and leech silhouette, forcing the infection back under glass."
+    },
+    "patch_priority": {
+      "visual_flavor": "A clinic priority band or service token with green cross lights and fast-track chevrons."
+    },
+    "plated_grip": {
+      "visual_flavor": "A plated armored glove with chunky defensive knuckles. One glove, no hand attached."
+    },
+    "pressure_mesh": {
+      "visual_flavor": "A tension-reading mesh plate threaded with weak-point lines and defensive sensor nodes."
+    },
+    "pressure_sight": {
+      "visual_flavor": "A cyber monocle or tactical lens projecting a weak-point reticle. Let the lens shape dominate; only small UI accents."
+    },
+    "protocol_drift": {
+      "visual_flavor": "A corrupted protocol cassette wrapped in glitch haze and crossed-out control glyphs."
+    },
+    "quarantine_vault": {
+      "visual_flavor": "A locked anti-status vault canister with a green negative-pressure window and isolation clamps."
+    },
+    "queue_mirror": {
+      "visual_flavor": "A polished queue token reflecting a zero-cost icon back at itself in perfect symmetry."
+    },
+    "reaper_census": {
+      "visual_flavor": "A census tablet etched with skull tallies, official seals, and one cold column reserved for the next dead enemy."
+    },
+    "recycler_crown": {
+      "visual_flavor": "A jagged crown made of shredder teeth, ticket scraps, and improvised feed rollers."
+    },
+    "riot_gyro": {
+      "visual_flavor": "A stabilizer gyro built from riot hardware, spinning heavier each time attack cadence builds."
+    },
+    "riot_plating": {
+      "visual_flavor": "A riot plate pauldron with bold power chevrons and heavy red surface wear."
+    },
+    "rot_battery": {
+      "visual_flavor": "A corroded battery canister or cell with verdant seepage and stitched casing seams. This should feel bio-hacker adjacent but still relic-simple."
+    },
+    "rot_index": {
+      "visual_flavor": "An infected index wheel or septic filing spindle dripping green from carefully labeled slots."
+    },
+    "salvage_license": {
+      "visual_flavor": "A stamped salvage permit card clipped to a chain, with brass corners and payout marks scratched into the surface."
+    },
+    "scrap_choir": {
+      "visual_flavor": "A choir of tiny scrap bells and speaker tubes singing through junk with a surprisingly warm tone."
+    },
+    "septic_crown": {
+      "visual_flavor": "A regal corroded crown with hanging infected vials and slow verdant seepage."
+    },
+    "septic_reservoir": {
+      "visual_flavor": "A hanging septic fluid reservoir or vial bank filled with thick infected green fluid. Readable glass-and-liquid silhouette, not a full lab scene."
+    },
+    "septic_siphon": {
+      "visual_flavor": "A glass siphon pump with thick infected fluid returning through a narrow medical line."
+    },
+    "shard_seed": {
+      "visual_flavor": "A green crystal seed nested in a dark industrial housing. Bright center crystal, restrained outer casing."
+    },
+    "signal_router": {
+      "visual_flavor": "A small router box with dual antennas and a bright signal display. Maintain the readable box-and-antennas silhouette."
+    },
+    "spine_script": {
+      "visual_flavor": "A civic control script ribbon or foldout chip etched with ancient Spine Core directives and timed power pulses."
+    },
+    "stim_boost": {
+      "visual_flavor": "A compact stim cartridge with fresh green charge, timer ticks, and combat-prep seals."
+    },
+    "street_choir": {
+      "visual_flavor": "A harmonic street speaker medallion threaded with tiny antenna forks and warm recovery light."
+    },
+    "surge_fuse": {
+      "visual_flavor": "A glass fuse tube holding a bright blue electrical surge. Keep the icon slim and high contrast."
+    },
+    "symbiont_spindle": {
+      "visual_flavor": "A living spindle threaded with flesh cable and bright blood flow, half industrial bobbin and half parasite."
+    },
+    "system_corruption": {
+      "visual_flavor": "A sickly warning badge with corrupt code bleed, dead pixels, and damage-start alert lines."
+    },
+    "toll_evasion_kit": {
+      "visual_flavor": "A smuggler's bypass kit packed with toll tokens, null tools, and one very illegal override pick."
+    },
+    "toll_spike": {
+      "visual_flavor": "A punitive spike or tax nail stamped with control sigils and meant to punish anyone already under pressure."
+    },
+    "triune_module": {
+      "visual_flavor": "A three-lobed module with attack, skill, and power faces feeding a shared luminous core."
+    },
+    "verdict_engine": {
+      "visual_flavor": "A compact verdict engine stamping final judgment through a bright legal seal and a brutal execution line."
+    },
+    "viral_relay": {
+      "visual_flavor": "A spore-dispensing relay node with branching infection lines and a contagion pulse ready to jump targets."
+    },
+    "waste_filter": {
+      "visual_flavor": "A grimy filter mask or purifier canister pulling poison through layered mesh and clear waste tubes."
+    },
+    "spare_battery_leaking_cell": {
+      "visual_flavor": "A taped battery cell leaking blue charge through a cracked casing, useful for exactly the wrong reasons."
+    },
+    "protocol_eclipse_cassette_feed": {
+      "visual_flavor": "A corrupted cassette spool feeding glitch tape into an eclipse-shaped protocol reader."
+    }
+  },
+  "combat_statuses": {
+    "strength": {
+      "visual_flavor": "A clenched gauntlet or piston-loaded arm outlined in red power lines and hard impact sparks."
+    },
+    "weak": {
+      "visual_flavor": "A flickering reticle, blurred stance lines, and signal wobble that make the target look off-balance."
+    },
+    "vulnerable": {
+      "visual_flavor": "A cracked armor plate or exposed seam lit by sharp hazard highlights."
+    },
+    "infect": {
+      "visual_flavor": "Verdant spores, septic fluid, and invasive biotech growth crawling across metal or flesh."
+    },
+    "burn": {
+      "visual_flavor": "Ember-orange scorches, ash flakes, and heated metal glowing through blackened edges."
+    },
+    "bleed": {
+      "visual_flavor": "Razor-red cuts, cable slashes, and fresh droplets drawn in aggressive diagonal marks."
+    },
+    "marked": {
+      "visual_flavor": "Clean compliance brackets, target pings, and white tracking circles locking onto prey."
+    },
+    "suppressed": {
+      "visual_flavor": "Compression rings, muted muzzle glyphs, and downward force lines pressing an attack flat."
+    },
+    "nullified": {
+      "visual_flavor": "A blank hex sigil, a slashed circuit icon, and a deadened field swallowing positive glow."
+    },
+    "fortified": {
+      "visual_flavor": "Layered defensive plates and reinforcing braces stacking into a machine-ready bastion."
+    },
+    "regenerate": {
+      "visual_flavor": "Soft medical green pulses, stitched tissue, and repair light knitting damage closed."
+    },
+    "momentum": {
+      "visual_flavor": "Forward-slashing speed lines, revved engine glow, and a wound-up attack posture."
+    },
+    "overheat": {
+      "visual_flavor": "Orange pressure gauges, furnace coils, and heat haze bleeding from metal seams."
+    },
+    "biomass": {
+      "visual_flavor": "Wet organic matter pooling in vats and feeding thick green growth into a central mass."
+    },
+    "mutated": {
+      "visual_flavor": "A sudden body shift of split skin, exposed grafts, and phase-change growth bursting through."
+    }
+  },
+  "characters": {
+    "bio_hacker": {
+      "visual_flavor": "A lean biotech scavenger-doctor wrapped in green surgical glow, tubing, and reclaimed flesh-tech implants."
+    },
+    "enforcer": {
+      "visual_flavor": "A blunt-force bruiser in crimson riot armor, battered plates, and industrial weapons with almost no wasted motion."
+    },
+    "operator": {
+      "visual_flavor": "A calm precision hacker in teal-lit tactical wear, clean devices, and screen glow replacing ornament."
+    }
+  },
+  "events": {
+    "backalley_casino_01": {
+      "visual_flavor": "A cramped neon gambling den with folding tables, hidden cameras, and a pit boss smiling behind cheap velvet and dirty light."
+    },
+    "black_ice_cache_01": {
+      "visual_flavor": "A locked shard vault glowing cold blue in a dark alley, with frostlike data spikes crawling over its casing."
+    },
+    "black_ice_scar_01": {
+      "visual_flavor": "A black-ice shard hovering like a cursed sliver of glass, leaving a luminous wound-pattern in the air."
+    },
+    "crash_chassis_01": {
+      "visual_flavor": "A stripped combat frame sprawled in a wreck bay, half-disassembled and still dangerous with live warning lights."
+    },
+    "credit_shakedown_01": {
+      "visual_flavor": "A narrow alley choke point with two enforcers, neon rain, and a demanded payment hanging in the air."
+    },
+    "dead_drop_01": {
+      "visual_flavor": "A tram-bench dead drop with a blinking courier cache tucked into urban grime and electric shadow."
+    },
+    "debt_spike_01": {
+      "visual_flavor": "A slick broker booth with premium courier branding, hidden fine print, and a needlelike contract device."
+    },
+    "ghost_warranty_01": {
+      "visual_flavor": "A half-real market phantom leaning over a kiosk, offering a glowing warranty chip from behind static."
+    },
+    "glitch_lottery_01": {
+      "visual_flavor": "A hacked public terminal pulsing with corrupt icons, missing text blocks, and tempting jackpot screens."
+    },
+    "glitch_shrine_01": {
+      "visual_flavor": "A shrine of stacked scavenged monitors, candles of static, and looping error prayers flickering between grace and failure."
+    },
+    "memory_scrubber_01": {
+      "visual_flavor": "A gray-market scrub station of old recliner, surgical light, and data-erasing tools laid out like contraband dentistry."
+    },
+    "relay_tuner_01": {
+      "visual_flavor": "A quiet tuning bench filled with signal meters, cable reels, and one delicately calibrated relay core."
+    },
+    "stim_lab_01": {
+      "visual_flavor": "A cracked med-station with open stimulant ports, hanging IV bags, and warning strips over broken clinical glass."
+    },
+    "street_choir_01": {
+      "visual_flavor": "A broken plaza full of humming speakers and signal towers, where unseen voices ripple through dust and neon."
+    },
+    "street_clinic_01": {
+      "visual_flavor": "A rough street clinic under a neon tarp with patched instruments, stained steel, and improvised mercy."
+    },
+    "unstable_chip_01": {
+      "visual_flavor": "An illicit combat chip resting in shock foam, glowing too hot and unstable for any legal hardware bay."
+    },
+    "signal_busker_01": {
+      "visual_flavor": "A lone busker under a rain-warped awning, face hidden behind a speaker mask, with signal notes bending neon puddles around them."
+    },
+    "rainwater_condenser_01": {
+      "visual_flavor": "A jury-rigged rooftop water tank with copper fins, rain strings, and a clean blue drip glowing against dirty city haze."
+    },
+    "junkyard_tollbooth_01": {
+      "visual_flavor": "A child-sized tollbooth welded from scrap plates, scanner arms, and dangling relic tags, backed by heaps of dead machines."
+    },
+    "spare_battery_shrine_01": {
+      "visual_flavor": "A sidewalk altar stacked with disposable cells, prayer tags, warning stickers, and a single pulsing battery core."
+    },
+    "broken_firewall_kiosk_01": {
+      "visual_flavor": "A cracked public-security kiosk coughing blue firewall tickets from a jammed printer mouth."
+    },
+    "butcher_ledger_01": {
+      "visual_flavor": "A hanging butcher terminal beside steel hooks, with red ledger lines crawling across a greasy glass display."
+    },
+    "market_price_oracle_01": {
+      "visual_flavor": "A tiny fortune kiosk with price tags orbiting a green CRT face and coins jammed into its prediction slot."
+    },
+    "scavenger_lunch_01": {
+      "visual_flavor": "A dented cooler under a tarp, with foil meal packets, cracked ice, and a scavenger watching your hands."
+    },
+    "null_ticket_booth_01": {
+      "visual_flavor": "A flickering metro booth with blank destination signs, null glyph tickets, and a turnstile sparking under the counter."
+    },
+    "street_charger_01": {
+      "visual_flavor": "A sidewalk charging stand with three glowing cables, one clean, one sparking, and one sealed behind warning tape."
+    },
+    "overpass_sleepers_01": {
+      "visual_flavor": "A huddled camp beneath concrete, med-blanket glow lighting tired faces and hidden blades."
+    },
+    "split_wire_courier_01": {
+      "visual_flavor": "A breathless courier holding twin wire-wrapped parcels, each blinking with a different route color."
+    },
+    "ash_seller_01": {
+      "visual_flavor": "A masked ash vendor beside a smoking barrel, with black powder scooped into bright heatproof envelopes."
+    },
+    "cheap_implant_rack_01": {
+      "visual_flavor": "A folding vendor rack of cheap implant chips, each sealed in cracked plastic with handwritten warning labels."
+    },
+    "shredder_blessing_01": {
+      "visual_flavor": "A municipal shredder altar with card strips, prayer tape, and a green ready light shaped like a smile."
+    },
+    "plaza_antenna_01": {
+      "visual_flavor": "A crooked public antenna in a broken square, with neon signal rings bouncing between cracked tiles."
+    },
+    "scrap_lottery_box_01": {
+      "visual_flavor": "A rusted sidewalk prize box with claw-machine glass, scrap tokens, and a prize chute glowing wrong."
+    },
+    "grave_bell_01": {
+      "visual_flavor": "A lonely grave bell hanging from a street sign, its rope made from cable and old name tags."
+    },
+    "quarantine_mask_vendor_01": {
+      "visual_flavor": "A vendor wall of quarantine masks, cracked visors, green filter tubes, and handwritten contagion prices."
+    },
+    "civic_checkpoint_01": {
+      "visual_flavor": "A checkpoint gate with red civic lasers, enforcer silhouettes, and a scanner arch dripping rain."
+    },
+    "zero_cost_graffito_01": {
+      "visual_flavor": "A neon graffito of a zero-cost glyph reflecting through wet brick and cheap camera eyes."
+    },
+    "smuggled_waterline_01": {
+      "visual_flavor": "A broken waterline behind a service wall, with clean water glowing through illegal valves and route chalk."
+    },
+    "low_signal_shelter_01": {
+      "visual_flavor": "A low concrete shelter with foil curtains, blue sleeping pads, and unplugged signal towers outside."
+    },
+    "dampener_repairman_01": {
+      "visual_flavor": "A hunched repairman in a raincoat tuning a dampener puck with tiny magnetic tools."
+    },
+    "trashfire_oracle_01": {
+      "visual_flavor": "A trashfire in an oil drum, flames forming receipt text and tiny skull-shaped sparks."
+    },
+    "blackwire_broker_01": {
+      "visual_flavor": "A blackwire broker beneath a flickering awning, opening a coat full of null coils and marked signal tags."
+    },
+    "infection_gallery_01": {
+      "visual_flavor": "A gallery of green-lit specimen frames, living infection patterns blooming like street art behind glass."
+    },
+    "red_wastes_pumpjack_01": {
+      "visual_flavor": "A rusted pumpjack in red dust, pumping ember-black oil into a cracked relic crate."
+    },
+    "ghost_market_turnstile_01": {
+      "visual_flavor": "A translucent market entrance with a single turnstile, floating price tags, and ghost hands counting coins."
+    },
+    "bone_receipt_window_01": {
+      "visual_flavor": "A narrow claims window stacked with bone-white receipts, red stamps, and a clerk wearing surgical gloves."
+    },
+    "jammer_den_01": {
+      "visual_flavor": "A basement den full of spinning jammer drums, shredded status strips, and blue smoke curling from battery mouths."
+    },
+    "relay_grafting_chair_01": {
+      "visual_flavor": "A reclining graft chair surrounded by relay cubes, timing belts, and a surgeon-mechanic with insulated hands."
+    },
+    "auction_warmup_01": {
+      "visual_flavor": "A velvet back room with holographic bid paddles, card reward silhouettes, and a locked auction seedbox on display."
+    },
+    "grave_census_clerk_01": {
+      "visual_flavor": "A census desk in an empty street, skull tallies stamped onto glowing forms by a bored dead clerk."
+    },
+    "septic_distillery_01": {
+      "visual_flavor": "A bio-still of green fluid coils, pressure gauges, and sealed parasite jars in a warm sewer alcove."
+    },
+    "pressure_optician_01": {
+      "visual_flavor": "A street optician booth with tactical lenses, weak-point reticles, and pressure maps reflected in rain glass."
+    },
+    "riot_drill_square_01": {
+      "visual_flavor": "A fenced training square with riot shields, gyro targets, and sparking baton drones."
+    },
+    "lag_harvester_01": {
+      "visual_flavor": "A slow-turn capacitor with hourglass coils, lag strips, and a technician tapping stalled sparks into jars."
+    },
+    "warranty_voider_01": {
+      "visual_flavor": "A translucent technician peeling warranty stickers off relics while static moths orbit the workbench."
+    },
+    "debt_witness_01": {
+      "visual_flavor": "A polished debt booth with a witness camera, gold contract needles, and a receipt printer spitting black paper."
+    },
+    "rot_exchange_01": {
+      "visual_flavor": "A rot recycler counter with green index wheels, status-card bins, and a clerk wearing sealed gloves."
+    },
+    "cache_bloom_01": {
+      "visual_flavor": "A glowing green cache crystal growing from cracked pavement, with data petals opening like a flower."
+    },
+    "cinder_contract_01": {
+      "visual_flavor": "A contract tablet glowing ember-orange, with cinder coils wrapped around the signature line."
+    },
+    "execution_rig_01": {
+      "visual_flavor": "A compact execution rig with sensor eyes, blade rails, and status icons projected over a test dummy."
+    },
+    "symbiont_soup_kitchen_01": {
+      "visual_flavor": "A steam-filled soup line under medical lamps, with living broth moving through clear tubing into bowls."
+    },
+    "null_confessional_01": {
+      "visual_flavor": "A confession booth made of matte black panels, with null glyphs drifting like snow in the privacy glass."
+    },
+    "scrap_choir_rehearsal_01": {
+      "visual_flavor": "A chapel of scrap bells, speaker cones, and shredded status strips hanging like hymn sheets."
+    },
+    "field_trial_chamber_01": {
+      "visual_flavor": "A sealed test chamber with hostile status emitters, dampener rings, and a safe relic behind glass."
+    },
+    "smuggler_decoder_01": {
+      "visual_flavor": "A smuggler decoder bolted into a service wall, with route glyphs crawling across a stolen transit map."
+    },
+    "protocol_patch_bay_01": {
+      "visual_flavor": "A clean protocol repair bay with diagnostic arms, a corrupted cassette, and a price list under surgical light."
+    },
+    "authority_backdoor_01": {
+      "visual_flavor": "A high-security terminal in a dead civic office, three access lights reflected in broken riot glass."
+    },
+    "mummified_server_01": {
+      "visual_flavor": "A mummified server cabinet wrapped in insulator strips, with power glyphs glowing beneath the bindings."
+    },
+    "verdict_tribunal_01": {
+      "visual_flavor": "A circular tribunal chamber of cracked legal screens, verdict stamps, and execution rails pointed at an empty chair."
+    },
+    "quarantine_auction_01": {
+      "visual_flavor": "An auction stage around a sealed quarantine canister, with green pressure lights and ghostly bid paddles."
+    },
+    "viral_crown_lab_01": {
+      "visual_flavor": "A sealed biotech lab with a regal infected crown floating in green fluid and warning glyphs scratched into glass."
+    },
+    "mortuary_data_wake_01": {
+      "visual_flavor": "A mortuary table covered with data candles, embalmer routers, and status cards folded like mourning paper."
+    },
+    "spine_core_vespers_01": {
+      "visual_flavor": "A cathedral-like relay hall with timed civic script ribbons pulsing every third beat."
+    },
+    "triune_gate_01": {
+      "visual_flavor": "A luminous three-lobed gate with attack, skill, and power faces feeding one central core."
+    },
+    "flesh_dividend_clinic_01": {
+      "visual_flavor": "A luxury clinic of blood meters, dividend tickers, and red pumps under spotless white light."
+    },
+    "grave_matrix_obelisk_01": {
+      "visual_flavor": "A grave-black obelisk casting weak and vulnerable grids over ghostly enemy silhouettes."
+    },
+    "controlled_bleed_theater_01": {
+      "visual_flavor": "A red-lit surgical stage with pressure valves, arterial tanks, and a dummy endlessly bleeding in perfect rhythm."
+    },
+    "auction_seed_vault_01": {
+      "visual_flavor": "A gilded vault full of seedboxes, bid tabs, and card silhouettes branching like vines."
+    },
+    "protocol_drift_cradle_01": {
+      "visual_flavor": "A suspended cradle holding a corrupted protocol cassette, crossed-out control glyphs, and glitch haze leaking downward."
+    },
+    "recycler_crown_yard_01": {
+      "visual_flavor": "A scrap yard throne made of shredder teeth, ticket scraps, and feed rollers glowing with temporary-card light."
+    },
+    "toll_evasion_run_01": {
+      "visual_flavor": "A speeding smuggler van under null toll arches, with evasion tools sparking across the dashboard."
+    },
+    "market_ghost_reunion_01": {
+      "visual_flavor": "A midnight market stall where a ghost clerk and warranty phantom argue over one glowing receipt."
+    },
+    "black_ice_heart_01": {
+      "visual_flavor": "A subterranean black-ice heart suspended in frozen data veins, pulsing through blue-black glass."
+    },
+    "choir_beneath_city_01": {
+      "visual_flavor": "A vast undercity chamber full of stacked speakers, scrap bells, and signal towers singing into green fog."
+    },
+    "debt_court_01": {
+      "visual_flavor": "A courtroom of contract paper, debt needles, and credit counters stacked like witness stands."
+    },
+    "protocol_eclipse_01": {
+      "visual_flavor": "A total eclipse of UI glyphs around the player silhouette, with corrupted duplicates moving out of sync."
+    },
+    "grave_census_final_01": {
+      "visual_flavor": "A final census hall with skull tablets, grave lanterns, and a black ledger opened to the player line."
+    },
+    "infection_bloom_parade_01": {
+      "visual_flavor": "A festival street of green infection lanterns, masked dancers, and spore-light drifting over wet asphalt."
+    },
+    "zero_day_masquerade_01": {
+      "visual_flavor": "A neon masquerade where masks are shaped like zero-cost glyphs and power wires hang like streamers."
+    },
+    "quarantine_saint_01": {
+      "visual_flavor": "A luminous quarantine figure behind green pressure glass, surrounded by masks, dampeners, and sealed relic cases."
+    },
+    "spine_breach_01": {
+      "visual_flavor": "A breached civic core corridor with tri-channel locks, authority keys, and timed script pulses receding into darkness."
+    }
+  }
+}

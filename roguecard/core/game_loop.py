@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
     pygame = None
 
 from animation.animator import Animator
-from audio.audio_manager import AudioManager, DEFAULT_AUDIO_CUES
+from audio.audio_manager import AudioManager, CHOSEN_AUDIO_CUES, DEFAULT_AUDIO_CUES
 from config import (
     ACTION_COOLDOWN_SECONDS,
     DEFAULT_FAST_MODE,
@@ -80,6 +80,7 @@ class GameLoop:
         self._title_continue_payload: dict[str, Any] | None = None
         self._title_continue_summary: dict[str, Any] | None = None
         self._title_status_message = "Choose how to enter the city."
+        self._last_music_scene: str | None = None
 
     def run(self) -> None:
         if pygame is None:
@@ -94,6 +95,7 @@ class GameLoop:
 
         self._preload_presentation_assets()
         boot_message, boot_level = self._bootstrap_run_state()
+        self._sync_music_scene(self._snapshot_with_hand(), force=True)
         self._set_notice(boot_message, level=boot_level, duration=3.2)
         self.running = True
 
@@ -124,6 +126,7 @@ class GameLoop:
                 screen = self._dispatch_action(polled_action, screen)
 
             animation_speed = FAST_MODE_MULTIPLIER if self._fast_mode else 1.0
+            self.audio_manager.update(delta_time)
             self.animator.update(delta_time * animation_speed)
             self.ui_manager.update(delta_time * animation_speed, self._snapshot_with_hand())
             self._render_frame(screen)
@@ -255,6 +258,11 @@ class GameLoop:
         if action_type != "title_quit":
             self._apply_feedback(action_type, before_snapshot, after_snapshot)
             self.ui_manager.apply_snapshot_feedback(action_type, before_snapshot, after_snapshot)
+            self._sync_music_scene(
+                after_snapshot,
+                before_snapshot=before_snapshot,
+                action_type=action_type,
+            )
         self._persist_run_state(after_snapshot)
         if self._action_uses_cooldown(action_type):
             self._interaction_cooldown = ACTION_COOLDOWN_SECONDS
@@ -330,6 +338,7 @@ class GameLoop:
             self._pause_open = False
             self._toggle_settings(False)
             self._bootstrap_run_state()
+            self._sync_music_scene(self._snapshot_with_hand(), force=True)
             self._set_notice("Returned to the title screen. Continue is available.", level="success", duration=2.0)
             return screen
 
@@ -586,6 +595,7 @@ class GameLoop:
             self._set_notice(after_snapshot["status_message"], level="success", duration=2.2)
 
     def _initialize_audio(self) -> None:
+        self.ui_manager.set_audio_callback(self.audio_manager.trigger)
         if pygame is None:
             return
         try:
@@ -597,7 +607,7 @@ class GameLoop:
 
     def _preload_presentation_assets(self) -> None:
         self.ui_manager.preload_assets()
-        for cue_name, filename in DEFAULT_AUDIO_CUES.items():
+        for cue_name, filename in {**DEFAULT_AUDIO_CUES, **CHOSEN_AUDIO_CUES}.items():
             self.audio_manager.load_sound(cue_name, filename)
 
     def _create_display_surface(self) -> Any:
@@ -1304,6 +1314,46 @@ class GameLoop:
         if current_state in {"victory", "game_over"}:
             return "idle"
         return "idle"
+
+    def _music_scene_for_snapshot(self, snapshot: dict[str, Any]) -> str:
+        if self._title_active or snapshot.get("current_state") == "title":
+            return "title"
+        current_state = snapshot.get("current_state")
+        if current_state == "combat":
+            return "combat"
+        if current_state in {"character_select", "modifier_draft", "map", "shop", "event", "reward"}:
+            return "noncombat"
+        return "silence"
+
+    def _sync_music_scene(
+        self,
+        snapshot: dict[str, Any],
+        *,
+        before_snapshot: dict[str, Any] | None = None,
+        action_type: str | None = None,
+        force: bool = False,
+    ) -> None:
+        target_scene = self._music_scene_for_snapshot(snapshot)
+        resume_existing_combat = (
+            action_type == "title_continue"
+            and before_snapshot is not None
+            and before_snapshot.get("current_state") == "title"
+            and target_scene == "combat"
+        )
+        if not force and target_scene == self._last_music_scene and not resume_existing_combat:
+            return
+        self.audio_manager.set_scene(
+            target_scene,
+            resume_existing_combat=resume_existing_combat,
+            force=force,
+        )
+        LOGGER.info(
+            "Audio scene requested: scene=%s requested_track=%s playing_track=%s",
+            target_scene,
+            self.audio_manager.requested_track_id,
+            self.audio_manager.current_track_id,
+        )
+        self._last_music_scene = target_scene
 
 
 def simulate_game_loop() -> dict[str, Any]:

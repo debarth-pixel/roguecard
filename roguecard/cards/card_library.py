@@ -59,6 +59,10 @@ class CardLibrary:
         owners: Iterable[str] | None = None,
         include_types: Iterable[str] | None = None,
         exclude_types: Iterable[str] | None = None,
+        hidden: bool | None = None,
+        reward_eligible: bool | None = None,
+        shop_eligible: bool | None = None,
+        generation_tags: Iterable[str] | None = None,
     ) -> list[CardBase]:
         if not self._cards:
             self.load_cards()
@@ -66,6 +70,9 @@ class CardLibrary:
         owner_set = None if owners is None else set(owners)
         include_type_set = None if include_types is None else {value.lower() for value in include_types}
         exclude_type_set = set() if exclude_types is None else {value.lower() for value in exclude_types}
+        generation_tag_set = None if generation_tags is None else {
+            str(value).strip() for value in generation_tags if str(value).strip()
+        }
         results: list[CardBase] = []
         for card in self._cards.values():
             if owner_set is not None and not owner_set.intersection(card.owners):
@@ -73,6 +80,14 @@ class CardLibrary:
             if include_type_set is not None and card.type not in include_type_set:
                 continue
             if exclude_type_set and card.type in exclude_type_set:
+                continue
+            if hidden is not None and bool(card.hidden) != hidden:
+                continue
+            if reward_eligible is not None and bool(card.reward_eligible) != reward_eligible:
+                continue
+            if shop_eligible is not None and bool(card.shop_eligible) != shop_eligible:
+                continue
+            if generation_tag_set is not None and not generation_tag_set.issubset(set(card.generation_tags)):
                 continue
             results.append(copy.deepcopy(card))
         return results

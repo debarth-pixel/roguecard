@@ -1,0 +1,444 @@
+# Bosses Master Reference
+
+Generated from `data/final_map_bosses.json`, `data/enemies.json`, and `data/campaign_maps.json`.
+
+- Total bosses: **9**
+
+## faction
+
+### Ashfang Rook (`ashfang_rook`)
+
+- Category: `faction`
+- Faction: `cinder_jackals`
+- Combat Role: momentum war-chief
+- Catalog Summary: A raider leader who turns chaos into lethal tempo.
+- Intro Text: You got all the way here just to die tired.
+- Role / Tier: `boss` / `boss`
+- Max HP: `146`
+- Tags: `momentum`, `war_chief`, `summon`
+- Special Mechanics: Strength gain, Summoning, Phase change
+- Visual Flavor: A scarred war-chief in layered road leathers, ember cape strips, and a hooked command weapon raised over a roaring pack.
+- Route Availability:
+  - Cinder Jackals Edgeworks: final-route boss pool for `cinder_jackals`.
+- Phase Rules:
+  - `all_out` at <= 0.45 HP ratio -> pattern ['all_out', 'pack_in', 'all_out', 'blood_hot']
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `pack_in`: Call two Scavvers
+    - Target: `self`
+    - Cooldown: `1`
+    - Bark Trigger: `summon`
+    - Conditions: `{"living_enemies_below": 5}`
+    - Effects:
+      - Summon 2 `scavver`.
+  - `blood_hot`: Hit for 10 and gain 1 Strength
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 10 damage to default.
+      - Gain 1 Strength.
+  - `cleaver_rush`: Rush for 12
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 12 damage to default.
+  - `crowd_surge`: Surge for 14
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `summon`
+    - Conditions: `{"any_other_ally_present": true}`
+    - Effects:
+      - Deal 14 damage to default.
+  - `all_out`: All-out strike for 18
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `phase_change`
+    - Effects:
+      - Deal 18 damage to default.
+
+### Compliance Engine AX-9 (`compliance_engine_ax9`)
+
+- Category: `faction`
+- Faction: `blackwire_directorate`
+- Combat Role: shield machine
+- Catalog Summary: A riot-break engine built to pacify whole corridors.
+- Intro Text: CIVIC ORDER FAILURE. PACIFICATION REQUIRED.
+- Role / Tier: `boss` / `boss`
+- Max HP: `165`
+- Tags: `shield`, `machine`, `suppression`
+- Special Mechanics: Suppressed, Strip Buff, Summoning, Phase change
+- Visual Flavor: A hulking corridor-pacification engine with slab shields, riot shutters, cyan warning bars, and a siege-cannon chest.
+- Route Availability:
+  - Blackwire Lockdown Sector: final-route boss pool for `blackwire_directorate`.
+- Phase Rules:
+  - `overdrive` at <= 0.5 HP ratio -> pattern ['overdrive_cannon', 'barrier_cycle', 'null_wave', 'overdrive_cannon']
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `barrier_cycle`: Gain 16 Block
+    - Target: `self`
+    - Cooldown: `0`
+    - Bark Trigger: `shielded_phase`
+    - Effects:
+      - Gain 16 Block.
+  - `pacify_burst`: Burst for 13 and Suppress 1
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `suppression`
+    - Effects:
+      - Deal 13 damage to default.
+      - Apply 1 Suppressed to default.
+  - `deploy_node`: Deploy a Sentry Node
+    - Target: `self`
+    - Cooldown: `1`
+    - Bark Trigger: `deploy`
+    - Conditions: `{"living_enemies_below": 5}`
+    - Effects:
+      - Summon 1 `sentry_node`.
+  - `null_wave`: Wave for 8 and strip one buff
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `suppression`
+    - Effects:
+      - Deal 8 damage to default.
+      - Strip a removable player buff from default.
+  - `overdrive_cannon`: Cannon for 18
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `phase_change`
+    - Effects:
+      - Deal 18 damage to default.
+
+### Director Vale (`director_vale`)
+
+- Category: `faction`
+- Faction: `blackwire_directorate`
+- Combat Role: suppression commander
+- Catalog Summary: A tactical director who dismantles the player's best turns.
+- Intro Text: You are not a crisis. You are an expense.
+- Role / Tier: `boss` / `boss`
+- Max HP: `145`
+- Tags: `suppression`, `commander`, `drone`
+- Special Mechanics: Marked, Suppressed, Strip Buff, Summoning, Phase change
+- Visual Flavor: A severe executive commander in tailored black tactical wear, a white data visor, and control drones orbiting like bodyguards.
+- Route Availability:
+  - Blackwire Lockdown Sector: final-route boss pool for `blackwire_directorate`.
+- Phase Rules:
+  - `kill_authority` at <= 0.5 HP ratio -> pattern ['kill_authority', 'tracked', 'deploy_kill_asset', 'kill_authority']
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `tracked`: Apply 2 Marked
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `mark`
+    - Effects:
+      - Apply 2 Marked to default.
+  - `revoke`: Revoke for 9 and strip one buff
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `buff_strip`
+    - Effects:
+      - Deal 9 damage to default.
+      - Strip a removable player buff from default.
+  - `deploy_kill_asset`: Deploy a Patrol Drone
+    - Target: `self`
+    - Cooldown: `1`
+    - Bark Trigger: `summon`
+    - Conditions: `{"living_enemies_below": 5}`
+    - Effects:
+      - Summon 1 `patrol_drone`.
+  - `lockdown`: Lockdown for 12 and Suppress 2
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 12 damage to default.
+      - Apply 2 Suppressed to default.
+  - `kill_authority`: Authority fire for 16
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `phase_change`
+    - Effects:
+      - Deal 16 damage to default.
+      - Strip a removable player buff from default.
+
+### Furnace Hound (`furnace_hound`)
+
+- Category: `faction`
+- Faction: `cinder_jackals`
+- Combat Role: siege engine
+- Catalog Summary: A tracked scrap-war machine that fights like an animal.
+- Intro Text: Wake the hound.
+- Role / Tier: `boss` / `boss`
+- Max HP: `170`
+- Tags: `siege`, `machine`, `burn`
+- Special Mechanics: Burn, Strength gain, Summoning, Phase change
+- Visual Flavor: A tracked scrap war-beast with a furnace maw, smokestack spine, and glowing heat vents like an industrial predator.
+- Route Availability:
+  - Cinder Jackals Edgeworks: final-route boss pool for `cinder_jackals`.
+- Phase Rules:
+  - `overheat` at <= 0.5 HP ratio -> pattern ['overheat_ram', 'loose_mites', 'incinerate', 'overheat_ram']
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `loose_mites`: Loose two Burner Mites
+    - Target: `self`
+    - Cooldown: `1`
+    - Bark Trigger: `summon`
+    - Conditions: `{"living_enemies_below": 5}`
+    - Effects:
+      - Summon 2 `burner_mite`.
+  - `artillery_prep`: Gain 10 Block and 1 Strength
+    - Target: `self`
+    - Cooldown: `0`
+    - Bark Trigger: `charge`
+    - Effects:
+      - Gain 10 Block.
+      - Gain 1 Strength.
+  - `incinerate`: Incinerate for 10 and Burn 2
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `burn`
+    - Effects:
+      - Deal 10 damage to default.
+      - Apply 2 Burn to default.
+  - `ram`: Ram for 15
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 15 damage to default.
+  - `overheat_ram`: Overheat ram for 19
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `phase_change`
+    - Effects:
+      - Deal 19 damage to default.
+
+### Miremother Vexa (`miremother_vexa`)
+
+- Category: `faction`
+- Faction: `helix_ward`
+- Combat Role: summoner
+- Catalog Summary: A Helix overseer who floods the field with engineered biomass.
+- Intro Text: Try not to die too quickly. I need to see the full reaction.
+- Role / Tier: `boss` / `boss`
+- Max HP: `140`
+- Tags: `summoner`, `mutate`, `harvest`
+- Special Mechanics: Infection, Strength gain, Summoning, Phase change, Ally-death passive
+- Visual Flavor: A regal Helix overseer grown into a mire-throne of vats, tendrils, and living biomass attendants.
+- Route Availability:
+  - Helix Ward Depths: final-route boss pool for `helix_ward`.
+- Phase Rules:
+  - `unstable_design` at <= 0.45 HP ratio -> pattern ['stress_bloom', 'field_trial', 'culture_harvest', 'stress_bloom']
+- Death Effects: None
+- Ally-Death Effects:
+  - Heal self for 4 HP.
+  - Gain 1 Strength.
+- Moves:
+  - `field_trial`: Summon two Sludge Whelps
+    - Target: `self`
+    - Cooldown: `1`
+    - Bark Trigger: `summon`
+    - Conditions: `{"living_enemies_below": 5}`
+    - Effects:
+      - Summon 2 `sludge_whelp`.
+  - `serum_lance`: Lance for 10 and Infect 2
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 10 damage to default.
+      - Apply 2 Infection to default.
+  - `culture_harvest`: Heal 10 and gain 1 Strength
+    - Target: `self`
+    - Cooldown: `0`
+    - Conditions: `{"any_other_ally_present": true}`
+    - Effects:
+      - Heal default for 10 HP.
+      - Gain 1 Strength.
+  - `rupture_command`: Rupture for 8 and summon one Whelp
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `summon`
+    - Conditions: `{"living_enemies_below": 5}`
+    - Effects:
+      - Deal 8 damage to default.
+      - Summon 1 `sludge_whelp`.
+  - `stress_bloom`: Bloom for 14 and Infect 2
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 14 damage to default.
+      - Apply 2 Infection to default.
+      - Summon 1 `sludge_whelp`.
+
+### The Graft Saint (`graft_saint`)
+
+- Category: `faction`
+- Faction: `helix_ward`
+- Combat Role: regenerating horror
+- Catalog Summary: A devotional biotech prototype that refuses to die cleanly.
+- Intro Text: I was remade for this.
+- Role / Tier: `boss` / `boss`
+- Max HP: `155`
+- Tags: `regenerate`, `horror`, `mutate`
+- Special Mechanics: Burn, Strength gain, Phase change
+- Visual Flavor: A towering martyr-horror stitched from sacred biotech, bone-white plating, and self-regenerating organ bloom.
+- Route Availability:
+  - Helix Ward Depths: final-route boss pool for `helix_ward`.
+- Phase Rules:
+  - `martyr_form` at <= 0.5 HP ratio -> pattern ['violent_surge', 'devotional_crush', 'sealing_flesh', 'toxic_spasm']
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `graft_wall`: Gain 12 Block
+    - Target: `self`
+    - Cooldown: `0`
+    - Effects:
+      - Gain 12 Block.
+  - `devotional_crush`: Crush for 14
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 14 damage to default.
+  - `sealing_flesh`: Regenerate 12
+    - Target: `self`
+    - Cooldown: `2`
+    - Bark Trigger: `heal`
+    - Conditions: `{"self_hp_below_ratio": 0.9}`
+    - Effects:
+      - Heal default for 12 HP.
+  - `toxic_spasm`: Spasm for 9 and Burn 1
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `infect`
+    - Effects:
+      - Deal 9 damage to default.
+      - Apply 1 Burn to default.
+  - `violent_surge`: Surge for 18
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `phase_change`
+    - Effects:
+      - Deal 18 damage to default.
+      - Gain 1 Strength.
+
+## general
+
+### Junction-9 Sentinel (`junction_9_sentinel`)
+
+- Category: `general`
+- Faction: `general`
+- Combat Role: defense automaton
+- Catalog Summary: An ancient civic-defense machine guarding infrastructure access.
+- Intro Text: THREAT STATUS UNRESOLVED. DEFENSIVE ENGAGEMENT AUTHORIZED.
+- Role / Tier: `boss` / `boss`
+- Max HP: `150`
+- Tags: `general`, `machine`, `defense`
+- Special Mechanics: Marked
+- Visual Flavor: An old civic-defense automaton of white-gray armor plates, signal pylons, and sealed municipal authority geometry.
+- Route Availability:
+  - City Streets: city-streets boss route for `blackwire_directorate`.
+- Phase Rules: None
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `defense_mode`: Gain 14 Block
+    - Target: `self`
+    - Cooldown: `0`
+    - Effects:
+      - Gain 14 Block.
+  - `heavy_charge`: Charge for 16
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `heavy_prep`
+    - Effects:
+      - Deal 16 damage to default.
+  - `scan_burst`: Burst for 8 and Mark 1
+    - Target: `player`
+    - Cooldown: `0`
+    - Effects:
+      - Deal 8 damage to default.
+      - Apply 1 Marked to default.
+
+### Spine Warden Null (`spine_warden_null`)
+
+- Category: `general`
+- Faction: `general`
+- Combat Role: adaptive guardian
+- Catalog Summary: The last neutral authority before the faction endpaths.
+- Intro Text: Claimant detected. Authority denied.
+- Role / Tier: `boss` / `boss`
+- Max HP: `160`
+- Tags: `general`, `adaptive`, `guardian`
+- Special Mechanics: Suppressed
+- Visual Flavor: A severe adaptive guardian in pale machine armor with blank null-glyph panels and a saintlike control halo.
+- Route Availability:
+  - City Streets: city-streets boss route for `helix_ward`.
+- Phase Rules: None
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `pattern_lock`: Gain 10 Block
+    - Target: `self`
+    - Cooldown: `0`
+    - Effects:
+      - Gain 10 Block.
+  - `veto_wave`: Wave for 10 and Suppress 1
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `phase_change`
+    - Effects:
+      - Deal 10 damage to default.
+      - Apply 1 Suppressed to default.
+  - `null_barrage`: Barrage for 15
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `attack`
+    - Effects:
+      - Deal 15 damage to default.
+
+### The Toll Reeve (`toll_reeve`)
+
+- Category: `general`
+- Faction: `general`
+- Combat Role: resource disruptor
+- Catalog Summary: A route-holder who weaponizes passage and attrition.
+- Intro Text: Nobody crosses without paying.
+- Role / Tier: `boss` / `boss`
+- Max HP: `132`
+- Tags: `general`, `tax`, `disruption`
+- Special Mechanics: Suppressed, Strip Buff
+- Visual Flavor: A route-lord in tollkeeper regalia with an armored cloak, tax sigils, and a weaponized checkpoint silhouette.
+- Route Availability:
+  - City Streets: city-streets boss route for `cinder_jackals`.
+- Phase Rules: None
+- Death Effects: None
+- Ally-Death Effects: None
+- Moves:
+  - `gate_tax`: Tax hit for 10 and strip one buff
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `resource_tax`
+    - Effects:
+      - Deal 10 damage to default.
+      - Strip a removable player buff from default.
+  - `muscle_wall`: Gain 12 Block
+    - Target: `self`
+    - Cooldown: `0`
+    - Effects:
+      - Gain 12 Block.
+  - `resource_cut`: Hit for 9 and Suppress 1
+    - Target: `player`
+    - Cooldown: `0`
+    - Bark Trigger: `resource_tax`
+    - Effects:
+      - Deal 9 damage to default.
+      - Apply 1 Suppressed to default.

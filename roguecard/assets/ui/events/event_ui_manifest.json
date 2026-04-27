@@ -1,0 +1,38 @@
+{
+  "assets": {
+    "window_shell_combined": {"source": "event_UI_5.png", "rect": [29, 13, 447, 261]},
+    "dossier_panel": {"source": "event_UI_6.png", "rect": [8, 13, 260, 318]},
+    "artwork_frame": {"source": "event_UI_2.png", "rect": [43, 63, 1040, 1281]},
+
+    "choice_button_normal": {"source": "event_UI_3.png", "rect": [7, 134, 111, 64], "nine_slice": [24, 22, 24, 22]},
+    "choice_button_selected": {"source": "event_UI_3.png", "rect": [121, 134, 108, 65], "nine_slice": [24, 22, 24, 22]},
+    "choice_button_pressed": {"source": "event_UI_3.png", "rect": [232, 134, 108, 64], "nine_slice": [24, 22, 24, 22]},
+    "choice_button_locked": {"source": "event_UI_3.png", "rect": [343, 134, 108, 64], "nine_slice": [24, 22, 24, 22]},
+
+    "confirm_button_inactive": {"source": "event_UI_4.png", "rect": [58, 78, 110, 62], "nine_slice": [28, 22, 28, 22]},
+    "confirm_button_active": {"source": "event_UI_4.png", "rect": [176, 78, 106, 61], "nine_slice": [28, 22, 28, 22]},
+    "confirm_button_pressed": {"source": "event_UI_4.png", "rect": [289, 78, 108, 61], "nine_slice": [28, 22, 28, 22]},
+    "secret_option_hidden": {"source": "event_UI_4.png", "rect": [54, 176, 162, 77], "nine_slice": [28, 24, 28, 24]},
+    "secret_option_unlocked": {"source": "event_UI_4.png", "rect": [227, 173, 196, 86], "nine_slice": [30, 26, 30, 26]},
+
+    "input_hint_bar": {"source": "event_UI_1.png", "rect": [17, 45, 424, 56], "nine_slice": [34, 20, 34, 20]},
+    "requirement_strip": {"source": "event_UI_1.png", "rect": [47, 141, 180, 46], "nine_slice": [26, 16, 26, 16]},
+    "choice_number_badge": {"source": "event_UI_1.png", "rect": [312, 136, 69, 68]},
+    "choice_icon_plate_hex": {"source": "event_UI_1.png", "rect": [21, 211, 120, 97]},
+    "choice_icon_plate_small": {"source": "event_UI_1.png", "rect": [178, 225, 78, 75]},
+    "title_accent_bar_yellow": {"source": "event_UI_1.png", "rect": [287, 244, 149, 14], "nine_slice": [18, 4, 18, 4]},
+    "title_accent_bar_cyan": {"source": "event_UI_1.png", "rect": [287, 276, 115, 14], "nine_slice": [18, 4, 18, 4]},
+
+    "glyph_credits": {"source": "event_category_glyphs.png", "rect": [20, 36, 64, 73]},
+    "glyph_damage": {"source": "event_category_glyphs.png", "rect": [99, 36, 65, 73]},
+    "glyph_healing": {"source": "event_category_glyphs.png", "rect": [179, 36, 65, 73]},
+    "glyph_defense": {"source": "event_category_glyphs.png", "rect": [260, 36, 64, 73]},
+    "glyph_relic": {"source": "event_category_glyphs.png", "rect": [19, 133, 65, 73]},
+    "glyph_curse": {"source": "event_category_glyphs.png", "rect": [99, 133, 65, 73]},
+    "glyph_blessing": {"source": "event_category_glyphs.png", "rect": [179, 133, 65, 73]},
+    "glyph_corruption": {"source": "event_category_glyphs.png", "rect": [259, 133, 65, 73]},
+    "glyph_deck": {"source": "event_category_glyphs.png", "rect": [57, 230, 63, 71]},
+    "glyph_gamble": {"source": "event_category_glyphs.png", "rect": [140, 230, 64, 71]},
+    "glyph_chain": {"source": "event_category_glyphs.png", "rect": [223, 230, 63, 71]}
+  }
+}

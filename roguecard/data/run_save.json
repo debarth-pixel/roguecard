@@ -1,28 +1,34 @@
 {
-  "save_format_version": 13,
-  "current_state": "reward",
-  "status_message": "Added Defend to the deck.",
-  "run_seed": 938709,
+  "save_format_version": 14,
+  "current_state": "combat",
+  "status_message": "Entered combat encounter on Outskirts. Play cards or end your turn.",
+  "run_seed": 467195,
   "character": "enforcer",
   "campaign": {
     "map_index": 1,
     "map_id": "outskirts",
     "map_name": "Outskirts",
-    "route_floor_index": 2,
+    "route_floor_index": 1,
     "route_floor_count": 15,
     "branch_faction": null,
-    "selected_boss_id": "sandpack_alpha",
-    "global_route_floor_index": 1
+    "selected_boss_id": "wastes_colossus",
+    "global_route_floor_index": 0
   },
   "character_select": null,
+  "run_state": {
+    "protocol_drift_pct": 0,
+    "protocol_drift_seen": false,
+    "pending_stability_loss_pulses": 0,
+    "queued_next_combat_effects": []
+  },
   "player": {
     "max_hp": 70,
-    "current_hp": 48,
+    "current_hp": 70,
     "max_energy": 3,
     "energy": 3,
     "block": 0,
     "draw_per_turn": 5,
-    "credits": 40,
+    "credits": 0,
     "healing_multiplier": 1.0,
     "resources": {
       "energy": {
@@ -77,7 +83,7 @@
           "palette": "enforcer_crimson",
           "art_style": "circuit_burst"
         },
-        "instance_id": "e7101fc852a34e50b1c8567c73be214a"
+        "instance_id": "6af5f81b219449c18c70336ede8a285f"
       },
       {
         "id": "enforcer_bash_protocol_01",
@@ -103,7 +109,7 @@
           "palette": "enforcer_crimson",
           "art_style": "circuit_burst"
         },
-        "instance_id": "680172d0c9ba4becaf45362fc596e729"
+        "instance_id": "6d70df44ca4a4b0ebe66ea0de6d97240"
       },
       {
         "id": "enforcer_bash_protocol_01",
@@ -129,7 +135,7 @@
           "palette": "enforcer_crimson",
           "art_style": "circuit_burst"
         },
-        "instance_id": "07a40039042a4f0393c342879fc721ea"
+        "instance_id": "14f3a820cef24cfea6c2bb5561a54f8c"
       },
       {
         "id": "enforcer_bash_protocol_01",
@@ -155,7 +161,7 @@
           "palette": "enforcer_crimson",
           "art_style": "circuit_burst"
         },
-        "instance_id": "8a92466cbaa54aa7b368c78e365cdc2b"
+        "instance_id": "77e66cc7d0c84160a10efb5d2d5feb3e"
       },
       {
         "id": "enforcer_guard_stance_01",
@@ -177,7 +183,7 @@
           "palette": "enforcer_crimson",
           "art_style": "signal_mesh"
         },
-        "instance_id": "99884db7c05c435da02a1c905149a086"
+        "instance_id": "8453cd3ddfd840d4b2b03f6709a3f3ce"
       },
       {
         "id": "enforcer_guard_stance_01",
@@ -199,7 +205,7 @@
           "palette": "enforcer_crimson",
           "art_style": "signal_mesh"
         },
-        "instance_id": "a27f91dd128e45558da5bc03427d6e81"
+        "instance_id": "9fb653a79d0846d780b87f5dd69b5aea"
       },
       {
         "id": "enforcer_guard_stance_01",
@@ -221,7 +227,7 @@
           "palette": "enforcer_crimson",
           "art_style": "signal_mesh"
         },
-        "instance_id": "ead98a3cbd1b489e86493a36a63efd1e"
+        "instance_id": "b357d051b1144055ae91e9cd0aa21770"
       },
       {
         "id": "enforcer_battle_roar_01",
@@ -247,7 +253,7 @@
           "palette": "enforcer_crimson",
           "art_style": "signal_mesh"
         },
-        "instance_id": "d30380c46dc245d3a9e81388b3254bf3"
+        "instance_id": "70eb480277bd467382746f642a69a959"
       },
       {
         "id": "enforcer_double_tap_01",
@@ -270,7 +276,7 @@
           "palette": "enforcer_crimson",
           "art_style": "circuit_burst"
         },
-        "instance_id": "84372964b9cf4072bc875a4b9975f099"
+        "instance_id": "42e313d436c14b64b5ea8f0e156c261d"
       },
       {
         "id": "enforcer_war_engine_01",
@@ -299,203 +305,54 @@
             ]
           }
         ],
-        "instance_id": "992b58d7638c4b33bdaea30c438cb98b"
+        "corruption": {
+          "affinity": "riot",
+          "riders": [
+            {
+              "id": "enforcer_war_engine_drift_25",
+              "trigger": "on_stability_lost",
+              "text": "Drift 25+: When stability is lost, your next attack deals 4 more damage.",
+              "requires_protocol_drift_at_least": 25,
+              "effects": [
+                {
+                  "type": "modify_next_attack_damage",
+                  "value": 4
+                }
+              ],
+              "if_any_card_cost_reduced_this_turn": false,
+              "once_per": "combat"
+            }
+          ],
+          "hide_until_protocol_drift_seen": true,
+          "counts_as_corrupt_card": true
+        },
+        "instance_id": "034b2e6b581a492d8f01982b6240ac83"
       },
       {
-        "id": "defend_01",
-        "name": "Defend",
-        "cost": 1,
-        "type": "skill",
+        "id": "surge_strike_01",
+        "name": "Surge Strike",
+        "cost": 2,
+        "type": "attack",
         "effects": [
           {
-            "type": "block",
-            "value": 5
+            "type": "damage",
+            "value": 12
           }
         ],
         "owners": [
           "shared"
         ],
-        "shop_price": 39,
+        "shop_price": 48,
         "theme": {
           "faction": "shared",
           "palette": "starter_neutral",
-          "art_style": "signal_mesh"
+          "art_style": "circuit_burst"
         },
-        "instance_id": "ab7deb9872764389ab04bcad707beeeb"
+        "instance_id": "bbe43e66f84b41fd9a465f8da2856efb"
       }
     ],
     "draw_pile": [
       {
-        "id": "enforcer_bash_protocol_01",
-        "name": "Bash Protocol",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 7
-          },
-          {
-            "type": "apply_bleed",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "circuit_burst"
-        },
-        "instance_id": "e7101fc852a34e50b1c8567c73be214a"
-      },
-      {
-        "id": "enforcer_bash_protocol_01",
-        "name": "Bash Protocol",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 7
-          },
-          {
-            "type": "apply_bleed",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "circuit_burst"
-        },
-        "instance_id": "680172d0c9ba4becaf45362fc596e729"
-      },
-      {
-        "id": "enforcer_bash_protocol_01",
-        "name": "Bash Protocol",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 7
-          },
-          {
-            "type": "apply_bleed",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "circuit_burst"
-        },
-        "instance_id": "07a40039042a4f0393c342879fc721ea"
-      },
-      {
-        "id": "enforcer_bash_protocol_01",
-        "name": "Bash Protocol",
-        "cost": 1,
-        "type": "attack",
-        "effects": [
-          {
-            "type": "damage",
-            "value": 7
-          },
-          {
-            "type": "apply_bleed",
-            "value": 1
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 43,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "circuit_burst"
-        },
-        "instance_id": "8a92466cbaa54aa7b368c78e365cdc2b"
-      },
-      {
-        "id": "enforcer_guard_stance_01",
-        "name": "Guard Stance",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 8
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "99884db7c05c435da02a1c905149a086"
-      },
-      {
-        "id": "enforcer_guard_stance_01",
-        "name": "Guard Stance",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 8
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "a27f91dd128e45558da5bc03427d6e81"
-      },
-      {
-        "id": "enforcer_guard_stance_01",
-        "name": "Guard Stance",
-        "cost": 1,
-        "type": "skill",
-        "effects": [
-          {
-            "type": "block",
-            "value": 8
-          }
-        ],
-        "owners": [
-          "enforcer"
-        ],
-        "shop_price": 42,
-        "theme": {
-          "faction": "enforcer",
-          "palette": "enforcer_crimson",
-          "art_style": "signal_mesh"
-        },
-        "instance_id": "ead98a3cbd1b489e86493a36a63efd1e"
-      },
-      {
         "id": "enforcer_battle_roar_01",
         "name": "Battle Roar",
         "cost": 1,
@@ -519,7 +376,99 @@
           "palette": "enforcer_crimson",
           "art_style": "signal_mesh"
         },
-        "instance_id": "d30380c46dc245d3a9e81388b3254bf3"
+        "instance_id": "70eb480277bd467382746f642a69a959"
+      },
+      {
+        "id": "enforcer_guard_stance_01",
+        "name": "Guard Stance",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 8
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 42,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "8453cd3ddfd840d4b2b03f6709a3f3ce"
+      },
+      {
+        "id": "enforcer_guard_stance_01",
+        "name": "Guard Stance",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 8
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 42,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "9fb653a79d0846d780b87f5dd69b5aea"
+      },
+      {
+        "id": "enforcer_bash_protocol_01",
+        "name": "Bash Protocol",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "apply_bleed",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 43,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "circuit_burst"
+        },
+        "instance_id": "6af5f81b219449c18c70336ede8a285f"
+      },
+      {
+        "id": "enforcer_guard_stance_01",
+        "name": "Guard Stance",
+        "cost": 1,
+        "type": "skill",
+        "effects": [
+          {
+            "type": "block",
+            "value": 8
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 42,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "signal_mesh"
+        },
+        "instance_id": "b357d051b1144055ae91e9cd0aa21770"
       },
       {
         "id": "enforcer_double_tap_01",
@@ -542,7 +491,61 @@
           "palette": "enforcer_crimson",
           "art_style": "circuit_burst"
         },
-        "instance_id": "84372964b9cf4072bc875a4b9975f099"
+        "instance_id": "42e313d436c14b64b5ea8f0e156c261d"
+      }
+    ],
+    "hand": [
+      {
+        "id": "enforcer_bash_protocol_01",
+        "name": "Bash Protocol",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "apply_bleed",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 43,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "circuit_burst"
+        },
+        "instance_id": "14f3a820cef24cfea6c2bb5561a54f8c"
+      },
+      {
+        "id": "enforcer_bash_protocol_01",
+        "name": "Bash Protocol",
+        "cost": 1,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "apply_bleed",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 43,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "circuit_burst"
+        },
+        "instance_id": "77e66cc7d0c84160a10efb5d2d5feb3e"
       },
       {
         "id": "enforcer_war_engine_01",
@@ -571,32 +574,78 @@
             ]
           }
         ],
-        "instance_id": "992b58d7638c4b33bdaea30c438cb98b"
+        "corruption": {
+          "affinity": "riot",
+          "riders": [
+            {
+              "id": "enforcer_war_engine_drift_25",
+              "trigger": "on_stability_lost",
+              "text": "Drift 25+: When stability is lost, your next attack deals 4 more damage.",
+              "requires_protocol_drift_at_least": 25,
+              "effects": [
+                {
+                  "type": "modify_next_attack_damage",
+                  "value": 4
+                }
+              ],
+              "if_any_card_cost_reduced_this_turn": false,
+              "once_per": "combat"
+            }
+          ],
+          "hide_until_protocol_drift_seen": true,
+          "counts_as_corrupt_card": true
+        },
+        "instance_id": "034b2e6b581a492d8f01982b6240ac83"
       },
       {
-        "id": "defend_01",
-        "name": "Defend",
+        "id": "enforcer_bash_protocol_01",
+        "name": "Bash Protocol",
         "cost": 1,
-        "type": "skill",
+        "type": "attack",
         "effects": [
           {
-            "type": "block",
-            "value": 5
+            "type": "damage",
+            "value": 7
+          },
+          {
+            "type": "apply_bleed",
+            "value": 1
+          }
+        ],
+        "owners": [
+          "enforcer"
+        ],
+        "shop_price": 43,
+        "theme": {
+          "faction": "enforcer",
+          "palette": "enforcer_crimson",
+          "art_style": "circuit_burst"
+        },
+        "instance_id": "6d70df44ca4a4b0ebe66ea0de6d97240"
+      },
+      {
+        "id": "surge_strike_01",
+        "name": "Surge Strike",
+        "cost": 2,
+        "type": "attack",
+        "effects": [
+          {
+            "type": "damage",
+            "value": 12
           }
         ],
         "owners": [
           "shared"
         ],
-        "shop_price": 39,
+        "shop_price": 48,
         "theme": {
           "faction": "shared",
           "palette": "starter_neutral",
-          "art_style": "signal_mesh"
+          "art_style": "circuit_burst"
         },
-        "instance_id": "ab7deb9872764389ab04bcad707beeeb"
+        "instance_id": "bbe43e66f84b41fd9a465f8da2856efb"
       }
     ],
-    "hand": [],
     "discard_pile": [],
     "exhaust_pile": []
   },
@@ -608,13 +657,13 @@
     "branch_faction": null,
     "route_floor_count": 15,
     "global_floor_offset": 0,
-    "selected_boss_id": "sandpack_alpha",
+    "selected_boss_id": "wastes_colossus",
     "selected_boss": {
-      "id": "sandpack_alpha",
-      "name": "Sandpack Alpha",
+      "id": "wastes_colossus",
+      "name": "Wastes Colossus",
       "branch_faction": null,
       "enemy_ids": [
-        "sandpack_alpha"
+        "wastes_colossus"
       ],
       "base_weight": 1.0
     },
@@ -639,7 +688,8 @@
           "scrap_ticker"
         ],
         "next_nodes": [
-          "outskirts_floor_1_node_0"
+          "outskirts_floor_1_node_0",
+          "outskirts_floor_1_node_1"
         ]
       },
       "outskirts_floor_0_node_1": {
@@ -651,13 +701,13 @@
         "route_floor": 1,
         "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 519,
+        "render_x": 523,
         "render_y": 116,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
+          "dune_raider",
+          "carrion_hound"
         ],
         "next_nodes": [
           "outskirts_floor_1_node_1"
@@ -672,73 +722,75 @@
         "route_floor": 1,
         "campaign_floor": 0,
         "node_tier": "normal",
-        "render_x": 917,
+        "render_x": 913,
         "render_y": 116,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
+          "waste_leech",
+          "salvage_bulwark"
         ],
         "next_nodes": [
-          "outskirts_floor_1_node_2",
-          "outskirts_floor_1_node_1"
+          "outskirts_floor_1_node_2"
         ]
       },
       "outskirts_floor_1_node_0": {
         "node_id": "outskirts_floor_1_node_0",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 1,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 2,
         "campaign_floor": 1,
-        "node_tier": "normal",
-        "render_x": 118,
-        "render_y": 263,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 123,
+        "render_y": 245,
+        "encounter_hook_id": "outskirts:event:f2:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_2_node_0"
+          "outskirts_floor_2_node_0",
+          "outskirts_floor_2_node_1"
         ]
       },
       "outskirts_floor_1_node_1": {
         "node_id": "outskirts_floor_1_node_1",
-        "node_type": "shop",
+        "node_type": "elite",
         "floor": 1,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 2,
         "campaign_floor": 1,
-        "node_tier": "utility",
-        "render_x": 522,
-        "render_y": 243,
-        "encounter_hook_id": "outskirts:shop:f2:c1",
+        "node_tier": "elite",
+        "render_x": 515,
+        "render_y": 263,
+        "encounter_hook_id": "outskirts_junker_raider",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "signal_junker",
+          "dune_raider"
+        ],
         "next_nodes": [
-          "outskirts_floor_2_node_1",
-          "outskirts_floor_2_node_0"
+          "outskirts_floor_2_node_1"
         ]
       },
       "outskirts_floor_1_node_2": {
         "node_id": "outskirts_floor_1_node_2",
-        "node_type": "event",
+        "node_type": "combat",
         "floor": 1,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 2,
         "campaign_floor": 1,
-        "node_tier": "utility",
-        "render_x": 939,
-        "render_y": 257,
-        "encounter_hook_id": "outskirts:event:f2:c2",
+        "node_tier": "normal",
+        "render_x": 932,
+        "render_y": 260,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "waste_leech",
+          "salvage_bulwark"
+        ],
         "next_nodes": [
           "outskirts_floor_2_node_2"
         ]
@@ -752,13 +804,13 @@
         "route_floor": 3,
         "campaign_floor": 2,
         "node_tier": "normal",
-        "render_x": 123,
+        "render_x": 112,
         "render_y": 385,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
           "outskirts_floor_3_node_0"
@@ -766,61 +818,58 @@
       },
       "outskirts_floor_2_node_1": {
         "node_id": "outskirts_floor_2_node_1",
-        "node_type": "elite",
+        "node_type": "shop",
         "floor": 2,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 3,
         "campaign_floor": 2,
-        "node_tier": "elite",
-        "render_x": 515,
-        "render_y": 389,
-        "encounter_hook_id": "outskirts_reaver_ticker",
+        "node_tier": "utility",
+        "render_x": 519,
+        "render_y": 393,
+        "encounter_hook_id": "outskirts:shop:f3:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "caravan_reaver",
-          "scrap_ticker"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_3_node_1",
-          "outskirts_floor_3_node_2"
+          "outskirts_floor_3_node_0"
         ]
       },
       "outskirts_floor_2_node_2": {
         "node_id": "outskirts_floor_2_node_2",
-        "node_type": "event",
+        "node_type": "combat",
         "floor": 2,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 3,
         "campaign_floor": 2,
-        "node_tier": "utility",
-        "render_x": 924,
-        "render_y": 401,
-        "encounter_hook_id": "outskirts:event:f3:c2",
+        "node_tier": "normal",
+        "render_x": 921,
+        "render_y": 411,
+        "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "waste_leech",
+          "salvage_bulwark"
+        ],
         "next_nodes": [
           "outskirts_floor_3_node_2"
         ]
       },
       "outskirts_floor_3_node_0": {
         "node_id": "outskirts_floor_3_node_0",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 3,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 4,
         "campaign_floor": 3,
-        "node_tier": "normal",
-        "render_x": 97,
-        "render_y": 526,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 99,
+        "render_y": 525,
+        "encounter_hook_id": "outskirts:shop:f4:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_4_node_0"
         ]
@@ -834,32 +883,32 @@
         "route_floor": 4,
         "campaign_floor": 3,
         "node_tier": "utility",
-        "render_x": 519,
-        "render_y": 545,
+        "render_x": 513,
+        "render_y": 536,
         "encounter_hook_id": "outskirts:event:f4:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_4_node_1",
-          "outskirts_floor_4_node_2"
+          "outskirts_floor_4_node_0"
         ]
       },
       "outskirts_floor_3_node_2": {
         "node_id": "outskirts_floor_3_node_2",
-        "node_type": "combat",
+        "node_type": "elite",
         "floor": 3,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 4,
         "campaign_floor": 3,
-        "node_tier": "normal",
-        "render_x": 925,
-        "render_y": 550,
-        "encounter_hook_id": "outskirts_embersnout_ticker",
+        "node_tier": "elite",
+        "render_x": 934,
+        "render_y": 549,
+        "encounter_hook_id": "outskirts_junker_raider",
         "boss_slot_id": null,
         "enemy_ids": [
-          "embersnout",
-          "scrap_ticker"
+          "signal_junker",
+          "dune_raider"
         ],
         "next_nodes": [
           "outskirts_floor_4_node_2"
@@ -867,23 +916,21 @@
       },
       "outskirts_floor_4_node_0": {
         "node_id": "outskirts_floor_4_node_0",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 4,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 5,
         "campaign_floor": 4,
-        "node_tier": "normal",
-        "render_x": 113,
-        "render_y": 702,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 98,
+        "render_y": 685,
+        "encounter_hook_id": "outskirts:event:f5:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_5_node_0"
+          "outskirts_floor_5_node_0",
+          "outskirts_floor_5_node_1"
         ]
       },
       "outskirts_floor_4_node_1": {
@@ -895,8 +942,8 @@
         "route_floor": 5,
         "campaign_floor": 4,
         "node_tier": "normal",
-        "render_x": 520,
-        "render_y": 692,
+        "render_x": 508,
+        "render_y": 693,
         "encounter_hook_id": "outskirts_leech_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -909,7 +956,7 @@
       },
       "outskirts_floor_4_node_2": {
         "node_id": "outskirts_floor_4_node_2",
-        "node_type": "shop",
+        "node_type": "event",
         "floor": 4,
         "column": 2,
         "map_id": "outskirts",
@@ -917,8 +964,8 @@
         "campaign_floor": 4,
         "node_tier": "utility",
         "render_x": 930,
-        "render_y": 688,
-        "encounter_hook_id": "outskirts:shop:f5:c2",
+        "render_y": 681,
+        "encounter_hook_id": "outskirts:event:f5:c2",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
@@ -927,19 +974,19 @@
       },
       "outskirts_floor_5_node_0": {
         "node_id": "outskirts_floor_5_node_0",
-        "node_type": "combat",
+        "node_type": "elite",
         "floor": 5,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 6,
         "campaign_floor": 5,
-        "node_tier": "normal",
-        "render_x": 99,
-        "render_y": 819,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "node_tier": "elite",
+        "render_x": 105,
+        "render_y": 840,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
         "enemy_ids": [
-          "waste_leech",
+          "signal_junker",
           "salvage_bulwark"
         ],
         "next_nodes": [
@@ -948,40 +995,39 @@
       },
       "outskirts_floor_5_node_1": {
         "node_id": "outskirts_floor_5_node_1",
-        "node_type": "shop",
+        "node_type": "elite",
         "floor": 5,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 6,
         "campaign_floor": 5,
-        "node_tier": "utility",
-        "render_x": 507,
-        "render_y": 836,
-        "encounter_hook_id": "outskirts:shop:f6:c1",
+        "node_tier": "elite",
+        "render_x": 511,
+        "render_y": 825,
+        "encounter_hook_id": "outskirts_junker_bulwark",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "signal_junker",
+          "salvage_bulwark"
+        ],
         "next_nodes": [
-          "outskirts_floor_6_node_1",
-          "outskirts_floor_6_node_0"
+          "outskirts_floor_6_node_1"
         ]
       },
       "outskirts_floor_5_node_2": {
         "node_id": "outskirts_floor_5_node_2",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 5,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 6,
         "campaign_floor": 5,
-        "node_tier": "normal",
-        "render_x": 921,
-        "render_y": 813,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 927,
+        "render_y": 842,
+        "encounter_hook_id": "outskirts:event:f6:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_6_node_2"
         ]
@@ -995,14 +1041,13 @@
         "route_floor": 7,
         "campaign_floor": 6,
         "node_tier": "normal",
-        "render_x": 124,
-        "render_y": 962,
-        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "render_x": 118,
+        "render_y": 983,
+        "encounter_hook_id": "outskirts_embersnout_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "salvage_bulwark",
-          "scrap_ticker",
-          "embersnout"
+          "embersnout",
+          "scrap_ticker"
         ],
         "next_nodes": [
           "outskirts_floor_7_node_0"
@@ -1010,20 +1055,20 @@
       },
       "outskirts_floor_6_node_1": {
         "node_id": "outskirts_floor_6_node_1",
-        "node_type": "elite",
+        "node_type": "combat",
         "floor": 6,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 7,
         "campaign_floor": 6,
-        "node_tier": "elite",
-        "render_x": 517,
-        "render_y": 979,
-        "encounter_hook_id": "outskirts_junker_raider",
+        "node_tier": "normal",
+        "render_x": 528,
+        "render_y": 978,
+        "encounter_hook_id": "outskirts_embersnout_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "signal_junker",
-          "dune_raider"
+          "embersnout",
+          "scrap_ticker"
         ],
         "next_nodes": [
           "outskirts_floor_7_node_1"
@@ -1031,106 +1076,93 @@
       },
       "outskirts_floor_6_node_2": {
         "node_id": "outskirts_floor_6_node_2",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 6,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 7,
         "campaign_floor": 6,
-        "node_tier": "normal",
-        "render_x": 912,
-        "render_y": 970,
-        "encounter_hook_id": "outskirts_dust_vulture",
+        "node_tier": "utility",
+        "render_x": 922,
+        "render_y": 983,
+        "encounter_hook_id": "outskirts:event:f7:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_7_node_2"
+          "outskirts_floor_7_node_2",
+          "outskirts_floor_7_node_1"
         ]
       },
       "outskirts_floor_7_node_0": {
         "node_id": "outskirts_floor_7_node_0",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 7,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 8,
         "campaign_floor": 7,
-        "node_tier": "normal",
-        "render_x": 122,
-        "render_y": 1110,
-        "encounter_hook_id": "outskirts_dune_raider_hound",
+        "node_tier": "utility",
+        "render_x": 114,
+        "render_y": 1112,
+        "encounter_hook_id": "outskirts:shop:f8:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_8_node_0"
         ]
       },
       "outskirts_floor_7_node_1": {
         "node_id": "outskirts_floor_7_node_1",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 7,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 8,
         "campaign_floor": 7,
-        "node_tier": "normal",
-        "render_x": 507,
-        "render_y": 1120,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "node_tier": "utility",
+        "render_x": 521,
+        "render_y": 1112,
+        "encounter_hook_id": "outskirts:shop:f8:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_8_node_1",
-          "outskirts_floor_8_node_0"
+          "outskirts_floor_8_node_1"
         ]
       },
       "outskirts_floor_7_node_2": {
         "node_id": "outskirts_floor_7_node_2",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 7,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 8,
         "campaign_floor": 7,
-        "node_tier": "normal",
-        "render_x": 931,
-        "render_y": 1119,
-        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "node_tier": "utility",
+        "render_x": 936,
+        "render_y": 1092,
+        "encounter_hook_id": "outskirts:event:f8:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "salvage_bulwark",
-          "scrap_ticker",
-          "embersnout"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_8_node_2"
         ]
       },
       "outskirts_floor_8_node_0": {
         "node_id": "outskirts_floor_8_node_0",
-        "node_type": "elite",
+        "node_type": "combat",
         "floor": 8,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 9,
         "campaign_floor": 8,
-        "node_tier": "elite",
-        "render_x": 101,
-        "render_y": 1236,
-        "encounter_hook_id": "outskirts_junker_raider",
+        "node_tier": "normal",
+        "render_x": 122,
+        "render_y": 1261,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "signal_junker",
-          "dune_raider"
+          "dust_saboteur",
+          "relay_vulture"
         ],
         "next_nodes": [
           "outskirts_floor_9_node_0"
@@ -1145,8 +1177,8 @@
         "route_floor": 9,
         "campaign_floor": 8,
         "node_tier": "utility",
-        "render_x": 510,
-        "render_y": 1237,
+        "render_x": 525,
+        "render_y": 1244,
         "encounter_hook_id": "outskirts:event:f9:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
@@ -1164,8 +1196,8 @@
         "route_floor": 9,
         "campaign_floor": 8,
         "node_tier": "utility",
-        "render_x": 930,
-        "render_y": 1243,
+        "render_x": 931,
+        "render_y": 1264,
         "encounter_hook_id": "outskirts:event:f9:c2",
         "boss_slot_id": null,
         "enemy_ids": [],
@@ -1175,18 +1207,21 @@
       },
       "outskirts_floor_9_node_0": {
         "node_id": "outskirts_floor_9_node_0",
-        "node_type": "shop",
+        "node_type": "combat",
         "floor": 9,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 10,
         "campaign_floor": 9,
-        "node_tier": "utility",
-        "render_x": 98,
-        "render_y": 1404,
-        "encounter_hook_id": "outskirts:shop:f10:c0",
+        "node_tier": "normal",
+        "render_x": 115,
+        "render_y": 1394,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dust_saboteur",
+          "relay_vulture"
+        ],
         "next_nodes": [
           "outskirts_floor_10_node_0"
         ]
@@ -1200,8 +1235,8 @@
         "route_floor": 10,
         "campaign_floor": 9,
         "node_tier": "normal",
-        "render_x": 521,
-        "render_y": 1399,
+        "render_x": 511,
+        "render_y": 1392,
         "encounter_hook_id": "outskirts_raider_saboteur_pack",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1210,23 +1245,27 @@
           "carrion_hound"
         ],
         "next_nodes": [
-          "outskirts_floor_10_node_1"
+          "outskirts_floor_10_node_1",
+          "outskirts_floor_10_node_2"
         ]
       },
       "outskirts_floor_9_node_2": {
         "node_id": "outskirts_floor_9_node_2",
-        "node_type": "shop",
+        "node_type": "combat",
         "floor": 9,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 10,
         "campaign_floor": 9,
-        "node_tier": "utility",
-        "render_x": 932,
-        "render_y": 1407,
-        "encounter_hook_id": "outskirts:shop:f10:c2",
+        "node_tier": "normal",
+        "render_x": 934,
+        "render_y": 1391,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dust_saboteur",
+          "relay_vulture"
+        ],
         "next_nodes": [
           "outskirts_floor_10_node_2"
         ]
@@ -1240,18 +1279,16 @@
         "route_floor": 11,
         "campaign_floor": 10,
         "node_tier": "normal",
-        "render_x": 114,
-        "render_y": 1525,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
+        "render_x": 116,
+        "render_y": 1552,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
         "enemy_ids": [
-          "dune_raider",
           "dust_saboteur",
-          "carrion_hound"
+          "relay_vulture"
         ],
         "next_nodes": [
-          "outskirts_floor_11_node_0",
-          "outskirts_floor_11_node_1"
+          "outskirts_floor_11_node_0"
         ]
       },
       "outskirts_floor_10_node_1": {
@@ -1263,8 +1300,8 @@
         "route_floor": 11,
         "campaign_floor": 10,
         "node_tier": "utility",
-        "render_x": 506,
-        "render_y": 1538,
+        "render_x": 532,
+        "render_y": 1534,
         "encounter_hook_id": "outskirts:event:f11:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
@@ -1274,21 +1311,18 @@
       },
       "outskirts_floor_10_node_2": {
         "node_id": "outskirts_floor_10_node_2",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 10,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 11,
         "campaign_floor": 10,
-        "node_tier": "normal",
-        "render_x": 914,
-        "render_y": 1545,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "node_tier": "utility",
+        "render_x": 936,
+        "render_y": 1531,
+        "encounter_hook_id": "outskirts:event:f11:c2",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_11_node_2"
         ]
@@ -1302,70 +1336,8 @@
         "route_floor": 12,
         "campaign_floor": 11,
         "node_tier": "normal",
-        "render_x": 103,
-        "render_y": 1664,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "dust_saboteur",
-          "carrion_hound"
-        ],
-        "next_nodes": [
-          "outskirts_floor_12_node_0",
-          "outskirts_floor_12_node_1"
-        ]
-      },
-      "outskirts_floor_11_node_1": {
-        "node_id": "outskirts_floor_11_node_1",
-        "node_type": "combat",
-        "floor": 11,
-        "column": 1,
-        "map_id": "outskirts",
-        "route_floor": 12,
-        "campaign_floor": 11,
-        "node_tier": "normal",
-        "render_x": 505,
-        "render_y": 1695,
-        "encounter_hook_id": "outskirts_dust_vulture",
-        "boss_slot_id": null,
-        "enemy_ids": [
-          "dust_saboteur",
-          "relay_vulture"
-        ],
-        "next_nodes": [
-          "outskirts_floor_12_node_1"
-        ]
-      },
-      "outskirts_floor_11_node_2": {
-        "node_id": "outskirts_floor_11_node_2",
-        "node_type": "event",
-        "floor": 11,
-        "column": 2,
-        "map_id": "outskirts",
-        "route_floor": 12,
-        "campaign_floor": 11,
-        "node_tier": "utility",
-        "render_x": 931,
-        "render_y": 1684,
-        "encounter_hook_id": "outskirts:event:f12:c2",
-        "boss_slot_id": null,
-        "enemy_ids": [],
-        "next_nodes": [
-          "outskirts_floor_12_node_2"
-        ]
-      },
-      "outskirts_floor_12_node_0": {
-        "node_id": "outskirts_floor_12_node_0",
-        "node_type": "combat",
-        "floor": 12,
-        "column": 0,
-        "map_id": "outskirts",
-        "route_floor": 13,
-        "campaign_floor": 12,
-        "node_tier": "normal",
-        "render_x": 123,
-        "render_y": 1818,
+        "render_x": 107,
+        "render_y": 1688,
         "encounter_hook_id": "outskirts_salvage_scrap_fire",
         "boss_slot_id": null,
         "enemy_ids": [
@@ -1374,43 +1346,100 @@
           "embersnout"
         ],
         "next_nodes": [
+          "outskirts_floor_12_node_0"
+        ]
+      },
+      "outskirts_floor_11_node_1": {
+        "node_id": "outskirts_floor_11_node_1",
+        "node_type": "shop",
+        "floor": 11,
+        "column": 1,
+        "map_id": "outskirts",
+        "route_floor": 12,
+        "campaign_floor": 11,
+        "node_tier": "utility",
+        "render_x": 523,
+        "render_y": 1674,
+        "encounter_hook_id": "outskirts:shop:f12:c1",
+        "boss_slot_id": null,
+        "enemy_ids": [],
+        "next_nodes": [
+          "outskirts_floor_12_node_1"
+        ]
+      },
+      "outskirts_floor_11_node_2": {
+        "node_id": "outskirts_floor_11_node_2",
+        "node_type": "combat",
+        "floor": 11,
+        "column": 2,
+        "map_id": "outskirts",
+        "route_floor": 12,
+        "campaign_floor": 11,
+        "node_tier": "normal",
+        "render_x": 939,
+        "render_y": 1680,
+        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "salvage_bulwark",
+          "scrap_ticker",
+          "embersnout"
+        ],
+        "next_nodes": [
+          "outskirts_floor_12_node_2"
+        ]
+      },
+      "outskirts_floor_12_node_0": {
+        "node_id": "outskirts_floor_12_node_0",
+        "node_type": "elite",
+        "floor": 12,
+        "column": 0,
+        "map_id": "outskirts",
+        "route_floor": 13,
+        "campaign_floor": 12,
+        "node_tier": "elite",
+        "render_x": 115,
+        "render_y": 1816,
+        "encounter_hook_id": "outskirts_junker_raider",
+        "boss_slot_id": null,
+        "enemy_ids": [
+          "signal_junker",
+          "dune_raider"
+        ],
+        "next_nodes": [
           "outskirts_floor_13_node_0"
         ]
       },
       "outskirts_floor_12_node_1": {
         "node_id": "outskirts_floor_12_node_1",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 12,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 13,
         "campaign_floor": 12,
-        "node_tier": "normal",
-        "render_x": 529,
-        "render_y": 1833,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "node_tier": "utility",
+        "render_x": 522,
+        "render_y": 1832,
+        "encounter_hook_id": "outskirts:event:f13:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
-          "outskirts_floor_13_node_1",
-          "outskirts_floor_13_node_2"
+          "outskirts_floor_13_node_1"
         ]
       },
       "outskirts_floor_12_node_2": {
         "node_id": "outskirts_floor_12_node_2",
-        "node_type": "event",
+        "node_type": "shop",
         "floor": 12,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 13,
         "campaign_floor": 12,
         "node_tier": "utility",
-        "render_x": 938,
-        "render_y": 1805,
-        "encounter_hook_id": "outskirts:event:f13:c2",
+        "render_x": 927,
+        "render_y": 1806,
+        "encounter_hook_id": "outskirts:shop:f13:c2",
         "boss_slot_id": null,
         "enemy_ids": [],
         "next_nodes": [
@@ -1419,62 +1448,57 @@
       },
       "outskirts_floor_13_node_0": {
         "node_id": "outskirts_floor_13_node_0",
-        "node_type": "combat",
+        "node_type": "event",
         "floor": 13,
         "column": 0,
         "map_id": "outskirts",
         "route_floor": 14,
         "campaign_floor": 13,
-        "node_tier": "normal",
-        "render_x": 103,
-        "render_y": 1965,
-        "encounter_hook_id": "outskirts_salvage_scrap_fire",
+        "node_tier": "utility",
+        "render_x": 101,
+        "render_y": 1970,
+        "encounter_hook_id": "outskirts:event:f14:c0",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "salvage_bulwark",
-          "scrap_ticker",
-          "embersnout"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_14_node_0"
         ]
       },
       "outskirts_floor_13_node_1": {
         "node_id": "outskirts_floor_13_node_1",
-        "node_type": "combat",
+        "node_type": "shop",
         "floor": 13,
         "column": 1,
         "map_id": "outskirts",
         "route_floor": 14,
         "campaign_floor": 13,
-        "node_tier": "normal",
-        "render_x": 512,
-        "render_y": 1955,
-        "encounter_hook_id": "outskirts_raider_saboteur_pack",
+        "node_tier": "utility",
+        "render_x": 514,
+        "render_y": 1957,
+        "encounter_hook_id": "outskirts:shop:f14:c1",
         "boss_slot_id": null,
-        "enemy_ids": [
-          "dune_raider",
-          "dust_saboteur",
-          "carrion_hound"
-        ],
+        "enemy_ids": [],
         "next_nodes": [
           "outskirts_floor_14_node_1"
         ]
       },
       "outskirts_floor_13_node_2": {
         "node_id": "outskirts_floor_13_node_2",
-        "node_type": "shop",
+        "node_type": "combat",
         "floor": 13,
         "column": 2,
         "map_id": "outskirts",
         "route_floor": 14,
         "campaign_floor": 13,
-        "node_tier": "utility",
-        "render_x": 931,
-        "render_y": 1979,
-        "encounter_hook_id": "outskirts:shop:f14:c2",
+        "node_tier": "normal",
+        "render_x": 934,
+        "render_y": 1948,
+        "encounter_hook_id": "outskirts_dust_vulture",
         "boss_slot_id": null,
-        "enemy_ids": [],
+        "enemy_ids": [
+          "dust_saboteur",
+          "relay_vulture"
+        ],
         "next_nodes": [
           "outskirts_floor_14_node_2"
         ]
@@ -1488,13 +1512,13 @@
         "route_floor": 15,
         "campaign_floor": 14,
         "node_tier": "normal",
-        "render_x": 115,
-        "render_y": 2091,
-        "encounter_hook_id": "outskirts_leech_bulwark",
+        "render_x": 122,
+        "render_y": 2103,
+        "encounter_hook_id": "outskirts_dune_raider_hound",
         "boss_slot_id": null,
         "enemy_ids": [
-          "waste_leech",
-          "salvage_bulwark"
+          "dune_raider",
+          "carrion_hound"
         ],
         "next_nodes": [
           "outskirts_boss"
@@ -1509,8 +1533,8 @@
         "route_floor": 15,
         "campaign_floor": 14,
         "node_tier": "utility",
-        "render_x": 517,
-        "render_y": 2098,
+        "render_x": 528,
+        "render_y": 2114,
         "encounter_hook_id": "outskirts:event:f15:c1",
         "boss_slot_id": null,
         "enemy_ids": [],
@@ -1527,13 +1551,13 @@
         "route_floor": 15,
         "campaign_floor": 14,
         "node_tier": "elite",
-        "render_x": 921,
-        "render_y": 2098,
-        "encounter_hook_id": "outskirts_junker_bulwark",
+        "render_x": 927,
+        "render_y": 2106,
+        "encounter_hook_id": "outskirts_reaver_ticker",
         "boss_slot_id": null,
         "enemy_ids": [
-          "signal_junker",
-          "salvage_bulwark"
+          "caravan_reaver",
+          "scrap_ticker"
         ],
         "next_nodes": [
           "outskirts_boss"
@@ -1550,10 +1574,10 @@
         "node_tier": "boss",
         "render_x": 518,
         "render_y": 2246,
-        "encounter_hook_id": "sandpack_alpha",
-        "boss_slot_id": "sandpack_alpha",
+        "encounter_hook_id": "wastes_colossus",
+        "boss_slot_id": "wastes_colossus",
         "enemy_ids": [
-          "sandpack_alpha"
+          "wastes_colossus"
         ],
         "next_nodes": []
       }
@@ -1565,135 +1589,70 @@
     ],
     "boss_node_id": "outskirts_boss",
     "available_node_ids": [
-      "outskirts_floor_2_node_0"
+      "outskirts_floor_1_node_0",
+      "outskirts_floor_1_node_1"
     ],
     "visited_node_ids": [
-      "outskirts_floor_0_node_0",
-      "outskirts_floor_1_node_0"
+      "outskirts_floor_0_node_0"
     ],
-    "selected_node_id": "outskirts_floor_1_node_0"
+    "selected_node_id": "outskirts_floor_0_node_0"
   },
-  "combat": null,
-  "event": null,
-  "reward": {
-    "encounter_type": "combat",
-    "credits_granted": 20,
-    "section_order": [
-      "card_offer"
-    ],
-    "sections": {
-      "card_offer": {
-        "type": "card_offer",
-        "title": "Card Reward",
-        "description": "Choose a card to add to the deck, or skip it.",
-        "options": [
-          {
-            "option_id": "enforcer_battle_roar_01",
-            "card_id": "enforcer_battle_roar_01",
-            "card": {
-              "id": "enforcer_battle_roar_01",
-              "name": "Battle Roar",
-              "cost": 1,
-              "type": "skill",
-              "effects": [
-                {
-                  "type": "gain_strength",
-                  "value": 1
-                },
-                {
-                  "type": "draw",
-                  "value": 1
-                }
-              ],
-              "owners": [
-                "enforcer"
-              ],
-              "shop_price": 43,
-              "theme": {
-                "faction": "enforcer",
-                "palette": "enforcer_crimson",
-                "art_style": "signal_mesh"
-              },
-              "instance_id": "defe8eeb6377467e8a35c1d53aef757b"
-            },
-            "label": "Take Battle Roar"
-          },
-          {
-            "option_id": "enforcer_crackdown_01",
-            "card_id": "enforcer_crackdown_01",
-            "card": {
-              "id": "enforcer_crackdown_01",
-              "name": "Crackdown",
-              "cost": 1,
-              "type": "attack",
-              "effects": [
-                {
-                  "type": "damage",
-                  "value": 6
-                },
-                {
-                  "type": "apply_vulnerable",
-                  "value": 2
-                }
-              ],
-              "owners": [
-                "enforcer"
-              ],
-              "shop_price": 48,
-              "theme": {
-                "faction": "enforcer",
-                "palette": "enforcer_crimson",
-                "art_style": "signal_mesh"
-              },
-              "instance_id": "2b624eabf88b4816a72d904aa52bcc3a"
-            },
-            "label": "Take Crackdown"
-          },
-          {
-            "option_id": "defend_01",
-            "card_id": "defend_01",
-            "card": {
-              "id": "defend_01",
-              "name": "Defend",
-              "cost": 1,
-              "type": "skill",
-              "effects": [
-                {
-                  "type": "block",
-                  "value": 5
-                }
-              ],
-              "owners": [
-                "shared"
-              ],
-              "shop_price": 39,
-              "theme": {
-                "faction": "shared",
-                "palette": "starter_neutral",
-                "art_style": "signal_mesh"
-              },
-              "instance_id": "2eb80e3d1c884a26b5a1e6b0fddadb74"
-            },
-            "label": "Take Defend"
-          }
-        ],
-        "selected_option_id": "defend_01",
-        "resolved": true,
-        "resolution": {
-          "type": "claimed",
-          "option_id": "defend_01",
-          "summary": "Added Defend to the deck."
-        },
-        "can_skip": true
-      }
+  "combat": {
+    "combat_active": true,
+    "turn_number": 1,
+    "turn_owner": "player",
+    "event_log": [],
+    "active_bark": null,
+    "bark_runtime": {
+      "nonce": 0,
+      "cooldown_remaining": 0,
+      "speaker_counts": {},
+      "defeated_enemy_ids": []
     },
-    "intro_message": "Reward ready. +20 credits earned."
+    "enemies": [
+      {
+        "id": "embersnout",
+        "current_hp": 22,
+        "block": 0,
+        "current_intent": "cinder_spit",
+        "strength": 0,
+        "weak": 0,
+        "vulnerable": 0,
+        "runtime": {
+          "intent_index": 1,
+          "cooldowns": {},
+          "active_phase_name": null,
+          "triggered_phase_names": [],
+          "low_hp_bark_fired": false,
+          "statuses": {}
+        }
+      },
+      {
+        "id": "scrap_ticker",
+        "current_hp": 18,
+        "block": 0,
+        "current_intent": "target_ping",
+        "strength": 0,
+        "weak": 0,
+        "vulnerable": 0,
+        "runtime": {
+          "intent_index": 1,
+          "cooldowns": {},
+          "active_phase_name": null,
+          "triggered_phase_names": [],
+          "low_hp_bark_fired": false,
+          "statuses": {}
+        }
+      }
+    ]
   },
+  "event": null,
+  "reward": null,
   "shop": null,
   "modifier_draft": null,
   "run_modifiers": [
     {
-      "id": "flash_cache",
+      "id": "surge_fuse",
       "source": "starter_draft",
       "source_detail": null,
       "duration_type": "permanent",
@@ -1707,7 +1666,7 @@
     "clean_slate_used": false,
     "ghost_warranty_used_shops": [],
     "debt_spike_used_shops": [],
-    "last_floor_status_tick": 1,
+    "last_floor_status_tick": 0,
     "combat": {
       "active_modifier_ids": [],
       "cards_played_this_combat": 0,
@@ -1715,10 +1674,13 @@
       "card_type_counts_this_turn": {},
       "current_turn_attack_played": false,
       "last_turn_attack_played": false,
+      "any_card_cost_reduced_this_turn": false,
       "first_block_penalty_remaining": 0,
       "pending_energy_next_turn": 0,
       "triggered_modifier_ids_this_turn": [],
       "triggered_modifier_ids_this_combat": [],
+      "triggered_corruption_ids_this_turn": [],
+      "triggered_corruption_ids_this_combat": [],
       "modifier_state": {},
       "runtime_event_index": 0,
       "enemy_phase": {
