@@ -63,17 +63,23 @@ class TitleUI:
         self._pressed_action: str | None = None
         self._keyboard_index = 0
         self._intro_started_ms: int | None = None
+        self._last_surface_size: tuple[int, int] = SCREEN_SIZE
 
     def preload_assets(self) -> None:
         if pygame is None:
             return
         self._load_image(TITLE_BACKGROUND_PATH)
 
-    def handle_event(self, event: Any, title_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        title_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
 
-        layout = self.build_layout(title_state)
+        layout = self.build_layout(title_state, self._last_surface_size if screen_size is None else screen_size)
         active_buttons = layout["active_buttons"]
         if active_buttons:
             self._keyboard_index = max(0, min(self._keyboard_index, len(active_buttons) - 1))
@@ -218,8 +224,9 @@ class TitleUI:
         if pygame is None or surface is None:
             return
 
+        self._last_surface_size = surface.get_size()
         self._ensure_fonts(title_state.get("presentation", {}).get("ui_scale", 1.0))
-        layout = self.build_layout(title_state, surface.get_size())
+        layout = self.build_layout(title_state, self._last_surface_size)
         if layout["active_buttons"]:
             self._keyboard_index = max(0, min(self._keyboard_index, len(layout["active_buttons"]) - 1))
         if self._intro_started_ms is None:

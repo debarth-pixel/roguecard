@@ -10,7 +10,7 @@ try:
 except ImportError:  # pragma: no cover - pygame is optional for headless verification.
     pygame = None
 
-from config import PROJECT_ROOT, SCREEN_HEIGHT, SCREEN_SIZE, SCREEN_WIDTH, resolve_asset_path
+from config import PROJECT_ROOT, SCREEN_SIZE, resolve_asset_path
 from ui.render_utils import draw_screen_scrim
 
 TABLET_ART_PATH = PROJECT_ROOT / "arts" / "map_ui_exterior_overlay.png"
@@ -34,10 +34,10 @@ MAP_TO_COMBAT_SETTLE_END = 0.05
 MAP_TO_COMBAT_SLIDE_END = 0.45
 MAP_TO_COMBAT_BACKGROUND_FADE = (0.20, 0.50)
 MAP_TO_COMBAT_FOREGROUND_FADE = (0.35, 0.60)
-MAP_TO_COMBAT_OFFSET_DISTANCE = SCREEN_HEIGHT + 240
+MAP_TO_COMBAT_OFFSET_PADDING = 240
 
 MAP_ENTER_DURATION = 0.48
-MAP_ENTER_OFFSET_DISTANCE = SCREEN_HEIGHT + 140
+MAP_ENTER_OFFSET_PADDING = 140
 
 MAP_TO_SHOP_DURATION = 2.05
 MAP_TO_SHOP_TABLET_DROP_END = 0.48
@@ -83,6 +83,7 @@ class MapTabletView:
         self._last_pointer_pos = (-1, -1)
         self._transition: dict[str, Any] | None = None
         self._sfx_callback = None
+        self._last_surface_size: tuple[int, int] = SCREEN_SIZE
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -106,8 +107,13 @@ class MapTabletView:
         if self._transition["elapsed"] >= float(self._transition["duration"]):
             self._transition = None
 
-    def build_layout(self, map_state: dict[str, Any] | None) -> dict[str, Any]:
-        geometry = self._geometry_values()
+    def build_layout(
+        self,
+        map_state: dict[str, Any] | None,
+        surface_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any]:
+        resolved_surface_size = self._resolve_surface_size(surface_size)
+        geometry = self._geometry_values(resolved_surface_size)
         active_map_state = map_state
         if self._transition is not None and self._transition.get("map_state") is not None:
             active_map_state = self._transition["map_state"]
@@ -125,14 +131,20 @@ class MapTabletView:
             "map_layout": None if screen_state is None else self.map_ui.build_layout(screen_state),
         }
 
-    def handle_event(self, event: Any, map_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        map_state: dict[str, Any],
+        surface_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None or map_state is None or self._transition is not None:
             return None
+        self._resolve_surface_size(surface_size)
 
         if getattr(event, "type", None) in {pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP}:
             self._last_pointer_pos = tuple(event.pos)
 
-        geometry = self._geometry()
+        geometry = self._geometry(self._last_surface_size)
         transform = self._map_transform()
         local_map_state = self._screen_map_state(map_state, geometry["screen_rect"].size)
 
@@ -168,6 +180,7 @@ class MapTabletView:
     ) -> None:
         if pygame is None or surface is None:
             return
+        self._last_surface_size = surface.get_size()
         if self._transition is None:
             if map_state is None:
                 surface.fill((10, 12, 18))
@@ -185,7 +198,7 @@ class MapTabletView:
             if active_map_state is None:
                 surface.fill((10, 12, 18))
                 return
-            self._render_map_mode(surface, active_map_state, transform=self._enter_transform())
+            self._render_map_mode(surface, active_map_state, transform=self._enter_transform(surface.get_size()))
             return
         if map_state is not None:
             self._render_map_mode(surface, map_state, transform=self._map_transform())
@@ -240,7 +253,7 @@ class MapTabletView:
         transform: dict[str, float],
     ) -> None:
         self._render_world_background(surface)
-        assembly = self._tablet_assembly(map_state)
+        assembly = self._tablet_assembly(map_state, surface.get_size())
         self._blit_transformed_assembly(surface, assembly, transform)
 
     def _render_map_to_combat_transition(self, surface: Any, combat_state: dict[str, Any] | None) -> None:
@@ -252,7 +265,7 @@ class MapTabletView:
         if combat_state is not None:
             background_alpha = self._window_alpha(float(transition["elapsed"]), *MAP_TO_COMBAT_BACKGROUND_FADE)
             if background_alpha > 0:
-                background_surface = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+                background_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
                 background_surface.fill((0, 0, 0, 0))
                 self.combat_ui.render_background(background_surface, combat_state)
                 background_surface.set_alpha(background_alpha)
@@ -260,13 +273,13 @@ class MapTabletView:
 
         map_state = transition.get("map_state")
         if map_state is not None:
-            assembly = self._tablet_assembly(map_state)
-            self._blit_transformed_assembly(surface, assembly, self._map_to_combat_transform())
+            assembly = self._tablet_assembly(map_state, surface.get_size())
+            self._blit_transformed_assembly(surface, assembly, self._map_to_combat_transform(surface.get_size()))
 
         if combat_state is not None:
             foreground_alpha = self._window_alpha(float(transition["elapsed"]), *MAP_TO_COMBAT_FOREGROUND_FADE)
             if foreground_alpha > 0:
-                foreground_surface = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+                foreground_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
                 foreground_surface.fill((0, 0, 0, 0))
                 self.combat_ui.render_foreground(foreground_surface, combat_state)
                 foreground_surface.set_alpha(foreground_alpha)
@@ -290,12 +303,12 @@ class MapTabletView:
 
         map_state = transition.get("map_state")
         if map_state is not None:
-            assembly = self._tablet_assembly(map_state)
+            assembly = self._tablet_assembly(map_state, surface.get_size())
             tablet_progress = _clamp(float(transition["elapsed"]) / MAP_TO_SHOP_TABLET_DROP_END, 0.0, 1.0)
             alpha = int(round(255 * (1.0 - _ease_out_cubic(tablet_progress))))
-            self._blit_transformed_assembly(surface, assembly, self._map_to_shop_tablet_transform(), alpha=alpha)
+            self._blit_transformed_assembly(surface, assembly, self._map_to_shop_tablet_transform(surface.get_size()), alpha=alpha)
 
-        fade = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+        fade = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
         fade.fill((0, 0, 0, int(round(22 * (1.0 - approach_progress)))))
         surface.blit(fade, (0, 0))
 
@@ -304,9 +317,10 @@ class MapTabletView:
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=112, color=(6, 8, 14))
 
-    def _tablet_assembly(self, map_state: dict[str, Any]) -> Any:
-        geometry = self._geometry()
-        assembly = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+    def _tablet_assembly(self, map_state: dict[str, Any], surface_size: tuple[int, int] | None = None) -> Any:
+        resolved_surface_size = self._resolve_surface_size(surface_size)
+        geometry = self._geometry(resolved_surface_size)
+        assembly = pygame.Surface(resolved_surface_size, pygame.SRCALPHA)
         screen_surface = pygame.Surface(geometry["screen_rect"].size, pygame.SRCALPHA)
         screen_surface.fill((4, 8, 14, 255))
         self.map_ui.render(screen_surface, self._screen_map_state(map_state, geometry["screen_rect"].size))
@@ -342,8 +356,8 @@ class MapTabletView:
             "render_context": render_context,
         }
 
-    def _geometry(self) -> dict[str, Any]:
-        geometry = self._geometry_values()
+    def _geometry(self, surface_size: tuple[int, int] | None = None) -> dict[str, Any]:
+        geometry = self._geometry_values(self._resolve_surface_size(surface_size))
         if pygame is None:
             return geometry
         return {
@@ -352,13 +366,15 @@ class MapTabletView:
             "safe_bounds": pygame.Rect(*geometry["safe_bounds"]),
         }
 
-    def _geometry_values(self) -> dict[str, tuple[int, int, int, int]]:
+    def _geometry_values(self, surface_size: tuple[int, int]) -> dict[str, tuple[int, int, int, int]]:
+        surface_width = max(1, int(surface_size[0]))
+        surface_height = max(1, int(surface_size[1]))
         art_width, art_height = TABLET_ART_SOURCE_SIZE
-        scale = max(SCREEN_WIDTH / art_width, SCREEN_HEIGHT / art_height)
+        scale = max(surface_width / art_width, surface_height / art_height)
         scaled_width = art_width * scale
         scaled_height = art_height * scale
-        offset_x = (SCREEN_WIDTH - scaled_width) / 2.0
-        offset_y = (SCREEN_HEIGHT - scaled_height) / 2.0
+        offset_x = (surface_width - scaled_width) / 2.0
+        offset_y = (surface_height - scaled_height) / 2.0
         art_rect = (
             int(round(offset_x)),
             int(round(offset_y)),
@@ -384,6 +400,12 @@ class MapTabletView:
             "safe_bounds": safe_bounds,
         }
 
+    def _resolve_surface_size(self, surface_size: tuple[int, int] | None) -> tuple[int, int]:
+        if surface_size is None:
+            return self._last_surface_size
+        self._last_surface_size = (max(1, int(surface_size[0])), max(1, int(surface_size[1])))
+        return self._last_surface_size
+
     def _map_transform(self) -> dict[str, float]:
         return {
             "offset_x": math.sin(self._sway_time * TABLET_SWAY_X_SPEED) * TABLET_SWAY_X_AMPLITUDE,
@@ -391,7 +413,7 @@ class MapTabletView:
             "rotation": math.sin((self._sway_time * TABLET_SWAY_ROTATION_SPEED) + TABLET_SWAY_ROTATION_PHASE) * TABLET_SWAY_ROTATION_DEGREES,
         }
 
-    def _map_to_combat_transform(self) -> dict[str, float]:
+    def _map_to_combat_transform(self, surface_size: tuple[int, int]) -> dict[str, float]:
         transition = self._transition
         if transition is None:
             return self._map_transform()
@@ -406,11 +428,11 @@ class MapTabletView:
         slide_eased = _ease_in_cubic(slide_progress)
         return {
             "offset_x": 0.0,
-            "offset_y": settle_offset + (slide_eased * MAP_TO_COMBAT_OFFSET_DISTANCE),
+            "offset_y": settle_offset + (slide_eased * (float(surface_size[1]) + MAP_TO_COMBAT_OFFSET_PADDING)),
             "rotation": slide_eased * 0.35,
         }
 
-    def _enter_transform(self) -> dict[str, float]:
+    def _enter_transform(self, surface_size: tuple[int, int]) -> dict[str, float]:
         transition = self._transition
         if transition is None:
             return self._map_transform()
@@ -418,11 +440,11 @@ class MapTabletView:
         remaining = 1.0 - progress
         return {
             "offset_x": 0.0,
-            "offset_y": remaining * MAP_ENTER_OFFSET_DISTANCE,
+            "offset_y": remaining * (float(surface_size[1]) + MAP_ENTER_OFFSET_PADDING),
             "rotation": remaining * 0.3,
         }
 
-    def _map_to_shop_tablet_transform(self) -> dict[str, float]:
+    def _map_to_shop_tablet_transform(self, surface_size: tuple[int, int]) -> dict[str, float]:
         transition = self._transition
         if transition is None:
             return self._map_transform()
@@ -431,7 +453,7 @@ class MapTabletView:
         settle = math.sin(min(1.0, drop_progress * 1.25) * math.pi) * 3.0 if drop_progress < 1.0 else 0.0
         return {
             "offset_x": 0.0,
-            "offset_y": settle + (eased * (SCREEN_HEIGHT + 260)),
+            "offset_y": settle + (eased * (float(surface_size[1]) + 260.0)),
             "rotation": eased * 0.42,
         }
 
@@ -465,7 +487,8 @@ class MapTabletView:
             surface.blit(source, (int(round(offset_x)), int(round(offset_y))))
             return
         rotated = pygame.transform.rotozoom(source, rotation, 1.0)
-        center = (int(round((SCREEN_WIDTH / 2) + offset_x)), int(round((SCREEN_HEIGHT / 2) + offset_y)))
+        surface_width, surface_height = surface.get_size()
+        center = (int(round((surface_width / 2) + offset_x)), int(round((surface_height / 2) + offset_y)))
         surface.blit(rotated, rotated.get_rect(center=center))
 
     def _pointer_to_screen_local(
@@ -476,7 +499,7 @@ class MapTabletView:
     ) -> tuple[int, int] | None:
         if pointer == (-1, -1):
             return None
-        local_pointer = self._inverse_transform_position(pointer, transform)
+        local_pointer = self._inverse_transform_position(pointer, transform, self._last_surface_size)
         if local_pointer is None:
             return None
         assembly_point = (int(round(local_pointer[0])), int(round(local_pointer[1])))
@@ -488,9 +511,10 @@ class MapTabletView:
         self,
         position: tuple[int, int],
         transform: dict[str, float],
+        surface_size: tuple[int, int],
     ) -> tuple[float, float] | None:
-        center_x = (SCREEN_WIDTH / 2.0) + float(transform.get("offset_x", 0.0))
-        center_y = (SCREEN_HEIGHT / 2.0) + float(transform.get("offset_y", 0.0))
+        center_x = (float(surface_size[0]) / 2.0) + float(transform.get("offset_x", 0.0))
+        center_y = (float(surface_size[1]) / 2.0) + float(transform.get("offset_y", 0.0))
         dx = float(position[0]) - center_x
         dy = float(position[1]) - center_y
         radians = math.radians(float(transform.get("rotation", 0.0)))
@@ -498,7 +522,7 @@ class MapTabletView:
         sine = math.sin(radians)
         local_dx = (cosine * dx) + (sine * dy)
         local_dy = (-sine * dx) + (cosine * dy)
-        return ((SCREEN_WIDTH / 2.0) + local_dx, (SCREEN_HEIGHT / 2.0) + local_dy)
+        return ((float(surface_size[0]) / 2.0) + local_dx, (float(surface_size[1]) / 2.0) + local_dy)
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         return pygame.transform.smoothscale(self._load_image(path), size)

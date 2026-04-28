@@ -11,13 +11,14 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 
 from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.relic_assets import relic_assets
-from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+from ui.render_utils import clamp_scale, design_frame_scale, draw_screen_scrim, draw_wrapped_text, fit_design_frame, point_in_rect, scale_design_rect
 
 DRAFT_OFFER_WIDTH = 240
 DRAFT_OFFER_HEIGHT = 296
 DRAFT_OFFER_Y = 214
 DRAFT_OFFER_SPACING = 360
 DRAFT_TOOLTIP_WIDTH = 300
+DESIGN_SIZE = (1280, 720)
 RARITY_OUTLINE_COLORS = {
     "common": (154, 162, 176),
     "uncommon": (94, 208, 124),
@@ -37,6 +38,7 @@ class ModifierDraftUI:
         self._image_cache: dict[str, Any] = {}
         self._hovered_action: str | None = None
         self._pressed_action: str | None = None
+        self._last_surface_size: tuple[int, int] = DESIGN_SIZE
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -48,11 +50,16 @@ class ModifierDraftUI:
         ):
             self._load_image(path)
 
-    def handle_event(self, event: Any, draft_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        draft_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
 
-        layout = self.build_layout(draft_state)
+        layout = self.build_layout(draft_state, self._last_surface_size if screen_size is None else screen_size)
 
         if event.type == pygame.MOUSEMOTION:
             self._hovered_action = self._action_at_position(layout, event.pos)
@@ -86,21 +93,33 @@ class ModifierDraftUI:
 
         return None
 
-    def build_layout(self, draft_state: dict[str, Any]) -> dict[str, Any]:
+    def build_layout(
+        self,
+        draft_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any]:
         draft = draft_state["modifier_draft"]
+        resolved_surface_size = self._resolve_surface_size(screen_size)
+        layout_frame = fit_design_frame(resolved_surface_size, DESIGN_SIZE)
+        layout_scale = design_frame_scale(layout_frame, DESIGN_SIZE)
         offers = []
         total_width = ((len(draft["offers"]) - 1) * DRAFT_OFFER_SPACING) + DRAFT_OFFER_WIDTH
-        start_x = (1280 - total_width) // 2
+        start_x = (DESIGN_SIZE[0] - total_width) // 2
         for index, offer in enumerate(draft["offers"]):
+            offer_rect = scale_design_rect(
+                (
+                    start_x + (index * DRAFT_OFFER_SPACING),
+                    DRAFT_OFFER_Y,
+                    DRAFT_OFFER_WIDTH,
+                    DRAFT_OFFER_HEIGHT,
+                ),
+                layout_frame,
+                DESIGN_SIZE,
+            )
             offers.append(
                 {
                     **offer,
-                    "rect": (
-                        start_x + (index * DRAFT_OFFER_SPACING),
-                        DRAFT_OFFER_Y,
-                        DRAFT_OFFER_WIDTH,
-                        DRAFT_OFFER_HEIGHT,
-                    ),
+                    "rect": offer_rect,
                 }
             )
 
@@ -108,27 +127,37 @@ class ModifierDraftUI:
             "offers": offers,
             "selected_offer_id": draft["selected_offer_id"],
             "can_confirm": draft["can_confirm"],
-            "confirm_rect": (540, 614, 200, 50),
+            "confirm_rect": scale_design_rect((540, 614, 200, 50), layout_frame, DESIGN_SIZE),
+            "top_panel_rect": scale_design_rect((24, 86, 1232, 96), layout_frame, DESIGN_SIZE),
             "status_message": draft_state.get("status_message", ""),
             "character_name": (draft_state.get("character") or {}).get("name", "Runner"),
+            "layout_frame": layout_frame,
+            "layout_scale": layout_scale,
         }
 
     def render(self, surface: Any, draft_state: dict[str, Any]) -> None:
         if pygame is None or surface is None:
             return
 
-        self._ensure_fonts(draft_state.get("presentation", {}).get("ui_scale", 1.0))
-        layout = self.build_layout(draft_state)
+        self._last_surface_size = surface.get_size()
+        layout = self.build_layout(draft_state, self._last_surface_size)
+        ui_scale = float(draft_state.get("presentation", {}).get("ui_scale", 1.0))
+        self._ensure_fonts(ui_scale * max(0.78, min(1.12, layout["layout_scale"])))
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        top_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), (1232, 96))
+        top_panel_rect = pygame.Rect(*layout["top_panel_rect"])
+        top_panel = self._scaled_image(resolve_asset_path("ui", "panel.png"), top_panel_rect.size)
 
         surface.blit(background, (0, 0))
         draw_screen_scrim(surface, alpha=190)
-        surface.blit(top_panel, (24, 86))
+        surface.blit(top_panel, top_panel_rect.topleft)
 
-        self._draw_text(surface, "Choose Your Starter Relic", (44, 108), self._title_font)
-        self._draw_text(surface, layout["status_message"], (44, 148), self._small_font, width=860)
-        self._draw_text(surface, layout["character_name"], (940, 118), self._small_font, width=240)
+        title_x = top_panel_rect.x + max(18, int(round(top_panel_rect.width * 0.016)))
+        title_y = top_panel_rect.y + max(18, int(round(top_panel_rect.height * 0.23)))
+        status_y = top_panel_rect.y + max(52, int(round(top_panel_rect.height * 0.64)))
+        character_x = top_panel_rect.right - max(250, int(round(top_panel_rect.width * 0.23)))
+        self._draw_text(surface, "Choose Your Starter Relic", (title_x, title_y), self._title_font, width=max(280, top_panel_rect.width - 320))
+        self._draw_text(surface, layout["status_message"], (title_x, status_y), self._small_font, width=max(260, int(round(top_panel_rect.width * 0.68))))
+        self._draw_text(surface, layout["character_name"], (character_x, title_y + 10), self._small_font, width=max(160, int(round(top_panel_rect.width * 0.2))))
 
         hovered_offer = None
         for offer in layout["offers"]:
@@ -325,7 +354,7 @@ class ModifierDraftUI:
         draw_wrapped_text(surface, text, position, font, width=width)
 
     def _ensure_fonts(self, scale: float) -> None:
-        scale = clamp_scale(scale, MIN_UI_SCALE, MAX_UI_SCALE)
+        scale = clamp_scale(scale, 0.78, MAX_UI_SCALE)
         if self._font_scale == scale and self._title_font is not None:
             return
 
@@ -334,6 +363,12 @@ class ModifierDraftUI:
         self._font = pygame.font.SysFont("consolas", max(20, int(26 * scale)))
         self._small_font = pygame.font.SysFont("consolas", max(18, int(20 * scale)))
         self._tiny_font = pygame.font.SysFont("consolas", max(13, int(15 * scale)))
+
+    def _resolve_surface_size(self, screen_size: tuple[int, int] | None) -> tuple[int, int]:
+        if screen_size is None:
+            return self._last_surface_size
+        self._last_surface_size = (max(1, int(screen_size[0])), max(1, int(screen_size[1])))
+        return self._last_surface_size
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         image = self._load_image(path)

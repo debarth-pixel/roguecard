@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blackwire Combat Music Creator</title>
+<style>
+  :root {
+    --bg:#090b10;
+    --panel:#111722;
+    --panel2:#171f2d;
+    --ink:#e9f3ff;
+    --muted:#8aa0b8;
+    --accent:#66e7ff;
+    --accent2:#f45b69;
+    --gold:#ffd166;
+    --line:#26364a;
+    --good:#76f7b1;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 20% 10%, rgba(102,231,255,.12), transparent 28%),
+      radial-gradient(circle at 80% 0%, rgba(244,91,105,.09), transparent 22%),
+      linear-gradient(180deg,#06070b,#0a0e15 45%,#05070b);
+    min-height:100vh;
+  }
+  header {
+    padding:28px 24px 18px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+  }
+  h1 { margin:0; font-size:clamp(28px,4vw,54px); letter-spacing:.04em; text-transform:uppercase; }
+  .subtitle { color:var(--muted); margin-top:8px; max-width:900px; line-height:1.5; }
+  main { padding:22px; display:grid; grid-template-columns: 360px 1fr; gap:18px; }
+  @media (max-width: 900px) { main { grid-template-columns:1fr; } }
+  .panel {
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:0 20px 70px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+  .panel h2 {
+    margin:0;
+    padding:14px 16px;
+    font-size:14px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    background:rgba(255,255,255,.035);
+    border-bottom:1px solid var(--line);
+  }
+  .section { padding:16px; border-bottom:1px solid rgba(38,54,74,.65); }
+  .section:last-child { border-bottom:0; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.09em; }
+  input[type="range"] { width:100%; accent-color:var(--accent); }
+  select, button, input[type="number"] {
+    width:100%;
+    padding:10px 12px;
+    color:var(--ink);
+    background:#0c111a;
+    border:1px solid var(--line);
+    border-radius:10px;
+    outline:none;
+  }
+  button {
+    cursor:pointer;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    transition:.15s transform, .15s border-color, .15s background;
+  }
+  button:hover { transform:translateY(-1px); border-color:var(--accent); }
+  .primary { background:linear-gradient(90deg,#1f8ba3,#21536a); border-color:#49d8ff; }
+  .danger { background:linear-gradient(90deg,#7d1d2a,#2a1017); border-color:#f45b69; }
+  .gold { background:linear-gradient(90deg,#6f541a,#2a2110); border-color:#ffd166; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .tiny { font-size:12px; color:var(--muted); line-height:1.45; }
+  .value { float:right; color:var(--accent); font-variant-numeric:tabular-nums; }
+  canvas { display:block; width:100%; height:180px; background:#05070a; border-bottom:1px solid var(--line); }
+  .status {
+    padding:12px 16px;
+    color:var(--muted);
+    font-size:13px;
+    display:flex;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .timeline { padding:16px; }
+  .bargrid {
+    display:grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap:5px;
+    margin-top:12px;
+  }
+  .bar {
+    height:34px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#0c111a;
+    position:relative;
+    overflow:hidden;
+  }
+  .bar::after {
+    content:"";
+    position:absolute; left:0; bottom:0;
+    width:100%; height:var(--h,30%);
+    background:linear-gradient(180deg, rgba(102,231,255,.75), rgba(102,231,255,.12));
+  }
+  .bar.hot::after { background:linear-gradient(180deg, rgba(244,91,105,.78), rgba(244,91,105,.12)); }
+  .bar.play { outline:2px solid var(--gold); box-shadow:0 0 20px rgba(255,209,102,.2); }
+  .instrument {
+    display:grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap:10px;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px dashed rgba(138,160,184,.18);
+  }
+  .instrument:last-child { border-bottom:0; }
+  .pill {
+    display:inline-block;
+    padding:3px 8px;
+    border:1px solid var(--line);
+    border-radius:99px;
+    color:var(--muted);
+    margin-top:4px;
+    font-size:11px;
+  }
+  .meter {
+    height:8px; background:#060a10; border:1px solid var(--line); border-radius:99px; overflow:hidden;
+  }
+  .meter > div { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--gold),var(--accent2)); }
+  .footer {
+    color:var(--muted);
+    padding:18px 24px 28px;
+    font-size:12px;
+    text-align:center;
+  }
+  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:var(--good); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Blackwire Combat Music Creator</h1>
+  <div class="subtitle">
+    A self-contained tactical combat cue generator built with Web Audio: Moog-inspired bass, Polivoks-inspired lead, RX4000-style drums, and cinematic sampler layers.
+    Press Play, randomize variations, then Download WAV.
+  </div>
+</header>
+
+<main>
+  <aside class="panel">
+    <h2>Composer Console</h2>
+    <div class="section row">
+      <button class="primary" id="playBtn">Play</button>
+      <button class="danger" id="stopBtn">Stop</button>
+    </div>
+    <div class="section">
+      <button class="gold" id="downloadBtn">Download WAV</button>
+      <p class="tiny" id="renderStatus">Download renders the full arrangement offline as a .wav file.</p>
+    </div>
+    <div class="section row">
+      <div>
+        <label>Tempo <span class="value" id="tempoVal">132</span></label>
+        <input type="range" id="tempo" min="90" max="170" value="132">
+      </div>
+      <div>
+        <label>Key</label>
+        <select id="key">
+          <option value="43">G minor</option>
+          <option value="45">A minor</option>
+          <option value="46">Bb minor</option>
+          <option value="48">C minor</option>
+          <option value="50">D minor</option>
+          <option value="53">F minor</option>
+        </select>
+      </div>
+    </div>
+    <div class="section row">
+      <div>
+        <label>Intensity <span class="value" id="intensityVal">78</span></label>
+        <input type="range" id="intensity" min="30" max="100" value="78">
+      </div>
+      <div>
+        <label>Variation Seed</label>
+        <button id="randomBtn">Randomize</button>
+      </div>
+    </div>
+    <div class="section">
+      <label>Master Volume <span class="value" id="volVal">80</span></label>
+      <input type="range" id="volume" min="0" max="100" value="80">
+      <div class="meter" style="margin-top:12px"><div id="meterBar"></div></div>
+    </div>
+    <div class="section">
+      <label>Arrangement</label>
+      <select id="length">
+        <option value="16">Short Combat Loop - 16 bars</option>
+        <option value="32" selected>AAA Combat Cue - 32 bars</option>
+        <option value="48">Extended Boss Combat - 48 bars</option>
+      </select>
+      <p class="tiny">The cue has intro tension, primary combat, heroic lift, and final escalation sections.</p>
+    </div>
+    <div class="section">
+      <label>Instrument Mix</label>
+      <div class="instrument">
+        <div><b>MemoryMoog Bass</b><br><span class="pill">retro ladder synth</span></div>
+        <input type="range" id="mixBass" min="0" max="100" value="90">
+      </div>
+      <div class="instrument">
+        <div><b>Polivoks Razor Lead</b><br><span class="pill">raw Soviet-style edge</span></div>
+        <input type="range" id="mixLead" min="0" max="100" value="72">
+      </div>
+      <div class="instrument">
+        <div><b>RX4000 Drum Machine</b><br><span class="pill">punchy retro combat kit</span></div>
+        <input type="range" id="mixDrums" min="0" max="100" value="88">
+      </div>
+      <div class="instrument">
+        <div><b>Sampler Choir / Hits</b><br><span class="pill">cinematic tactical layer</span></div>
+        <input type="range" id="mixSampler" min="0" max="100" value="70">
+      </div>
+    </div>
+  </aside>
+
+  <section class="panel">
+    <canvas id="scope" width="1200" height="260"></canvas>
+    <div class="status">
+      <span id="transport">Stopped</span>
+      <span>Style: <span class="kbd">retro synth tactical card combat</span></span>
+      <span>Export: <span class="kbd">16-bit WAV</span></span>
+    </div>
+    <div class="timeline">
+      <h2 style="border:0;background:transparent;padding:0;margin-bottom:10px">Generated Combat Arrangement</h2>
+      <p class="tiny">
+        Each bar combines procedural harmony, bass ostinato, analog lead phrases, drum machine programming, sampled stabs, risers, and transition hits.
+      </p>
+      <div class="bargrid" id="bargrid"></div>
+    </div>
+  </section>
+</main>
+
+<div class="footer">
+  Tip: click Randomize, Play, then Download WAV when you get a version you like. The exported file is generated in your browser.
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const state = {
+    ctx:null, master:null, analyser:null, playing:false, lookahead:null, startTime:0, bar:0,
+    seed: 1234567, scheduled: [], visReq:null
+  };
+
+  const params = {
+    tempo: () => +$('tempo').value,
+    key: () => +$('key').value,
+    intensity: () => +$('intensity').value / 100,
+    volume: () => +$('volume').value / 100,
+    bars: () => +$('length').value,
+    mixBass: () => +$('mixBass').value / 100,
+    mixLead: () => +$('mixLead').value / 100,
+    mixDrums: () => +$('mixDrums').value / 100,
+    mixSampler: () => +$('mixSampler').value / 100
+  };
+
+  function mulberry32(seed) {
+    return function() {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+  }
+  function midiToHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function secPerBeat(tempo) { return 60 / tempo; }
+  function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+
+  const minor = [0,2,3,5,7,8,10];
+  const progressions = [
+    [0,5,3,6, 0,5,6,4],
+    [0,6,5,3, 0,2,5,6],
+    [0,3,6,5, 0,5,3,4],
+    [0,4,5,6, 3,5,0,0]
+  ];
+
+  function createBus(ctx, master, gain=1) {
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18;
+    comp.knee.value = 18;
+    comp.ratio.value = 3.5;
+    comp.attack.value = 0.006;
+    comp.release.value = 0.18;
+    g.connect(comp).connect(master);
+    return g;
+  }
+
+  function envGain(ctx, destination, time, a, d, s, r, peak=1, dur=0.4) {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), time + a);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak*s), time + a + d);
+    g.gain.setValueAtTime(Math.max(0.0002, peak*s), time + Math.max(a+d, dur-r));
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    g.connect(destination);
+    return g;
+  }
+
+  function addFilter(ctx, dest, type, freq, q=1) {
+    const f = ctx.createBiquadFilter();
+    f.type = type; f.frequency.value = freq; f.Q.value = q;
+    f.connect(dest); return f;
+  }
+
+  function synthBass(ctx, bus, time, midi, dur, vel=1) {
+    const out = envGain(ctx, bus, time, .008, .08, .42, .1, 0.8*vel, dur);
+    const filter = addFilter(ctx, out, 'lowpass', 400, 10);
+    filter.frequency.setValueAtTime(1400, time);
+    filter.frequency.exponentialRampToValueAtTime(170, time+0.16);
+    ['sawtooth','square'].forEach((type,i)=>{
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(midiToHz(midi - (i?12:0)), time);
+      o.detune.value = i ? -8 : 5;
+      const g = ctx.createGain(); g.gain.value = i ? .28 : .44;
+      o.connect(g).connect(filter);
+      o.start(time); o.stop(time+dur+.05);
+    });
+  }
+
+  function polivoksLead(ctx, bus, time, midi, dur, vel=1) {
+    const out = envGain(ctx, bus, time, .015, .12, .55, .18, 0.43*vel, dur);
+    const drive = ctx.createWaveShaper();
+    drive.curve = distortionCurve(120);
+    drive.oversample = '2x';
+    const filter = addFilter(ctx, out, 'bandpass', 900, 5.5);
+    filter.frequency.setValueAtTime(midiToHz(midi)*3, time);
+    filter.frequency.exponentialRampToValueAtTime(midiToHz(midi)*1.3, time+dur*.7);
+    drive.connect(filter);
+    [0,7,12].forEach((offset,i)=>{
+      const o=ctx.createOscillator();
+      o.type = i===1 ? 'square' : 'sawtooth';
+      o.frequency.setValueAtTime(midiToHz(midi+offset), time);
+      o.detune.value = (i-1)*9;
+      const g=ctx.createGain(); g.gain.value = [0.28,0.16,0.09][i];
+      o.connect(g).connect(drive);
+      o.start(time); o.stop(time+dur+.1);
+    });
+  }
+
+  function padChord(ctx, bus, time, rootMidi, dur, vel=1) {
+    const out = envGain(ctx, bus, time, .35, .7, .62, 1.4, 0.32*vel, dur);
+    const filter = addFilter(ctx, out, 'lowpass', 1800, 1.2);
+    const chord = [0,3,7,10,14];
+    chord.forEach((off,i)=>{
+      const o=ctx.createOscillator();
+      o.type = i % 2 ? 'triangle' : 'sawtooth';
+      o.frequency.value = midiToHz(rootMidi + off);
+      o.detune.value = (i-2)*6;
+      const g=ctx.createGain(); g.gain.value = 0.12;
+      o.connect(g).connect(filter);
+      o.start(time); o.stop(time+dur+.4);
+    });
+  }
+
+  function distortionCurve(amount) {
+    const n=44100, curve=new Float32Array(n), deg=Math.PI/180;
+    for (let i=0;i<n;i++) {
+      const x=i*2/n-1;
+      curve[i]=(3+amount)*x*20*deg/(Math.PI+amount*Math.abs(x));
+    }
+    return curve;
+  }
+
+  function noiseBuffer(ctx, seconds=1) {
+    const b = ctx.createBuffer(1, Math.ceil(ctx.sampleRate*seconds), ctx.sampleRate);
+    const d = b.getChannelData(0);
+    const rnd = mulberry32(state.seed + 99);
+    for(let i=0;i<d.length;i++) d[i] = rnd()*2-1;
+    return b;
+  }
+
+  function drumKick(ctx, bus, time, vel=1) {
+    const out = envGain(ctx, bus, time, .002, .05, .001, .08, 1.3*vel, .36);
+    const o = ctx.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(120, time);
+    o.frequency.exponentialRampToValueAtTime(42, time+.18);
+    const click = ctx.createBufferSource(); click.buffer = noiseBuffer(ctx,.04);
+    const hp = addFilter(ctx, out, 'highpass', 2200, .5);
+    const cg = envGain(ctx, hp, time, .001, .01, .001, .01, .16*vel, .04);
+    click.connect(cg);
+    o.connect(out); o.start(time); o.stop(time+.38); click.start(time); click.stop(time+.05);
+  }
+
+  function drumSnare(ctx, bus, time, vel=1) {
+    const out = envGain(ctx, bus, time, .002, .05, .001, .12, .75*vel, .28);
+    const src=ctx.createBufferSource(); src.buffer = noiseBuffer(ctx,.4);
+    const bp=addFilter(ctx, out, 'bandpass', 1700, .8);
+    src.connect(bp); src.start(time); src.stop(time+.3);
+    const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=190;
+    const tg=envGain(ctx,out,time,.001,.04,.01,.09,.18*vel,.18);
+    o.connect(tg); o.start(time); o.stop(time+.2);
+  }
+
+  function drumHat(ctx, bus, time, vel=1, open=false) {
+    const dur = open ? .32 : .075;
+    const out = envGain(ctx, bus, time, .001, .025, .001, .05, .22*vel, dur);
+    const src=ctx.createBufferSource(); src.buffer = noiseBuffer(ctx,.5);
+    const hp=addFilter(ctx, out, 'highpass', 6500, .8);
+    src.connect(hp); src.start(time); src.stop(time+dur+.03);
+  }
+
+  function tom(ctx, bus, time, midi, vel=.7) {
+    const out = envGain(ctx, bus, time, .002, .08, .001, .08, .5*vel, .3);
+    const o=ctx.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(midiToHz(midi), time);
+    o.frequency.exponentialRampToValueAtTime(midiToHz(midi-8), time+.2);
+    o.connect(out); o.start(time); o.stop(time+.32);
+  }
+
+  function sampleHit(ctx, bus, time, root, type='choir', vel=1) {
+    const dur = type === 'riser' ? 1.9 : .9;
+    const out = envGain(ctx, bus, time, .02, .18, .35, .3, .48*vel, dur);
+    const filter = addFilter(ctx, out, type==='riser'?'highpass':'lowpass', type==='riser'?280:2400, 1.4);
+    if (type==='riser') filter.frequency.exponentialRampToValueAtTime(2200, time+dur*.9);
+    const notes = type==='hit' ? [0,7,12] : [0,3,7,12];
+    notes.forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type = type==='choir' ? 'triangle' : 'sawtooth';
+      o.frequency.value=midiToHz(root+off);
+      o.detune.value=(i-1.5)*4;
+      const g=ctx.createGain(); g.gain.value = type==='hit' ? .12 : .08;
+      o.connect(g).connect(filter); o.start(time); o.stop(time+dur+.2);
+    });
+    if (type==='hit') {
+      const src=ctx.createBufferSource(); src.buffer=noiseBuffer(ctx,.4);
+      const ng=envGain(ctx, filter, time, .002, .03, .001, .07, .12*vel, .14);
+      src.connect(ng); src.start(time); src.stop(time+.16);
+    }
+  }
+
+  function scheduleComposition(ctx, master, start, opts, live=false) {
+    const rng = mulberry32(state.seed);
+    const bars = opts.bars;
+    const tempo = opts.tempo;
+    const beat = secPerBeat(tempo);
+    const barDur = beat*4;
+    const key = opts.key;
+    const prog = progressions[Math.floor(rng()*progressions.length)];
+    const bassBus = createBus(ctx, master, opts.mixBass);
+    const leadBus = createBus(ctx, master, opts.mixLead);
+    const drumBus = createBus(ctx, master, opts.mixDrums);
+    const samBus = createBus(ctx, master, opts.mixSampler);
+    const padBus = createBus(ctx, master, opts.mixSampler*.55);
+
+    // simple delay for leads
+    const delay = ctx.createDelay(1.5); delay.delayTime.value = beat*0.75;
+    const fb = ctx.createGain(); fb.gain.value = .22;
+    const wet = ctx.createGain(); wet.gain.value = .22;
+    delay.connect(fb).connect(delay); delay.connect(wet).connect(leadBus);
+    leadBus.connect(delay);
+
+    for (let b=0; b<bars; b++) {
+      const t0 = start + b*barDur;
+      const section = b < bars*.18 ? 0 : b < bars*.62 ? 1 : b < bars*.82 ? 2 : 3;
+      const rootDegree = prog[b % prog.length];
+      const root = key + minor[rootDegree % minor.length];
+      const energy = clamp(opts.intensity * (.58 + section*.16 + (b%8===7?.2:0)), .2, 1.25);
+
+      padChord(ctx, padBus, t0, root-12, barDur*1.02, .45 + energy*.25);
+
+      // Bass ostinato
+      const pattern = [0,0,7,0, 3,0,10,7, 0,12,10,7, 3,5,7,10];
+      for (let s=0;s<16;s++) {
+        const skip = section===0 && s%4===2 && rng()>.5;
+        if (!skip) synthBass(ctx, bassBus, t0 + s*beat/4, root-24 + pattern[s], beat*.22, .42 + energy*.36);
+      }
+
+      // Drum machine
+      const kickSteps = section<1 ? [0,8,14] : [0,3,8,11,14];
+      kickSteps.forEach(st => drumKick(ctx, drumBus, t0 + st*beat/4, .65 + energy*.45));
+      [4,12].forEach(st => drumSnare(ctx, drumBus, t0 + st*beat/4, .55 + energy*.38));
+      for(let s=0;s<16;s+= section>1 ? 1 : 2) {
+        drumHat(ctx, drumBus, t0 + s*beat/4, .25 + energy*.18, section>2 && s%8===6);
+      }
+      if (b%4===3) [12,13,14,15].forEach((st,i)=>tom(ctx, drumBus, t0+st*beat/4, 48-i*3, .5+energy*.25));
+
+      // Sampler stabs and risers
+      if (b%4===0) sampleHit(ctx, samBus, t0, root-12, 'choir', .5+energy*.25);
+      if (b%8===7) sampleHit(ctx, samBus, t0 + beat*2.2, root-5, 'riser', .65+energy*.25);
+      if (section>0 && b%2===1) sampleHit(ctx, samBus, t0 + beat*3.5, root, 'hit', .55+energy*.32);
+
+      // Lead phrases
+      if (section>0) {
+        const phrase = section===1 ? [12,10,7,5,7,10,15,14] : [19,17,15,14,12,10,12,15];
+        for (let i=0;i<phrase.length;i++) {
+          const chance = section===1 ? .78 : .95;
+          if (rng()<chance) polivoksLead(ctx, leadBus, t0 + (i*.5 + (i>3?0.25:0))*beat, root + phrase[i], beat*.34, .35+energy*.42);
+        }
+      }
+      if (section===3) {
+        [0,1,2,3].forEach(i=>polivoksLead(ctx, leadBus, t0+i*beat, root+24+[0,3,7,10][i], beat*.55, .56+energy*.38));
+      }
+    }
+
+    // final tail
+    const end = start + bars*barDur;
+    sampleHit(ctx, samBus, end - beat*.25, key, 'hit', 1);
+    return end + 2.2;
+  }
+
+  function setupAudio() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!state.ctx) {
+      state.ctx = new Ctx();
+      state.master = state.ctx.createGain();
+      state.master.gain.value = params.volume();
+      state.analyser = state.ctx.createAnalyser();
+      state.analyser.fftSize = 1024;
+      state.master.connect(state.analyser).connect(state.ctx.destination);
+    }
+  }
+
+  function play() {
+    setupAudio();
+    if (state.playing) stop();
+    state.ctx.resume();
+    state.playing = true;
+    state.startTime = state.ctx.currentTime + .08;
+    state.master.gain.value = params.volume();
+    const duration = scheduleComposition(state.ctx, state.master, state.startTime, currentOpts(), true);
+    $('transport').textContent = 'Playing procedural combat cue';
+    animate();
+    animateBars();
+    const stopAt = (duration - state.ctx.currentTime) * 1000;
+    state.lookahead = setTimeout(stop, Math.max(500, stopAt));
+  }
+
+  function stop() {
+    if (!state.ctx) return;
+    state.playing = false;
+    clearTimeout(state.lookahead);
+    // hard reset by closing context to stop scheduled nodes
+    state.ctx.close();
+    state.ctx = null; state.master = null; state.analyser = null;
+    $('transport').textContent = 'Stopped';
+    cancelAnimationFrame(state.visReq);
+    document.querySelectorAll('.bar').forEach(b=>b.classList.remove('play'));
+    $('meterBar').style.width = '0%';
+  }
+
+  function currentOpts() {
+    return {
+      tempo: params.tempo(), key: params.key(), intensity: params.intensity(),
+      bars: params.bars(), mixBass: params.mixBass(), mixLead: params.mixLead(),
+      mixDrums: params.mixDrums(), mixSampler: params.mixSampler()
+    };
+  }
+
+  async function downloadWav() {
+    const opts = currentOpts();
+    const beat = secPerBeat(opts.tempo);
+    const seconds = opts.bars * beat * 4 + 3;
+    $('renderStatus').textContent = 'Rendering offline WAV...';
+    const sampleRate = 44100;
+    const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const off = new Offline(2, Math.ceil(seconds*sampleRate), sampleRate);
+    const master = off.createGain();
+    master.gain.value = params.volume();
+    const limiter = off.createDynamicsCompressor();
+    limiter.threshold.value=-6; limiter.knee.value=4; limiter.ratio.value=12; limiter.attack.value=.003; limiter.release.value=.18;
+    master.connect(limiter).connect(off.destination);
+    scheduleComposition(off, master, .1, opts, false);
+    const buffer = await off.startRendering();
+    const wav = audioBufferToWav(buffer);
+    const blob = new Blob([wav], {type:'audio/wav'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const keyName = $('key').selectedOptions[0].textContent.replace(/\s+/g,'_');
+    a.href = url;
+    a.download = `blackwire_combat_${keyName}_${opts.tempo}bpm_seed${state.seed}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    $('renderStatus').textContent = 'Download complete. Try Randomize for another version.';
+  }
+
+  function audioBufferToWav(buffer) {
+    const channels = buffer.numberOfChannels;
+    const length = buffer.length * channels * 2 + 44;
+    const view = new DataView(new ArrayBuffer(length));
+    function writeString(offset, str) { for (let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); }
+    let offset = 0;
+    writeString(offset,'RIFF'); offset+=4;
+    view.setUint32(offset, length-8, true); offset+=4;
+    writeString(offset,'WAVE'); offset+=4;
+    writeString(offset,'fmt '); offset+=4;
+    view.setUint32(offset,16,true); offset+=4;
+    view.setUint16(offset,1,true); offset+=2;
+    view.setUint16(offset,channels,true); offset+=2;
+    view.setUint32(offset,buffer.sampleRate,true); offset+=4;
+    view.setUint32(offset,buffer.sampleRate*channels*2,true); offset+=4;
+    view.setUint16(offset,channels*2,true); offset+=2;
+    view.setUint16(offset,16,true); offset+=2;
+    writeString(offset,'data'); offset+=4;
+    view.setUint32(offset,length-offset-4,true); offset+=4;
+    for (let i=0;i<buffer.length;i++) {
+      for (let ch=0;ch<channels;ch++) {
+        let sample = buffer.getChannelData(ch)[i];
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample*0x8000 : sample*0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return view.buffer;
+  }
+
+  function animate() {
+    if (!state.analyser) return;
+    const canvas = $('scope'), c = canvas.getContext('2d');
+    const data = new Uint8Array(state.analyser.frequencyBinCount);
+    state.analyser.getByteFrequencyData(data);
+    c.clearRect(0,0,canvas.width,canvas.height);
+    c.fillStyle = '#05070a'; c.fillRect(0,0,canvas.width,canvas.height);
+    c.strokeStyle = 'rgba(102,231,255,.18)';
+    c.lineWidth = 1;
+    for(let x=0;x<canvas.width;x+=40){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,canvas.height); c.stroke(); }
+    const w = canvas.width / data.length;
+    let sum=0;
+    for (let i=0;i<data.length;i++) {
+      const v = data[i]/255;
+      sum += v;
+      const h = v * canvas.height*.9;
+      c.fillStyle = i%9===0 ? 'rgba(255,209,102,.9)' : 'rgba(102,231,255,.72)';
+      c.fillRect(i*w, canvas.height-h, Math.max(1,w*.8), h);
+    }
+    $('meterBar').style.width = clamp((sum/data.length)*180,0,100)+'%';
+    state.visReq = requestAnimationFrame(animate);
+  }
+
+  function drawBars() {
+    const grid = $('bargrid'); grid.innerHTML = '';
+    const bars = params.bars();
+    for (let i=0;i<bars;i++) {
+      const d = document.createElement('div');
+      d.className = 'bar' + (i > bars*.82 ? ' hot' : '');
+      d.style.setProperty('--h', (25 + (i%8)*7 + (i%4===3?20:0)) + '%');
+      d.title = `Bar ${i+1}`;
+      grid.appendChild(d);
+    }
+  }
+
+  function animateBars() {
+    if (!state.playing || !state.ctx) return;
+    const beat = secPerBeat(params.tempo()), barDur = beat*4;
+    const idx = Math.floor((state.ctx.currentTime - state.startTime) / barDur);
+    const bars = document.querySelectorAll('.bar');
+    bars.forEach((b,i)=>b.classList.toggle('play', i===idx));
+    if (idx < bars.length) requestAnimationFrame(animateBars);
+  }
+
+  function updateLabels() {
+    $('tempoVal').textContent = $('tempo').value;
+    $('intensityVal').textContent = $('intensity').value;
+    $('volVal').textContent = $('volume').value;
+    if (state.master) state.master.gain.value = params.volume();
+    drawBars();
+  }
+
+  $('playBtn').addEventListener('click', play);
+  $('stopBtn').addEventListener('click', stop);
+  $('downloadBtn').addEventListener('click', downloadWav);
+  $('randomBtn').addEventListener('click', () => {
+    state.seed = Math.floor(Math.random()*2147483647);
+    $('renderStatus').textContent = `Variation seed set to ${state.seed}.`;
+    drawBars();
+  });
+  ['tempo','intensity','volume','length','key','mixBass','mixLead','mixDrums','mixSampler'].forEach(id => {
+    $(id).addEventListener('input', updateLabels);
+    $(id).addEventListener('change', updateLabels);
+  });
+
+  drawBars();
+  updateLabels();
+})();
+</script>
+</body>
+</html>

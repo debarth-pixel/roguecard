@@ -10,7 +10,6 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 
 from ui.card_style import (
     CARD_COMPACT_LAYOUT_SPEC,
-    CARD_PRIMARY_EFFECT_CUES,
     CARD_MINI_LAYOUT_SPEC,
     CARD_PORTRAIT_LAYOUT_SPEC,
     CARD_TYPE_BADGES,
@@ -21,15 +20,23 @@ from ui.sprite_sheet_assets import sprite_sheet_assets
 
 _CARD_FONT_CACHE: dict[tuple[int, bool], Any] = {}
 
-_PRIMARY_EFFECT_TYPES = {
-    "DMG": {"damage", "multi_damage", "lifesteal_damage", "modify_next_attack_damage"},
-    "BLK": {"block"},
-    "HEAL": {"heal", "cleanse_status", "remove_nullified"},
-    "FLOW": {"draw", "energy", "modify_next_card_cost"},
-    "BUFF": {"gain_strength"},
-    "DEBUFF": {"apply_bleed", "apply_infect", "apply_vulnerable", "apply_weak", "add_status_card"},
-    "RISK": {"self_damage"},
+_STATUS_RULE_COLORS = {
+    "bleed": (248, 98, 104),
+    "burn": (255, 142, 74),
+    "infect": (116, 224, 136),
+    "infection": (116, 224, 136),
+    "poison": (132, 214, 108),
+    "weak": (168, 154, 226),
+    "vulnerable": (246, 190, 88),
+    "marked": (206, 242, 255),
+    "suppressed": (156, 178, 204),
+    "nullified": (216, 224, 236),
+    "strength": (248, 112, 112),
 }
+
+_DAMAGE_INCREASE_COLOR = (122, 236, 142)
+_DAMAGE_DECREASE_COLOR = (255, 118, 112)
+_DAMAGE_EFFECT_TYPES = {"damage", "multi_damage", "lifesteal_damage"}
 
 
 def card_type_label(card: dict[str, Any]) -> str:
@@ -80,25 +87,17 @@ def inspect_card_rules(card: dict[str, Any]) -> list[str]:
     return lines
 
 
-def renderable_card_rule_entries(card: dict[str, Any]) -> list[dict[str, str]]:
-    entries = [{"text": line, "tone": "base"} for line in inspect_card_rules(card)]
+def renderable_card_rule_entries(card: dict[str, Any]) -> list[dict[str, Any]]:
+    corruption_entries = _active_corruption_rule_entries(card)
+    if corruption_entries:
+        return corruption_entries
+
+    entries = _normal_rule_entries(card)
     for entry in list(card.get("dynamic_rule_entries") or []):
         text = str(entry.get("text", "")).strip()
         if not text:
             continue
         entries.append({"text": text, "tone": str(entry.get("tone", "base"))})
-    corruption_display = card.get("corruption_display", [])
-    if isinstance(corruption_display, list):
-        for rider in corruption_display:
-            text = str(rider.get("text", "")).strip()
-            if not text:
-                continue
-            entries.append(
-                {
-                    "text": text,
-                    "tone": "corruption_active" if rider.get("active") else "corruption_inactive",
-                }
-            )
     return entries
 
 
@@ -123,12 +122,6 @@ def compact_card_summary(card: dict[str, Any]) -> str:
 def _type_badge(card_theme: dict[str, Any]) -> dict[str, Any]:
     type_key = str(card_theme.get("type_key", "status")).strip().lower() or "status"
     return CARD_TYPE_BADGES.get(type_key, CARD_TYPE_BADGES["status"])
-
-
-def _primary_effect_cue(card: dict[str, Any]) -> dict[str, Any]:
-    cue_key = _first_primary_effect_key(card)
-    cue = CARD_PRIMARY_EFFECT_CUES.get(cue_key, CARD_PRIMARY_EFFECT_CUES["UTIL"])
-    return {**cue, "label": cue_key}
 
 
 def draw_card(
@@ -524,17 +517,17 @@ def _resolve_rules_regions(rules_panel: Any, label_height: int, footer_height: i
         )
         rules_text = pygame.Rect(
             rules_panel.x + padding_x,
-            effect_label.bottom + 6,
+            rules_panel.y + top_padding,
             max(20, rules_panel.width - (padding_x * 2)),
-            max(18, rules_footer.y - effect_label.bottom - 12),
+            max(18, rules_footer.y - rules_panel.y - top_padding - 6),
         )
         return effect_label, rules_text, rules_footer
 
     rules_text = pygame.Rect(
         rules_panel.x + padding_x,
-        effect_label.bottom + 4,
+        rules_panel.y + top_padding,
         max(20, rules_panel.width - (padding_x * 2)),
-        max(16, rules_panel.bottom - effect_label.bottom - bottom_padding),
+        max(16, rules_panel.bottom - rules_panel.y - top_padding - bottom_padding),
     )
     return effect_label, rules_text, None
 
@@ -663,12 +656,7 @@ def _draw_accent_rails(surface: Any, body_rect: Any, type_theme: dict[str, Any],
 
 
 def _draw_rules_shell_details(surface: Any, layout: dict[str, Any], type_theme: dict[str, Any]) -> None:
-    panel = layout["rules_panel"]
-    effect_label = layout["effect_label"]
     footer = layout.get("rules_footer")
-
-    header_plate = pygame.Rect(effect_label.x, effect_label.y - 3, max(16, int(panel.width * 0.72)), max(8, effect_label.height))
-    _draw_beveled_panel(surface, header_plate, (*type_theme["accent_soft"], 26), kind="header_tab")
 
     if footer is not None:
         footer_plate = footer.inflate(0, 4)
@@ -820,8 +808,6 @@ def _draw_full_rules(
     note_label: str | None,
 ) -> None:
     type_theme = card_theme["type_theme"]
-    label_rect = layout["effect_label"]
-    _draw_rules_header_row(surface, label_rect, fonts["effect_label"], type_theme, _primary_effect_cue(card))
 
     rules_font = fonts["rules"]
     line_step = max(rules_font.get_linesize(), int(rules_font.get_linesize() * CARD_TYPOGRAPHY["description_line_height"]))
@@ -834,8 +820,7 @@ def _draw_full_rules(
     )
     y = layout["rules_text"].y
     for entry in wrapped:
-        rendered = rules_font.render(entry["text"], True, _rule_line_color(type_theme, entry["tone"]))
-        surface.blit(rendered, (layout["rules_text"].x, y))
+        _draw_rule_entry(surface, entry, rules_font, layout["rules_text"].x, y, type_theme)
         y += line_step
 
     _draw_footer_metadata(
@@ -862,8 +847,6 @@ def _draw_compact_rules(
     note_label: str | None,
 ) -> None:
     type_theme = card_theme["type_theme"]
-    label_rect = layout["effect_label"]
-    _draw_rules_header_row(surface, label_rect, fonts["compact_meta"], type_theme, _primary_effect_cue(card))
 
     rules_font = fonts["compact_rules"]
     max_lines = max(2, layout["rules_text"].height // max(1, rules_font.get_linesize()))
@@ -875,8 +858,7 @@ def _draw_compact_rules(
     )
     y = layout["rules_text"].y
     for entry in wrapped:
-        rendered = rules_font.render(entry["text"], True, _rule_line_color(type_theme, entry["tone"]))
-        surface.blit(rendered, (layout["rules_text"].x, y))
+        _draw_rule_entry(surface, entry, rules_font, layout["rules_text"].x, y, type_theme)
         y += rules_font.get_linesize()
 
     if layout.get("rules_footer") is not None:
@@ -905,14 +887,16 @@ def _draw_mini_face(
 ) -> None:
     del shortcut_label
     type_theme = card_theme["type_theme"]
-    _draw_mini_cue_row(surface, layout["effect_label"], fonts["mini_meta"], card_theme, _primary_effect_cue(card))
 
-    summary = compact_card_summary(card)
-    fitted_lines = _wrap_lines_clamped([summary], fonts["mini_rules"], layout["rules_text"].width, max_lines=2)
+    fitted_lines = _wrap_rule_entries(
+        renderable_card_rule_entries(card),
+        fonts["mini_rules"],
+        layout["rules_text"].width,
+        max_lines=2,
+    )
     y = layout["rules_text"].y
-    for line in fitted_lines:
-        rendered = fonts["mini_rules"].render(line, True, type_theme["primary_support"])
-        surface.blit(rendered, (layout["rules_text"].x, y))
+    for entry in fitted_lines:
+        _draw_rule_entry(surface, entry, fonts["mini_rules"], layout["rules_text"].x, y, type_theme)
         y += fonts["mini_rules"].get_linesize()
 
     footer_text = note_label or footer_label or _metadata_summary(card, card_theme)
@@ -975,117 +959,6 @@ def _draw_footer_pill(
     fitted = _fit_text_ellipsis(label, font, rect.width - 10)
     rendered = font.render(fitted, True, text_color)
     surface.blit(rendered, rendered.get_rect(center=(rect.centerx, rect.centery + 1)))
-
-
-def _draw_rules_header_row(
-    surface: Any,
-    rect: Any,
-    font: Any,
-    type_theme: dict[str, Any],
-    effect_cue: dict[str, Any],
-) -> None:
-    label = font.render("EFFECT", True, type_theme["muted"])
-    label_y = rect.y + max(0, (rect.height - label.get_height()) // 2)
-    surface.blit(label, (rect.x, label_y))
-
-    cue_label = str(effect_cue["label"])
-    cue_width = min(max(48, font.size(cue_label)[0] + rect.height + 10), max(48, rect.width // 2))
-    cue_rect = pygame.Rect(rect.right - cue_width, rect.y, cue_width, rect.height)
-    _draw_cue_pill(surface, cue_rect, cue_label, font, effect_cue)
-
-
-def _draw_mini_cue_row(
-    surface: Any,
-    rect: Any,
-    font: Any,
-    card_theme: dict[str, Any],
-    effect_cue: dict[str, Any],
-) -> None:
-    type_badge = _type_badge(card_theme)
-    type_width = min(max(28, font.size(type_badge["label"])[0] + 10), max(28, rect.width // 2 - 4))
-    effect_width = min(
-        max(34, font.size(str(effect_cue["label"]))[0] + rect.height + 10),
-        max(34, rect.width - type_width - 6),
-    )
-    type_rect = pygame.Rect(rect.x, rect.y, type_width, rect.height)
-    effect_rect = pygame.Rect(rect.right - effect_width, rect.y, effect_width, rect.height)
-
-    _draw_beveled_panel(surface, type_rect, _blend_color((10, 14, 24), type_badge["color"], 0.26), kind="chip")
-    _draw_beveled_outline(surface, type_rect, type_badge["color"], 1, kind="chip")
-    type_text = _fit_text_ellipsis(type_badge["label"], font, type_rect.width - 8)
-    type_rendered = font.render(type_text, True, type_badge["soft"])
-    surface.blit(type_rendered, type_rendered.get_rect(center=(type_rect.centerx, type_rect.centery + 1)))
-
-    _draw_cue_pill(surface, effect_rect, str(effect_cue["label"]), font, effect_cue)
-
-
-def _draw_cue_pill(
-    surface: Any,
-    rect: Any,
-    label: str,
-    font: Any,
-    cue: dict[str, Any],
-) -> None:
-    fill = _blend_color((10, 14, 24), cue["color"], 0.22)
-    _draw_beveled_panel(surface, rect, fill, kind="footer_pill")
-    _draw_beveled_outline(surface, rect, cue["color"], 1, kind="footer_pill")
-
-    icon_size = max(7, min(rect.height - 6, rect.width // 4))
-    icon_rect = pygame.Rect(rect.x + 5, rect.centery - (icon_size // 2), icon_size, icon_size)
-    _draw_cue_glyph(surface, icon_rect, str(cue.get("glyph", "dot")), cue["soft"])
-
-    text_x = icon_rect.right + 4
-    available_width = max(8, rect.right - text_x - 4)
-    fitted = _fit_text_ellipsis(label, font, available_width)
-    rendered = font.render(fitted, True, cue["soft"])
-    surface.blit(rendered, (text_x, rect.y + max(0, (rect.height - rendered.get_height()) // 2)))
-
-
-def _draw_cue_glyph(surface: Any, rect: Any, glyph: str, color: tuple[int, int, int]) -> None:
-    if glyph == "slash":
-        pygame.draw.line(surface, color, (rect.x + 1, rect.bottom - 1), (rect.right - 1, rect.y + 1), 2)
-        return
-    if glyph == "shield":
-        points = [
-            (rect.centerx, rect.y + 1),
-            (rect.right - 2, rect.y + max(2, rect.height // 4)),
-            (rect.right - 3, rect.bottom - 3),
-            (rect.centerx, rect.bottom - 1),
-            (rect.x + 3, rect.bottom - 3),
-            (rect.x + 2, rect.y + max(2, rect.height // 4)),
-        ]
-        pygame.draw.polygon(surface, color, points, 1)
-        return
-    if glyph == "cross":
-        pygame.draw.line(surface, color, (rect.centerx, rect.y + 1), (rect.centerx, rect.bottom - 1), 2)
-        pygame.draw.line(surface, color, (rect.x + 1, rect.centery), (rect.right - 1, rect.centery), 2)
-        return
-    if glyph == "flow":
-        points = [
-            (rect.x + 1, rect.centery),
-            (rect.centerx - 1, rect.y + 2),
-            (rect.centerx, rect.centery),
-            (rect.right - 2, rect.bottom - 2),
-        ]
-        pygame.draw.lines(surface, color, False, points, 2)
-        return
-    if glyph == "up":
-        pygame.draw.line(surface, color, (rect.centerx, rect.bottom - 1), (rect.centerx, rect.y + 2), 2)
-        pygame.draw.line(surface, color, (rect.centerx, rect.y + 2), (rect.x + 2, rect.y + 5), 2)
-        pygame.draw.line(surface, color, (rect.centerx, rect.y + 2), (rect.right - 2, rect.y + 5), 2)
-        return
-    if glyph == "spark":
-        pygame.draw.line(surface, color, (rect.centerx, rect.y + 1), (rect.centerx, rect.bottom - 1), 1)
-        pygame.draw.line(surface, color, (rect.x + 1, rect.centery), (rect.right - 1, rect.centery), 1)
-        pygame.draw.line(surface, color, (rect.x + 2, rect.y + 2), (rect.right - 2, rect.bottom - 2), 1)
-        pygame.draw.line(surface, color, (rect.right - 2, rect.y + 2), (rect.x + 2, rect.bottom - 2), 1)
-        return
-    if glyph == "hazard":
-        points = [(rect.centerx, rect.y + 1), (rect.right - 1, rect.bottom - 1), (rect.x + 1, rect.bottom - 1)]
-        pygame.draw.polygon(surface, color, points, 1)
-        pygame.draw.line(surface, color, (rect.centerx, rect.y + 4), (rect.centerx, rect.bottom - 4), 1)
-        return
-    pygame.draw.circle(surface, color, rect.center, max(2, rect.width // 4))
 
 
 def _draw_serial_lane(
@@ -1319,13 +1192,13 @@ def _wrap_lines_clamped(lines: list[str], font: Any, width: int, *, max_lines: i
 
 
 def _wrap_rule_entries(
-    entries: list[dict[str, str]],
+    entries: list[dict[str, Any]],
     font: Any,
     width: int,
     *,
     max_lines: int,
-) -> list[dict[str, str]]:
-    wrapped: list[dict[str, str]] = []
+) -> list[dict[str, Any]]:
+    wrapped: list[dict[str, Any]] = []
     overflowed = False
     for entry in entries:
         raw_line = str(entry.get("text", ""))
@@ -1340,7 +1213,7 @@ def _wrap_rule_entries(
                 current = candidate
                 continue
             if current:
-                wrapped.append({"text": current, "tone": tone})
+                wrapped.append({**entry, "text": current, "tone": tone})
                 if len(wrapped) >= max_lines:
                     overflowed = True
                     break
@@ -1348,7 +1221,7 @@ def _wrap_rule_entries(
         if overflowed:
             break
         if current:
-            wrapped.append({"text": current, "tone": tone})
+            wrapped.append({**entry, "text": current, "tone": tone})
             if len(wrapped) >= max_lines:
                 overflowed = True
                 break
@@ -1358,6 +1231,68 @@ def _wrap_rule_entries(
             "text": _fit_text_ellipsis(f"{wrapped[-1]['text']}...", font, width),
         }
     return wrapped[:max_lines]
+
+
+def _draw_rule_entry(
+    surface: Any,
+    entry: dict[str, Any],
+    font: Any,
+    x: int,
+    y: int,
+    type_theme: dict[str, Any],
+) -> None:
+    cursor_x = x
+    for text, color in _rule_entry_segments(entry, type_theme):
+        rendered = font.render(text, True, color)
+        surface.blit(rendered, (cursor_x, y))
+        cursor_x += rendered.get_width()
+
+
+def _rule_entry_segments(
+    entry: dict[str, Any],
+    type_theme: dict[str, Any],
+) -> list[tuple[str, tuple[int, int, int]]]:
+    text = str(entry.get("text", ""))
+    tone = str(entry.get("tone", "base"))
+    default_color = _rule_line_color(type_theme, tone)
+    if tone != "base":
+        return [(text, default_color)]
+
+    segments: list[tuple[str, tuple[int, int, int]]] = []
+    words = text.split(" ")
+    for index, word in enumerate(words):
+        suffix = " " if index < len(words) - 1 else ""
+        segments.append((word + suffix, _rule_token_color(word, entry, default_color)))
+    return segments
+
+
+def _rule_token_color(
+    token: str,
+    entry: dict[str, Any],
+    default_color: tuple[int, int, int],
+) -> tuple[int, int, int]:
+    normalized = token.strip(".,:;!?)(").lower()
+    status_color = _STATUS_RULE_COLORS.get(normalized)
+    if status_color is not None:
+        return status_color
+
+    if normalized.lstrip("-").isdigit() and int(normalized) == entry.get("value"):
+        delta = _damage_value_delta(entry)
+        if delta > 0:
+            return _DAMAGE_INCREASE_COLOR
+        if delta < 0:
+            return _DAMAGE_DECREASE_COLOR
+    return default_color
+
+
+def _damage_value_delta(entry: dict[str, Any]) -> int:
+    if entry.get("effect_type") not in _DAMAGE_EFFECT_TYPES:
+        return 0
+    value = entry.get("value")
+    base_value = entry.get("base_value")
+    if not isinstance(value, int) or not isinstance(base_value, int):
+        return 0
+    return value - base_value
 
 
 def _rule_line_color(type_theme: dict[str, Any], tone: str) -> tuple[int, int, int]:
@@ -1402,50 +1337,6 @@ def _metadata_summary(card: dict[str, Any], card_theme: dict[str, Any]) -> str:
 def _serial_code(card: dict[str, Any]) -> str:
     raw = str(card.get("id", card.get("name", "card"))).strip().upper().replace("_", "-")
     return raw[:18] if raw else "CARD"
-
-
-def _first_primary_effect_key(card: dict[str, Any]) -> str:
-    for effect in card.get("effects", []):
-        cue_key = _effect_cue_key(effect)
-        if cue_key is not None:
-            return cue_key
-
-    for trigger in card.get("triggers", []):
-        if not isinstance(trigger, dict):
-            continue
-        for effect in trigger.get("effects", []):
-            cue_key = _effect_cue_key(effect)
-            if cue_key is not None:
-                return cue_key
-
-    for effect in card.get("resource_effects", []):
-        cue_key = _effect_cue_key(effect)
-        if cue_key is not None:
-            return cue_key
-
-    return "UTIL"
-
-
-def _effect_cue_key(effect: Any) -> str | None:
-    if not isinstance(effect, dict):
-        return None
-
-    effect_type = effect.get("type")
-    if isinstance(effect_type, str):
-        normalized = effect_type.strip().lower()
-        for cue_key, supported_types in _PRIMARY_EFFECT_TYPES.items():
-            if normalized in supported_types:
-                return cue_key
-        return "UTIL"
-
-    resource = effect.get("resource")
-    if isinstance(resource, str) and resource.strip().lower() == "energy":
-        return "FLOW"
-
-    if "resource" in effect or "delta" in effect:
-        return "UTIL"
-
-    return None
 
 
 def _mask_surface_to_panel(layer: Any, kind: str) -> Any:
@@ -1600,6 +1491,61 @@ def _effect_line(effect: dict[str, Any]) -> str:
     if effect_type == "noop":
         return "No effect."
     return ""
+
+
+def _active_corruption_rule_entries(card: dict[str, Any]) -> list[dict[str, Any]]:
+    corruption_display = card.get("corruption_display", [])
+    if not isinstance(corruption_display, list):
+        return []
+    entries: list[dict[str, Any]] = []
+    for rider in corruption_display:
+        if not isinstance(rider, dict) or not rider.get("active"):
+            continue
+        text = str(rider.get("text", "")).strip()
+        if text:
+            entries.append({"text": text, "tone": "corruption_active"})
+    return entries
+
+
+def _normal_rule_entries(card: dict[str, Any]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for effect in card.get("effects", []):
+        entry = _effect_entry(effect)
+        if entry:
+            entries.append(entry)
+    for trigger in card.get("triggers", []):
+        text = _trigger_line(trigger)
+        if text:
+            entries.append({"text": text, "tone": "base"})
+    for effect in card.get("resource_effects", []):
+        text = _resource_effect_line(effect)
+        if text:
+            entries.append({"text": text, "tone": "base"})
+    for keyword in _keyword_face_lines(card):
+        if keyword:
+            entries.append({"text": keyword, "tone": "base"})
+    if not entries:
+        return [{"text": "No effect.", "tone": "base"}]
+    return entries
+
+
+def _effect_entry(effect: Any) -> dict[str, Any] | None:
+    if not isinstance(effect, dict):
+        return None
+    text = _effect_line(effect)
+    if not text:
+        return None
+    entry = {"text": text, "tone": "base"}
+    effect_type = effect.get("type")
+    value = effect.get("value")
+    base_value = effect.get("base_value")
+    if isinstance(effect_type, str):
+        entry["effect_type"] = effect_type
+    if isinstance(value, int):
+        entry["value"] = value
+    if isinstance(base_value, int):
+        entry["base_value"] = base_value
+    return entry
 
 
 def _trigger_line(trigger: dict[str, Any]) -> str:

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>City Outskirts Waster Combat Music Creator - Clean Mix</title>
+<style>
+  :root {
+    --bg:#100b07; --panel:#18110c; --ink:#fff1dc; --muted:#c49c76;
+    --accent:#ffb347; --accent2:#d94f2b; --sand:#e8c06a; --line:#3a271b; --good:#ffd98a;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink); min-height:100vh;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(255,179,71,.13), transparent 28%),
+      radial-gradient(circle at 82% 4%, rgba(217,79,43,.12), transparent 24%),
+      linear-gradient(180deg,#090604,#140c07 45%,#070504);
+  }
+  header {
+    padding:30px 24px 20px; border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(255,179,71,.08), transparent 38%), linear-gradient(180deg, rgba(255,255,255,.035), transparent);
+  }
+  h1 { margin:0; font-size:clamp(27px,4vw,52px); letter-spacing:.04em; text-transform:uppercase; }
+  .subtitle { color:var(--muted); margin-top:8px; max-width:980px; line-height:1.5; }
+  main { padding:22px; display:grid; grid-template-columns:370px 1fr; gap:18px; }
+  @media (max-width:930px){ main{grid-template-columns:1fr;} }
+  .panel {
+    background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+    border:1px solid var(--line); border-radius:16px; box-shadow:0 24px 80px rgba(0,0,0,.38); overflow:hidden;
+  }
+  .panel h2 {
+    margin:0; padding:14px 16px; font-size:14px; letter-spacing:.12em; text-transform:uppercase;
+    background:rgba(255,255,255,.035); border-bottom:1px solid var(--line);
+  }
+  .section { padding:16px; border-bottom:1px solid rgba(58,39,27,.8); }
+  .section:last-child { border-bottom:0; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.09em; }
+  input[type="range"] { width:100%; accent-color:var(--accent); }
+  select, button {
+    width:100%; padding:10px 12px; color:var(--ink); background:#100a07;
+    border:1px solid var(--line); border-radius:10px; outline:none;
+  }
+  button { cursor:pointer; font-weight:850; letter-spacing:.06em; text-transform:uppercase; transition:.15s transform,.15s border-color; }
+  button:hover { transform:translateY(-1px); border-color:var(--accent); }
+  .primary { background:linear-gradient(90deg,#9b541e,#3a1c0c); border-color:#ffb347; }
+  .danger { background:linear-gradient(90deg,#7d2716,#2a0e09); border-color:#d94f2b; }
+  .gold { background:linear-gradient(90deg,#82611c,#2a1d0c); border-color:#e8c06a; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .tiny { font-size:12px; color:var(--muted); line-height:1.45; }
+  .value { float:right; color:var(--accent); font-variant-numeric:tabular-nums; }
+  canvas { display:block; width:100%; height:190px; background:#070504; border-bottom:1px solid var(--line); }
+  .status { padding:12px 16px; color:var(--muted); font-size:13px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .timeline { padding:16px; }
+  .bargrid { display:grid; grid-template-columns:repeat(16,1fr); gap:5px; margin-top:12px; }
+  .bar { height:34px; border:1px solid var(--line); border-radius:8px; background:#100a07; position:relative; overflow:hidden; }
+  .bar::after {
+    content:""; position:absolute; left:0; bottom:0; width:100%; height:var(--h,30%);
+    background:linear-gradient(180deg, rgba(255,179,71,.85), rgba(255,179,71,.12));
+  }
+  .bar.hot::after { background:linear-gradient(180deg, rgba(217,79,43,.86), rgba(217,79,43,.12)); }
+  .bar.play { outline:2px solid var(--sand); box-shadow:0 0 22px rgba(232,192,106,.22); }
+  .instrument { display:grid; grid-template-columns:1.25fr .75fr; gap:10px; align-items:center; padding:12px 0; border-bottom:1px dashed rgba(196,156,118,.18); }
+  .instrument:last-child { border-bottom:0; }
+  .pill { display:inline-block; padding:3px 8px; border:1px solid var(--line); border-radius:99px; color:var(--muted); margin-top:4px; font-size:11px; }
+  .meter { height:8px; background:#080503; border:1px solid var(--line); border-radius:99px; overflow:hidden; }
+  .meter > div { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--sand),var(--accent2)); }
+  .footer { color:var(--muted); padding:18px 24px 28px; font-size:12px; text-align:center; }
+  .kbd { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--good); }
+</style>
+</head>
+<body>
+<header>
+  <h1>City Outskirts Waster Combat Music Creator</h1>
+  <div class="subtitle">
+    Clean-mix version: desert outskirts fight generator with smoother envelopes, softened noise layers, safer gain staging,
+    and anti-click fades on every synth, drum, sampler, and sandstorm source. Play, randomize, then Download WAV.
+  </div>
+</header>
+
+<main>
+  <aside class="panel">
+    <h2>Clean Waster Console</h2>
+    <div class="section row">
+      <button class="primary" id="playBtn">Play</button>
+      <button class="danger" id="stopBtn">Stop</button>
+    </div>
+    <div class="section">
+      <button class="gold" id="downloadBtn">Download WAV</button>
+      <p class="tiny" id="renderStatus">Download renders the full clean City Outskirts combat cue offline as a .wav file.</p>
+    </div>
+    <div class="section row">
+      <div>
+        <label>Fight Tempo <span class="value" id="tempoVal">142</span></label>
+        <input type="range" id="tempo" min="104" max="174" value="142">
+      </div>
+      <div>
+        <label>Dust Key</label>
+        <select id="key">
+          <option value="38">D Phrygian</option>
+          <option value="40" selected>E Phrygian</option>
+          <option value="43">G Phrygian</option>
+          <option value="45">A Phrygian</option>
+          <option value="48">C Phrygian</option>
+        </select>
+      </div>
+    </div>
+    <div class="section row">
+      <div>
+        <label>Raid Intensity <span class="value" id="intensityVal">76</span></label>
+        <input type="range" id="intensity" min="25" max="100" value="76">
+      </div>
+      <div>
+        <label>Variation Seed</label>
+        <button id="randomBtn">Randomize</button>
+      </div>
+    </div>
+    <div class="section">
+      <label>Master Volume <span class="value" id="volVal">72</span></label>
+      <input type="range" id="volume" min="0" max="100" value="72">
+      <div class="meter" style="margin-top:12px"><div id="meterBar"></div></div>
+    </div>
+    <div class="section">
+      <label>Arrangement</label>
+      <select id="length">
+        <option value="16">Short Outskirts Skirmish - 16 bars</option>
+        <option value="32" selected>AAA Waster Combat Cue - 32 bars</option>
+        <option value="48">Extended Sandpack Battle - 48 bars</option>
+      </select>
+      <p class="tiny">This version uses warmer transients and fewer hard-edged noise bursts to avoid static crackle.</p>
+    </div>
+    <div class="section">
+      <label>Instrument Mix</label>
+      <div class="instrument"><div><b>Dust Modular Bass</b><br><span class="pill">smooth gritty analog engine</span></div><input type="range" id="mixBass" min="0" max="100" value="80"></div>
+      <div class="instrument"><div><b>Scrap-Pipe Lead</b><br><span class="pill">reedy wasteland melody</span></div><input type="range" id="mixLead" min="0" max="100" value="64"></div>
+      <div class="instrument"><div><b>Rusted Drum Rig</b><br><span class="pill">barrels, skins, brake rotors</span></div><input type="range" id="mixDrums" min="0" max="100" value="82"></div>
+      <div class="instrument"><div><b>Sampler: Choir / Horns</b><br><span class="pill">tribal cinematic accents</span></div><input type="range" id="mixSampler" min="0" max="100" value="62"></div>
+      <div class="instrument"><div><b>Desert Guitar Plucks</b><br><span class="pill">dry tremolo-string ostinato</span></div><input type="range" id="mixGuitar" min="0" max="100" value="70"></div>
+      <div class="instrument"><div><b>Sandstorm Bed</b><br><span class="pill">filtered wind, no harsh static</span></div><input type="range" id="mixWind" min="0" max="100" value="26"></div>
+    </div>
+  </aside>
+
+  <section class="panel">
+    <canvas id="scope" width="1200" height="280"></canvas>
+    <div class="status">
+      <span id="transport">Stopped</span>
+      <span>Style: <span class="kbd">clean desert waster combat</span></span>
+      <span>Export: <span class="kbd">16-bit WAV</span></span>
+    </div>
+    <div class="timeline">
+      <h2 style="border:0;background:transparent;padding:0;margin-bottom:10px">Generated Clean Outskirts Combat Arrangement</h2>
+      <p class="tiny">
+        Phrygian tension, warmer hand drums, softened scrap metal, dusty analog bass, desert plucks, war horns,
+        and filtered sandstorm transitions without sharp static crackles.
+      </p>
+      <div class="bargrid" id="bargrid"></div>
+    </div>
+  </section>
+</main>
+
+<div class="footer">
+  Tip: keep Sandstorm Bed below 35 and Master below 80 for the smoothest export.
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const state = { ctx:null, master:null, analyser:null, playing:false, timeout:null, startTime:0, seed:932187, visReq:null };
+  const params = {
+    tempo:()=>+$('tempo').value, key:()=>+$('key').value, intensity:()=>+$('intensity').value/100, volume:()=>+$('volume').value/100,
+    bars:()=>+$('length').value, mixBass:()=>+$('mixBass').value/100, mixLead:()=>+$('mixLead').value/100, mixDrums:()=>+$('mixDrums').value/100,
+    mixSampler:()=>+$('mixSampler').value/100, mixGuitar:()=>+$('mixGuitar').value/100, mixWind:()=>+$('mixWind').value/100
+  };
+
+  function mulberry32(seed){ return function(){ let t=seed+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
+  function midiToHz(m){ return 440*Math.pow(2,(m-69)/12); }
+  function secPerBeat(t){ return 60/t; }
+  function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+
+  const scale=[0,1,3,5,7,8,10];
+  const progressions=[[0,1,0,6,0,3,1,0],[0,6,1,0,3,1,6,0],[0,3,1,6,0,1,0,0],[0,1,3,1,0,6,5,0]];
+
+  function curve(amount){
+    const n=2048, c=new Float32Array(n);
+    for(let i=0;i<n;i++){ const x=i*2/n-1; c[i]=Math.tanh(x*amount); }
+    return c;
+  }
+
+  function bus(ctx, master, gain=1){
+    const g=ctx.createGain(); g.gain.value=gain;
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=22; hp.Q.value=.3;
+    const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-18; comp.knee.value=18; comp.ratio.value=2.8; comp.attack.value=.008; comp.release.value=.18;
+    g.connect(hp).connect(comp).connect(master);
+    return g;
+  }
+
+  function safeGain(ctx, dest, time, a, d, s, r, peak=1, dur=.4){
+    // All envelopes start and end at zero with linear fade edges to prevent clicks.
+    const g=ctx.createGain();
+    const end=time+Math.max(dur, a+d+r+.015);
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(Math.max(.0001,peak), time+Math.max(.004,a));
+    g.gain.linearRampToValueAtTime(Math.max(.0001,peak*s), time+Math.max(.006,a+d));
+    g.gain.setValueAtTime(Math.max(.0001,peak*s), Math.max(time+a+d, end-r));
+    g.gain.linearRampToValueAtTime(0, end);
+    g.connect(dest);
+    return g;
+  }
+
+  function filter(ctx, dest, type, freq, q=1){ const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q; f.connect(dest); return f; }
+
+  function noiseBuffer(ctx, seconds=1, seedOffset=0){
+    const len=Math.ceil(ctx.sampleRate*seconds);
+    const b=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=b.getChannelData(0), rnd=mulberry32(state.seed+1000+seedOffset);
+    let last=0;
+    for(let i=0;i<len;i++){
+      // Slightly smoothed noise removes harsh digital crackle while still sounding dusty.
+      const raw=rnd()*2-1;
+      last=last*.72+raw*.28;
+      d[i]=last*.75;
+    }
+    // tiny fade in/out inside buffer
+    const fade=Math.min(128, Math.floor(len/8));
+    for(let i=0;i<fade;i++){ const k=i/fade; d[i]*=k; d[len-1-i]*=k; }
+    return b;
+  }
+
+  function dustBass(ctx,dest,time,midi,dur,vel=1){
+    const out=safeGain(ctx,dest,time,.012,.08,.38,.07,.55*vel,dur);
+    const sh=ctx.createWaveShaper(); sh.curve=curve(1.7); sh.oversample='2x';
+    const lp=filter(ctx,out,'lowpass',360,5.5);
+    lp.frequency.setValueAtTime(760,time);
+    lp.frequency.linearRampToValueAtTime(180,time+.14);
+    sh.connect(lp);
+    [['sawtooth',0,.26],['triangle',-12,.20]].forEach(([type,off,gn],i)=>{
+      const o=ctx.createOscillator(); o.type=type; o.frequency.value=midiToHz(midi+off); o.detune.value=i?-4:3;
+      const g=ctx.createGain(); g.gain.value=gn; o.connect(g).connect(sh);
+      o.start(time); o.stop(time+dur+.08);
+    });
+  }
+
+  function scrapPipeLead(ctx,dest,time,midi,dur,vel=1){
+    const out=safeGain(ctx,dest,time,.025,.13,.42,.18,.28*vel,dur);
+    const bp=filter(ctx,out,'bandpass',midiToHz(midi)*2,4.2);
+    const lp=filter(ctx,bp,'lowpass',3200,1);
+    // connect source into lp? Actually bp connects out; use bp as destination for oscillators.
+    const wob=ctx.createOscillator(); wob.type='sine'; wob.frequency.value=4.2;
+    const wg=ctx.createGain(); wg.gain.value=9; wob.connect(wg).connect(bp.detune);
+    wob.start(time); wob.stop(time+dur+.08);
+    [0,12].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type=i?'triangle':'sawtooth'; o.frequency.value=midiToHz(midi+off); o.detune.value=i?-5:4;
+      const g=ctx.createGain(); g.gain.value=i?.05:.16; o.connect(g).connect(bp);
+      o.start(time); o.stop(time+dur+.08);
+    });
+  }
+
+  function guitarPluck(ctx,dest,time,midi,dur=.24,vel=1){
+    const out=safeGain(ctx,dest,time,.006,.055,.06,.13,.23*vel,dur);
+    const hp=filter(ctx,out,'highpass',150,.6);
+    const lp=filter(ctx,hp,'lowpass',2400,.8);
+    [0,12].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type=i?'triangle':'sawtooth'; o.frequency.value=midiToHz(midi+off); o.detune.value=i?4:-2;
+      const g=ctx.createGain(); g.gain.value=i?.045:.13; o.connect(g).connect(lp);
+      o.start(time); o.stop(time+dur+.06);
+    });
+    const pick=ctx.createBufferSource(); pick.buffer=noiseBuffer(ctx,.045,midi);
+    const pg=safeGain(ctx,lp,time,.002,.012,.001,.018,.025*vel,.05);
+    pick.connect(pg); pick.start(time); pick.stop(time+.055);
+  }
+
+  function throatDrone(ctx,dest,time,root,dur,vel=1){
+    const out=safeGain(ctx,dest,time,.45,.75,.65,1.2,.22*vel,dur);
+    const lp=filter(ctx,out,'lowpass',1500,1);
+    [0,7,12,13].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type=i%2?'triangle':'sawtooth'; o.frequency.value=midiToHz(root+off-24); o.detune.value=(i-1.5)*3.5;
+      const g=ctx.createGain(); g.gain.value=.06; o.connect(g).connect(lp);
+      o.start(time); o.stop(time+dur+.25);
+    });
+  }
+
+  function warHorn(ctx,dest,time,root,vel=1){
+    const dur=.9, out=safeGain(ctx,dest,time,.055,.22,.42,.26,.32*vel,dur);
+    const bp=filter(ctx,out,'bandpass',390,2);
+    [0,7,12].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=midiToHz(root+off-12); o.detune.value=(i-1)*5;
+      const g=ctx.createGain(); g.gain.value=.085; o.connect(g).connect(bp);
+      o.start(time); o.stop(time+dur+.08);
+    });
+  }
+
+  function sandWind(ctx,dest,time,dur,vel=1,rise=false){
+    const out=safeGain(ctx,dest,time,.18,.45,.5,.45,.14*vel,dur);
+    const src=ctx.createBufferSource(); src.buffer=noiseBuffer(ctx,dur+.5,77);
+    const bp=filter(ctx,out,'bandpass',rise?240:520,.45);
+    const lp=filter(ctx,bp,'lowpass',rise?4200:1900,.5);
+    if(rise) bp.frequency.linearRampToValueAtTime(1700,time+dur*.85);
+    src.connect(bp); src.start(time); src.stop(time+dur+.08);
+  }
+
+  function kick(ctx,dest,time,vel=1){
+    const out=safeGain(ctx,dest,time,.004,.045,.001,.08,.78*vel,.32);
+    const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(96,time); o.frequency.linearRampToValueAtTime(46,time+.14);
+    o.connect(out); o.start(time); o.stop(time+.34);
+  }
+
+  function skinDrum(ctx,dest,time,pitch=120,vel=1){
+    const out=safeGain(ctx,dest,time,.004,.045,.001,.08,.40*vel,.24);
+    const o=ctx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(pitch,time); o.frequency.linearRampToValueAtTime(pitch*.62,time+.16);
+    o.connect(out); o.start(time); o.stop(time+.26);
+    const n=ctx.createBufferSource(); n.buffer=noiseBuffer(ctx,.11,pitch);
+    const bp=filter(ctx,out,'bandpass',pitch*5.8,.55);
+    n.connect(bp); n.start(time); n.stop(time+.12);
+  }
+
+  function metalHit(ctx,dest,time,vel=1){
+    const dur=.26, out=safeGain(ctx,dest,time,.006,.055,.001,.09,.24*vel,dur);
+    const hp=filter(ctx,out,'highpass',900,.9);
+    const lp=filter(ctx,hp,'lowpass',4200,.8);
+    [540,790,1160].forEach((freq,i)=>{
+      const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=freq*(1+i*.008);
+      const g=ctx.createGain(); g.gain.value=.045; o.connect(g).connect(lp);
+      o.start(time); o.stop(time+dur+.04);
+    });
+  }
+
+  function shaker(ctx,dest,time,vel=1,open=false){
+    const dur=open?.18:.075;
+    const out=safeGain(ctx,dest,time,.004,.02,.001,.032,.12*vel,dur);
+    const src=ctx.createBufferSource(); src.buffer=noiseBuffer(ctx,.28,33);
+    const hp=filter(ctx,out,'highpass',3600,.45);
+    const lp=filter(ctx,hp,'lowpass',7600,.6);
+    src.connect(lp); src.start(time); src.stop(time+dur+.02);
+  }
+
+  function scheduleComposition(ctx,master,start,opts){
+    const rng=mulberry32(state.seed), beat=secPerBeat(opts.tempo), barDur=beat*4, bars=opts.bars, key=opts.key;
+    const prog=progressions[Math.floor(rng()*progressions.length)];
+    const bassBus=bus(ctx,master,opts.mixBass*.82), leadBus=bus(ctx,master,opts.mixLead*.78), drumBus=bus(ctx,master,opts.mixDrums*.72);
+    const samBus=bus(ctx,master,opts.mixSampler*.76), guitarBus=bus(ctx,master,opts.mixGuitar*.74), windBus=bus(ctx,master,opts.mixWind*.62);
+
+    const delay=ctx.createDelay(1.2); delay.delayTime.value=beat*.75;
+    const fb=ctx.createGain(); fb.gain.value=.12;
+    const wet=ctx.createGain(); wet.gain.value=.10;
+    delay.connect(fb).connect(delay); delay.connect(wet).connect(samBus);
+    guitarBus.connect(delay); leadBus.connect(delay);
+
+    for(let b=0;b<bars;b++){
+      const t0=start+b*barDur;
+      const section=b<bars*.18?0:b<bars*.58?1:b<bars*.80?2:3;
+      const root=key+scale[prog[b%prog.length]%scale.length];
+      const energy=clamp(opts.intensity*(.52+section*.15+(b%8===7?.18:0)),.18,1.1);
+
+      if(b%2===0 || section>1) throatDrone(ctx,samBus,t0,root,barDur*2.02,.36+energy*.18);
+      if(opts.mixWind>.02 && (b%4===0 || section===3)) sandWind(ctx,windBus,t0,barDur*(section===3?1.25:.85),.30+energy*.25,b%8===7);
+
+      const bassPattern=[0,0,7,0,1,0,7,3,0,10,7,3,1,0,3,7];
+      for(let s=0;s<16;s++){
+        if(section===0 && (s===6||s===10) && rng()>.35) continue;
+        dustBass(ctx,bassBus,t0+s*beat/4,root-24+bassPattern[s],beat*.20,.34+energy*.30);
+      }
+
+      const pluckPattern=[12,7,13,7,15,13,12,7];
+      for(let i=0;i<8;i++) if(rng()<(.70+section*.07)) guitarPluck(ctx,guitarBus,t0+i*beat/2,root+pluckPattern[i],beat*.26,.32+energy*.22);
+
+      const kickSteps=section<1?[0,6,10,14]:[0,3,6,8,10,14];
+      kickSteps.forEach(st=>kick(ctx,drumBus,t0+st*beat/4,.58+energy*.30));
+      [4,12].forEach(st=>skinDrum(ctx,drumBus,t0+st*beat/4,145,.55+energy*.28));
+      if(section>0) [7,15].forEach(st=>metalHit(ctx,drumBus,t0+st*beat/4,.38+energy*.25));
+      for(let s=0;s<16;s+=(section>1?1:2)) shaker(ctx,drumBus,t0+s*beat/4,.25+energy*.14,section>2 && s%8===6);
+      if(b%4===3) [12,13,14,15].forEach((st,i)=>skinDrum(ctx,drumBus,t0+st*beat/4,170-i*20,.45+energy*.22));
+
+      if(b%4===0) warHorn(ctx,samBus,t0,root,.42+energy*.20);
+      if(section>0 && b%2===1) warHorn(ctx,samBus,t0+beat*3.4,root+7,.28+energy*.22);
+
+      if(section>0){
+        const phrase=section===1?[12,13,10,7,8,7,5,3]:[15,13,12,10,13,15,17,13];
+        for(let i=0;i<phrase.length;i++){
+          if(rng()<(.64+section*.09)) scrapPipeLead(ctx,leadBus,t0+(i*.5+(i>3?.25:0))*beat,root+phrase[i],beat*.32,.32+energy*.30);
+        }
+      }
+      if(section===3){
+        [0,1,2,3].forEach(i=>scrapPipeLead(ctx,leadBus,t0+i*beat,root+24+[0,1,3,7][i],beat*.54,.46+energy*.28));
+        if(b%2===0) metalHit(ctx,drumBus,t0+beat*3.75,.6);
+      }
+    }
+    const end=start+bars*barDur;
+    warHorn(ctx,samBus,end-beat*.4,key,.85);
+    sandWind(ctx,windBus,end-beat*.2,2.2,.65,true);
+    return end+2.5;
+  }
+
+  function setupAudio(){
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!state.ctx){
+      state.ctx=new Ctx();
+      state.master=state.ctx.createGain();
+      state.master.gain.value=params.volume();
+      const masterHp=state.ctx.createBiquadFilter(); masterHp.type='highpass'; masterHp.frequency.value=22;
+      const limiter=state.ctx.createDynamicsCompressor();
+      limiter.threshold.value=-7; limiter.knee.value=5; limiter.ratio.value=12; limiter.attack.value=.004; limiter.release.value=.18;
+      state.analyser=state.ctx.createAnalyser(); state.analyser.fftSize=1024;
+      state.master.connect(masterHp).connect(limiter).connect(state.analyser).connect(state.ctx.destination);
+    }
+  }
+
+  function currentOpts(){
+    return {tempo:params.tempo(),key:params.key(),intensity:params.intensity(),bars:params.bars(),mixBass:params.mixBass(),mixLead:params.mixLead(),mixDrums:params.mixDrums(),mixSampler:params.mixSampler(),mixGuitar:params.mixGuitar(),mixWind:params.mixWind()};
+  }
+
+  function play(){
+    setupAudio();
+    if(state.playing) stop();
+    setupAudio();
+    state.ctx.resume();
+    state.playing=true;
+    state.startTime=state.ctx.currentTime+.08;
+    state.master.gain.value=params.volume();
+    const duration=scheduleComposition(state.ctx,state.master,state.startTime,currentOpts());
+    $('transport').textContent='Playing clean City Outskirts waster combat cue';
+    animate(); animateBars();
+    state.timeout=setTimeout(stop,Math.max(500,(duration-state.ctx.currentTime)*1000));
+  }
+
+  function stop(){
+    if(!state.ctx) return;
+    state.playing=false; clearTimeout(state.timeout);
+    state.ctx.close(); state.ctx=null; state.master=null; state.analyser=null;
+    cancelAnimationFrame(state.visReq);
+    $('transport').textContent='Stopped'; $('meterBar').style.width='0%';
+    document.querySelectorAll('.bar').forEach(b=>b.classList.remove('play'));
+  }
+
+  async function downloadWav(){
+    const opts=currentOpts(), beat=secPerBeat(opts.tempo), seconds=opts.bars*beat*4+3.2;
+    $('renderStatus').textContent='Rendering clean offline WAV...';
+    const sampleRate=44100, Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    const off=new Offline(2,Math.ceil(seconds*sampleRate),sampleRate);
+    const master=off.createGain(); master.gain.value=params.volume();
+    const hp=off.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=22;
+    const limiter=off.createDynamicsCompressor(); limiter.threshold.value=-7; limiter.knee.value=5; limiter.ratio.value=12; limiter.attack.value=.004; limiter.release.value=.18;
+    master.connect(hp).connect(limiter).connect(off.destination);
+    scheduleComposition(off,master,.1,opts);
+    const buffer=await off.startRendering();
+    const wav=audioBufferToWav(buffer);
+    const blob=new Blob([wav],{type:'audio/wav'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    const keyName=$('key').selectedOptions[0].textContent.replace(/\s+/g,'_');
+    a.href=url; a.download=`city_outskirts_clean_waster_combat_${keyName}_${opts.tempo}bpm_seed${state.seed}.wav`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    $('renderStatus').textContent='Download complete. This clean version uses softened noise and anti-click envelopes.';
+  }
+
+  function audioBufferToWav(buffer){
+    const channels=buffer.numberOfChannels, length=buffer.length*channels*2+44, view=new DataView(new ArrayBuffer(length));
+    function writeString(offset,str){ for(let i=0;i<str.length;i++) view.setUint8(offset+i,str.charCodeAt(i)); }
+    let o=0; writeString(o,'RIFF'); o+=4; view.setUint32(o,length-8,true); o+=4; writeString(o,'WAVE'); o+=4; writeString(o,'fmt '); o+=4;
+    view.setUint32(o,16,true); o+=4; view.setUint16(o,1,true); o+=2; view.setUint16(o,channels,true); o+=2; view.setUint32(o,buffer.sampleRate,true); o+=4;
+    view.setUint32(o,buffer.sampleRate*channels*2,true); o+=4; view.setUint16(o,channels*2,true); o+=2; view.setUint16(o,16,true); o+=2;
+    writeString(o,'data'); o+=4; view.setUint32(o,length-o-4,true); o+=4;
+    for(let i=0;i<buffer.length;i++) for(let ch=0;ch<channels;ch++){
+      let s=buffer.getChannelData(ch)[i]; s=Math.max(-1,Math.min(1,s));
+      view.setInt16(o,s<0?s*0x8000:s*0x7FFF,true); o+=2;
+    }
+    return view.buffer;
+  }
+
+  function animate(){
+    if(!state.analyser) return;
+    const canvas=$('scope'), c=canvas.getContext('2d'), data=new Uint8Array(state.analyser.frequencyBinCount);
+    state.analyser.getByteFrequencyData(data);
+    c.clearRect(0,0,canvas.width,canvas.height);
+    c.fillStyle='#070504'; c.fillRect(0,0,canvas.width,canvas.height);
+    c.strokeStyle='rgba(255,179,71,.14)'; c.lineWidth=1;
+    for(let x=0;x<canvas.width;x+=44){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,canvas.height); c.stroke(); }
+    for(let y=0;y<canvas.height;y+=44){ c.beginPath(); c.moveTo(0,y); c.lineTo(canvas.width,y); c.stroke(); }
+    const w=canvas.width/data.length; let sum=0;
+    for(let i=0;i<data.length;i++){
+      const v=data[i]/255; sum+=v; const h=v*canvas.height*.9;
+      c.fillStyle=i%11===0?'rgba(217,79,43,.88)':(i%5===0?'rgba(232,192,106,.82)':'rgba(255,179,71,.7)');
+      c.fillRect(i*w,canvas.height-h,Math.max(1,w*.82),h);
+    }
+    $('meterBar').style.width=clamp((sum/data.length)*180,0,100)+'%';
+    state.visReq=requestAnimationFrame(animate);
+  }
+
+  function drawBars(){
+    const grid=$('bargrid'); grid.innerHTML=''; const bars=params.bars();
+    for(let i=0;i<bars;i++){
+      const d=document.createElement('div'); d.className='bar'+(i>bars*.80?' hot':'');
+      d.style.setProperty('--h',(25+(i%8)*6+(i%4===3?22:0)+(i>bars*.80?12:0))+'%'); d.title=`Bar ${i+1}`;
+      grid.appendChild(d);
+    }
+  }
+
+  function animateBars(){
+    if(!state.playing||!state.ctx) return;
+    const idx=Math.floor((state.ctx.currentTime-state.startTime)/(secPerBeat(params.tempo())*4));
+    const bars=document.querySelectorAll('.bar'); bars.forEach((b,i)=>b.classList.toggle('play',i===idx));
+    if(idx<bars.length) requestAnimationFrame(animateBars);
+  }
+
+  function updateLabels(){
+    $('tempoVal').textContent=$('tempo').value; $('intensityVal').textContent=$('intensity').value; $('volVal').textContent=$('volume').value;
+    if(state.master) state.master.gain.value=params.volume();
+    drawBars();
+  }
+
+  $('playBtn').addEventListener('click',play);
+  $('stopBtn').addEventListener('click',stop);
+  $('downloadBtn').addEventListener('click',downloadWav);
+  $('randomBtn').addEventListener('click',()=>{ state.seed=Math.floor(Math.random()*2147483647); $('renderStatus').textContent=`Variation seed set to ${state.seed}.`; drawBars(); });
+  ['tempo','intensity','volume','length','key','mixBass','mixLead','mixDrums','mixSampler','mixGuitar','mixWind'].forEach(id=>{
+    $(id).addEventListener('input',updateLabels); $(id).addEventListener('change',updateLabels);
+  });
+
+  drawBars(); updateLabels();
+})();
+</script>
+</body>
+</html>

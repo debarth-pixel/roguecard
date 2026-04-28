@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - pygame is optional for headless verifi
 from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.card_renderer import draw_card
 from ui.event_assets import EVENT_UI_ASSET_ROOT, event_ui_assets
-from ui.render_utils import clamp_scale, point_in_rect
+from ui.render_utils import clamp_scale, design_frame_scale, fit_design_frame, point_in_rect, scale_design_rect
 from ui.ui_system import draw_background_stage
 
 
@@ -22,6 +22,7 @@ EVENT_LAYOUT = {
     "purge_gap_x": 10,
     "purge_gap_y": 8,
 }
+DESIGN_SIZE = (1280, 720)
 
 COLOR_TEXT = (232, 241, 250)
 COLOR_TEXT_DIM = (135, 148, 164)
@@ -203,6 +204,7 @@ class EventUI:
         self._pressed_action: str | None = None
         self._glyph_resolver = EventGlyphResolver()
         self._text_formatter = EventChoiceTextFormatter()
+        self._last_surface_size: tuple[int, int] = DESIGN_SIZE
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -210,10 +212,15 @@ class EventUI:
         event_ui_assets.preload()
         self._load_image(resolve_asset_path("ui", "bg_map.png"))
 
-    def handle_event(self, event: Any, event_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        event_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
-        layout = self.build_layout(event_state)
+        layout = self.build_layout(event_state, self._last_surface_size if screen_size is None else screen_size)
 
         if event.type == pygame.MOUSEMOTION:
             self._hovered_action = self._action_at_position(layout, event.pos)
@@ -253,9 +260,17 @@ class EventUI:
             return {"type": "confirm_event_choice"}
         return None
 
-    def build_layout(self, event_state: dict[str, Any]) -> dict[str, Any]:
+    def build_layout(
+        self,
+        event_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any]:
         event = event_state["event"]
-        shell_rect = pygame.Rect(*EVENT_LAYOUT["shell_rect"]) if pygame is not None else _Rect(*EVENT_LAYOUT["shell_rect"])
+        resolved_surface_size = self._resolve_surface_size(screen_size)
+        layout_frame = fit_design_frame(resolved_surface_size, DESIGN_SIZE)
+        layout_scale = design_frame_scale(layout_frame, DESIGN_SIZE)
+        shell_bounds = scale_design_rect(EVENT_LAYOUT["shell_rect"], layout_frame, DESIGN_SIZE)
+        shell_rect = pygame.Rect(*shell_bounds) if pygame is not None else _Rect(*shell_bounds)
         dossier_rect = self._relative_rect(shell_rect, 0.0, 0.0, 0.515, 1.0)
         art_frame_rect = self._relative_rect(shell_rect, 0.515, 0.0, 0.485, 0.745)
         art_inner_rect = self._relative_rect(shell_rect, 0.548, 0.060, 0.415, 0.610)
@@ -375,15 +390,28 @@ class EventUI:
             "body_rect": tuple(body_rect),
             "accent_yellow_rect": tuple(accent_yellow_rect),
             "accent_cyan_rect": tuple(accent_cyan_rect),
+            "layout_scale": layout_scale,
+            "layout_frame": layout_frame,
         }
 
     def render(self, surface: Any, event_state: dict[str, Any]) -> None:
         if pygame is None or surface is None:
             return
-        self._ensure_fonts(event_state.get("presentation", {}).get("ui_scale", 1.0))
-        layout = self.build_layout(event_state)
+        self._last_surface_size = surface.get_size()
+        layout = self.build_layout(event_state, self._last_surface_size)
+        ui_scale = float(event_state.get("presentation", {}).get("ui_scale", 1.0))
+        self._ensure_fonts(ui_scale * max(0.78, min(1.12, layout["layout_scale"])))
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
-        draw_background_stage(surface, background, veil_alpha=188, top_band_height=78, bottom_band_height=88, line_step=48, line_alpha=5)
+        stage_scale = max(0.82, min(1.12, layout["layout_scale"]))
+        draw_background_stage(
+            surface,
+            background,
+            veil_alpha=188,
+            top_band_height=max(58, int(round(78 * stage_scale))),
+            bottom_band_height=max(66, int(round(88 * stage_scale))),
+            line_step=max(34, int(round(48 * stage_scale))),
+            line_alpha=5,
+        )
         self._draw_background_scan(surface)
         event_ui_assets.blit(surface, "window_shell_combined", layout["shell_rect"])
         self._draw_event_art(surface, layout)
@@ -758,7 +786,7 @@ class EventUI:
         surface.blit(label, label.get_rect(center=pygame.Rect(rect).center))
 
     def _ensure_fonts(self, scale: float) -> None:
-        scale = clamp_scale(scale, MIN_UI_SCALE, MAX_UI_SCALE)
+        scale = clamp_scale(scale, 0.78, MAX_UI_SCALE)
         if self._font_scale == scale and self._font is not None:
             return
         self._font_scale = scale
@@ -767,6 +795,12 @@ class EventUI:
         self._tiny_font = pygame.font.SysFont("consolas", max(12, int(14 * scale)))
         self._micro_font = pygame.font.SysFont("consolas", max(10, int(12 * scale)))
         self._title_font = pygame.font.SysFont("consolas", max(30, int(42 * scale)), bold=True)
+
+    def _resolve_surface_size(self, screen_size: tuple[int, int] | None) -> tuple[int, int]:
+        if screen_size is None:
+            return self._last_surface_size
+        self._last_surface_size = (max(1, int(screen_size[0])), max(1, int(screen_size[1])))
+        return self._last_surface_size
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         image = self._load_image(path)

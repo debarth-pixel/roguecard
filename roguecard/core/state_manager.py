@@ -3586,6 +3586,11 @@ class StateManager:
         remaining_block_penalty = play_context["block_penalty"]
         for effect in resolved_card.get("effects", []):
             adjusted_effect = dict(effect)
+            if adjusted_effect.get("type") in {"damage", "multi_damage", "lifesteal_damage"} and isinstance(
+                adjusted_effect.get("value"),
+                int,
+            ):
+                adjusted_effect["base_value"] = int(adjusted_effect["value"])
             if effect["type"] in {"damage", "lifesteal_damage"} and play_context["damage_bonus"] > 0:
                 adjusted_effect["value"] = int(effect["value"]) + play_context["damage_bonus"]
             elif effect["type"] == "multi_damage" and play_context["damage_bonus"] > 0:

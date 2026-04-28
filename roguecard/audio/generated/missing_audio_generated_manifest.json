@@ -1,0 +1,172 @@
+[
+  {
+    "id": "pause_overlay_inherit_pulse",
+    "area": "overlay",
+    "screen": "pause overlay",
+    "trigger": "pause opened",
+    "status": "unassigned",
+    "kind": "sfx inherit cue",
+    "path": "audio/generated/pause_overlay_inherit_pulse.wav",
+    "notes": "Subtle low whoomp and UI glitch to sit over the inherited scene bed."
+  },
+  {
+    "id": "settings_overlay_data_chirp",
+    "area": "overlay",
+    "screen": "settings overlay",
+    "trigger": "settings opened",
+    "status": "unassigned",
+    "kind": "sfx inherit cue",
+    "path": "audio/generated/settings_overlay_data_chirp.wav",
+    "notes": "Precise servo/data chirp; does not start new music."
+  },
+  {
+    "id": "grayspine_intel_scan",
+    "area": "overlay",
+    "screen": "grayspine intel",
+    "trigger": "intel opened",
+    "status": "unassigned",
+    "kind": "sfx inherit cue",
+    "path": "audio/generated/grayspine_intel_scan.wav",
+    "notes": "Scanner sweep with encrypted ticks over current scene bed."
+  },
+  {
+    "id": "victory_screen_fade_silence",
+    "area": "core",
+    "screen": "victory screen",
+    "trigger": "state enters victory",
+    "status": "unassigned",
+    "kind": "transition sfx",
+    "path": "audio/generated/victory_screen_fade_silence.wav",
+    "notes": "Soft triumph shimmer that resolves into silence instead of a victory track."
+  },
+  {
+    "id": "game_over_fade_silence",
+    "area": "core",
+    "screen": "game over screen",
+    "trigger": "state enters game_over",
+    "status": "unassigned",
+    "kind": "transition sfx",
+    "path": "audio/generated/game_over_fade_silence.wav",
+    "notes": "Dark system power-down cue that supports fade to silence."
+  },
+  {
+    "id": "card_play_cyber",
+    "area": "combat",
+    "screen": "card play",
+    "trigger": "play card action",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/card_play_cyber.wav",
+    "notes": "Fast digital card whip with neon transient."
+  },
+  {
+    "id": "enemy_hit_metal_spark",
+    "area": "combat",
+    "screen": "enemy hit",
+    "trigger": "enemy HP decreases",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/enemy_hit_metal_spark.wav",
+    "notes": "Metallic impact, sparks, short distorted bite."
+  },
+  {
+    "id": "player_hit_warning_thud",
+    "area": "combat",
+    "screen": "player hit",
+    "trigger": "player HP decreases",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/player_hit_warning_thud.wav",
+    "notes": "Heavy impact thud with red warning tone."
+  },
+  {
+    "id": "block_gain_shield_boot",
+    "area": "combat",
+    "screen": "block gain",
+    "trigger": "player or enemy block increases",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/block_gain_shield_boot.wav",
+    "notes": "Shield capacitor boot and glassy shimmer."
+  },
+  {
+    "id": "heal_bioelectric_rise",
+    "area": "combat",
+    "screen": "heal",
+    "trigger": "player HP increases",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/heal_bioelectric_rise.wav",
+    "notes": "Bioelectric upward harmonic, clean and hopeful."
+  },
+  {
+    "id": "turn_end_terminal_down",
+    "area": "combat",
+    "screen": "turn end",
+    "trigger": "end turn action",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/turn_end_terminal_down.wav",
+    "notes": "Terminal confirmation drop with mechanical tail."
+  },
+  {
+    "id": "node_select_map_ping",
+    "area": "ui",
+    "screen": "node selection",
+    "trigger": "map node / reward option / event choice selection",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/node_select_map_ping.wav",
+    "notes": "Map routing ping outside merchant terminal audio."
+  },
+  {
+    "id": "menu_open_neon_slide",
+    "area": "ui",
+    "screen": "menu open",
+    "trigger": "pause / settings / title / event / shop / reward UI confirmations",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/menu_open_neon_slide.wav",
+    "notes": "Neon panel slide open, distinct from merchant terminal click."
+  },
+  {
+    "id": "deny_feedback_redline",
+    "area": "ui",
+    "screen": "deny feedback",
+    "trigger": "invalid or unavailable action",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/deny_feedback_redline.wav",
+    "notes": "Harsh redline buzz for unavailable actions."
+  },
+  {
+    "id": "victory_stinger_cyber",
+    "area": "ui",
+    "screen": "victory stinger",
+    "trigger": "state enters victory",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/victory_stinger_cyber.wav",
+    "notes": "Short success stinger; can coexist with music fade out."
+  },
+  {
+    "id": "defeat_stinger_blackout",
+    "area": "ui",
+    "screen": "defeat stinger",
+    "trigger": "state enters game_over",
+    "status": "placeholder_only",
+    "kind": "sfx",
+    "path": "audio/generated/defeat_stinger_blackout.wav",
+    "notes": "Blackout failure sting with bass collapse."
+  },
+  {
+    "id": "audit_unused_folder_probe",
+    "area": "audit",
+    "screen": "unused audio folder",
+    "trigger": "files under audio/unused audit",
+    "status": "audit",
+    "kind": "diagnostic sfx",
+    "path": "audio/generated/audit_unused_folder_probe.wav",
+    "notes": "Tiny diagnostic ping for unused-folder audit confirmations."
+  }
+]

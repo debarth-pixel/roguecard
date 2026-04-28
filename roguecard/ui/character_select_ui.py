@@ -90,6 +90,7 @@ class CharacterSelectUI:
         self._hovered_action: str | None = None
         self._pressed_action: str | None = None
         self._keyboard_index = 0
+        self._last_surface_size: tuple[int, int] = SCREEN_SIZE
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -99,11 +100,16 @@ class CharacterSelectUI:
             self._load_image(visual["unselected_path"])
             self._load_image(self._image_path_for_state(visual, selected=True))
 
-    def handle_event(self, event: Any, character_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        character_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
 
-        layout = self.build_layout(character_state)
+        layout = self.build_layout(character_state, self._last_surface_size if screen_size is None else screen_size)
         panels = layout["panels"]
         if panels:
             self._keyboard_index = max(0, min(self._keyboard_index, len(panels) - 1))
@@ -192,8 +198,9 @@ class CharacterSelectUI:
         if pygame is None or surface is None:
             return
 
+        self._last_surface_size = surface.get_size()
         self._ensure_fonts(character_state.get("presentation", {}).get("ui_scale", 1.0))
-        layout = self.build_layout(character_state, surface.get_size())
+        layout = self.build_layout(character_state, self._last_surface_size)
         self._draw_stage_background(surface)
         self._draw_stage_header(surface, layout["status_message"])
 

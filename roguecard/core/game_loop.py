@@ -28,6 +28,10 @@ from config import (
     FRAME_RATE,
     MAX_PRESENTATION_SCALE,
     MAX_UI_SCALE,
+    MIN_SUPPORTED_HEIGHT,
+    MIN_SUPPORTED_WIDTH,
+    MIN_WINDOW_HEIGHT,
+    MIN_WINDOW_WIDTH,
     MIN_PRESENTATION_SCALE,
     MIN_UI_SCALE,
     NOTICE_DURATION_SECONDS,
@@ -632,7 +636,8 @@ class GameLoop:
         else:
             display_surface = pygame.display.set_mode(self._windowed_size(info), pygame.RESIZABLE)
 
-        self._logical_surface = pygame.Surface(SCREEN_SIZE).convert()
+        initial_size = self._logical_surface_size_for_display(display_surface.get_size())
+        self._logical_surface = pygame.Surface(initial_size).convert()
         return display_surface
 
     def _handle_global_event(self, event: Any, screen: Any) -> tuple[Any, bool]:
@@ -871,8 +876,8 @@ class GameLoop:
         self._notice_timer = duration
 
     def _windowed_size(self, display_info: Any) -> tuple[int, int]:
-        width = min(display_info.current_w, max(640, int(display_info.current_w * 0.9)))
-        height = min(display_info.current_h, max(360, int(display_info.current_h * 0.9)))
+        width = min(display_info.current_w, max(MIN_SUPPORTED_WIDTH, int(display_info.current_w * 0.9)))
+        height = min(display_info.current_h, max(MIN_SUPPORTED_HEIGHT, int(display_info.current_h * 0.9)))
         return width, height
 
     def _sync_logical_surface(self, state_snapshot: dict[str, Any], display_size: tuple[int, int]) -> None:
@@ -887,12 +892,14 @@ class GameLoop:
         state_snapshot: dict[str, Any],
         display_size: tuple[int, int],
     ) -> tuple[int, int]:
-        if state_snapshot.get("current_state") == "combat":
-            return (
-                max(640, int(display_size[0])),
-                max(360, int(display_size[1])),
-            )
-        return SCREEN_SIZE
+        del state_snapshot
+        return self._logical_surface_size_for_display(display_size)
+
+    def _logical_surface_size_for_display(self, display_size: tuple[int, int]) -> tuple[int, int]:
+        return (
+            max(MIN_WINDOW_WIDTH, int(display_size[0])),
+            max(MIN_WINDOW_HEIGHT, int(display_size[1])),
+        )
 
     def _enemy_hp_total(self, snapshot: dict[str, Any]) -> int:
         combat_state = snapshot.get("combat")
@@ -1029,8 +1036,30 @@ class GameLoop:
         for key in defaults:
             if key in payload:
                 merged[key] = payload[key]
+        merged = self._migrate_settings_payload(payload, merged)
         self._apply_loaded_settings(merged)
         self._persist_settings()
+
+    def _migrate_settings_payload(self, payload: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
+        version = payload.get("settings_format_version")
+        try:
+            version_number = int(version)
+        except (TypeError, ValueError):
+            version_number = 0
+        if version_number >= SETTINGS_FORMAT_VERSION:
+            return merged
+        if self._is_legacy_scale_baseline(payload):
+            merged["presentation_scale"] = DEFAULT_PRESENTATION_SCALE
+            merged["ui_scale"] = DEFAULT_UI_SCALE
+        return merged
+
+    def _is_legacy_scale_baseline(self, payload: dict[str, Any]) -> bool:
+        try:
+            presentation_scale = float(payload.get("presentation_scale"))
+            ui_scale = float(payload.get("ui_scale"))
+        except (TypeError, ValueError):
+            return False
+        return abs(presentation_scale - 0.95) < 0.0001 and abs(ui_scale - 0.9) < 0.0001
 
     def _apply_loaded_settings(self, settings: dict[str, Any]) -> None:
         self._fullscreen = bool(settings.get("fullscreen", DEFAULT_FULLSCREEN))

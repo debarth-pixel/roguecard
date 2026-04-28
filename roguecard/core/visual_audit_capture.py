@@ -16,11 +16,30 @@ from core.state_manager import StateManager
 from ui.ui_manager import UIManager
 
 COMBAT_LAYOUT_SWEEP_RESOLUTIONS: tuple[tuple[int, int], ...] = (
+    (960, 540),
+    (1024, 576),
     (1280, 720),
-    (1600, 900),
     (1920, 1080),
-    (2048, 1128),
-    (2560, 1440),
+)
+RESPONSIVE_LAYOUT_CHECK_RESOLUTIONS: tuple[tuple[int, int], ...] = (
+    (960, 540),
+    (1280, 720),
+)
+OVERLAY_LAYOUT_CHECK_RESOLUTIONS: tuple[tuple[int, int], ...] = (
+    (960, 540),
+    (1024, 576),
+    (1280, 720),
+    (1920, 1080),
+)
+RESPONSIVE_AUDIT_STATES: tuple[str, ...] = (
+    "title",
+    "character_select",
+    "modifier_draft",
+    "map",
+    "combat",
+    "reward",
+    "shop",
+    "event",
 )
 
 
@@ -137,6 +156,79 @@ def validate_combat_layout_sweep(
         "output_dir": str(output_path),
         "captured": captured_paths,
         "checked_resolutions": list(surface_sizes or COMBAT_LAYOUT_SWEEP_RESOLUTIONS),
+        "failures": failures,
+    }
+
+
+def validate_responsive_layouts(
+    output_dir: str | Path | None = None,
+    surface_sizes: list[tuple[int, int]] | tuple[tuple[int, int], ...] | None = None,
+    seed: int = 29,
+    max_steps: int = 240,
+) -> dict[str, Any]:
+    if pygame is None:
+        raise RuntimeError("Pygame is required to validate responsive layout screenshots.")
+
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+
+    pygame.init()
+    pygame.display.set_mode((1, 1))
+
+    output_path = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="roguecard_responsive_layout_"))
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    ui_manager = UIManager()
+    ui_manager.preload_assets()
+    snapshots = _collect_responsive_audit_snapshots(seed=seed, max_steps=max_steps)
+    checked_resolutions = tuple(surface_sizes or RESPONSIVE_LAYOUT_CHECK_RESOLUTIONS)
+    captured_paths: dict[str, str] = {}
+    failures: list[str] = []
+    overlay_snapshots = _overlay_audit_snapshots(snapshots)
+
+    try:
+        for state_name in RESPONSIVE_AUDIT_STATES:
+            snapshot = snapshots[state_name]
+            for width, height in checked_resolutions:
+                file_key = f"{state_name}_{width}x{height}"
+                surface = pygame.Surface((width, height)).convert_alpha()
+                try:
+                    ui_manager.render(surface, snapshot)
+                    warnings = _assert_state_layout(ui_manager, snapshot, (width, height))
+                except Exception as exc:
+                    warnings = [f"render failed: {exc.__class__.__name__}: {exc}"]
+                if warnings:
+                    failures.append(f"{file_key}: {' | '.join(warnings)}")
+                    continue
+                file_path = output_path / f"{file_key}.png"
+                pygame.image.save(surface, str(file_path))
+                captured_paths[file_key] = str(file_path)
+        for state_name, snapshot in overlay_snapshots.items():
+            for width, height in OVERLAY_LAYOUT_CHECK_RESOLUTIONS:
+                file_key = f"{state_name}_{width}x{height}"
+                surface = pygame.Surface((width, height)).convert_alpha()
+                try:
+                    ui_manager.render(surface, snapshot)
+                    warnings = _assert_state_layout(ui_manager, snapshot, (width, height))
+                except Exception as exc:
+                    warnings = [f"render failed: {exc.__class__.__name__}: {exc}"]
+                if warnings:
+                    failures.append(f"{file_key}: {' | '.join(warnings)}")
+                    continue
+                file_path = output_path / f"{file_key}.png"
+                pygame.image.save(surface, str(file_path))
+                captured_paths[file_key] = str(file_path)
+    finally:
+        pygame.quit()
+
+    if failures:
+        raise AssertionError("\n".join(failures))
+
+    return {
+        "output_dir": str(output_path),
+        "captured": captured_paths,
+        "checked_resolutions": list(checked_resolutions),
+        "states": list(RESPONSIVE_AUDIT_STATES),
         "failures": failures,
     }
 
@@ -493,6 +585,147 @@ def _assert_combat_layout(
     return []
 
 
+def _assert_state_layout(
+    ui_manager: UIManager,
+    snapshot: dict[str, Any],
+    surface_size: tuple[int, int],
+) -> list[str]:
+    current_state = snapshot.get("current_state")
+    presentation = snapshot.get("presentation", {})
+    if presentation.get("pause_open") or presentation.get("settings_open"):
+        return _assert_overlay_layout(ui_manager, snapshot, surface_size)
+    if current_state == "combat":
+        return _assert_combat_layout(ui_manager, snapshot, surface_size, "combat")
+
+    warnings: list[str] = []
+    ui_scale = presentation.get("ui_scale", DEFAULT_UI_SCALE)
+    ui_manager._ensure_fonts(ui_scale)
+
+    if ui_manager._should_render_top_bar(str(current_state)):
+        top_layout = ui_manager._top_bar_layout(snapshot, surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "top state", top_layout.get("state_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "top summary", top_layout.get("summary_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "top pause", top_layout.get("pause_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "top intel", top_layout.get("intel_rect"), required=False))
+        warnings.extend(_warnings_for_entry_rects(surface_size, top_layout.get("segments", []), "top segment"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, top_layout.get("modifier_icons", []), "modifier icon"))
+
+    if current_state == "title":
+        layout = ui_manager.title_ui.build_layout(ui_manager._title_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("buttons", []), "title button"))
+        warnings.extend(_warnings_for_rect(surface_size, "title confirm panel", layout.get("confirm_panel_rect"), required=layout.get("confirm_overwrite", False)))
+        if not layout.get("buttons"):
+            warnings.append("title buttons missing")
+        return warnings
+
+    if current_state == "character_select":
+        layout = ui_manager.character_select_ui.build_layout(ui_manager._character_select_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("panels", []), "character panel"))
+        warnings.extend(_warnings_for_rect(surface_size, "character confirm", layout.get("confirm_rect")))
+        if not layout.get("panels"):
+            warnings.append("character panels missing")
+        return warnings
+
+    if current_state == "modifier_draft":
+        layout = ui_manager.modifier_draft_ui.build_layout(ui_manager._modifier_draft_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("offers", []), "draft offer"))
+        warnings.extend(_warnings_for_rect(surface_size, "draft confirm", layout.get("confirm_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "draft top panel", layout.get("top_panel_rect")))
+        if not layout.get("offers"):
+            warnings.append("draft offers missing")
+        return warnings
+
+    if current_state == "map":
+        layout = ui_manager.map_tablet_view.build_layout(ui_manager._map_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "map screen", layout.get("screen_rect")))
+        map_layout = layout.get("map_layout")
+        if not isinstance(map_layout, dict):
+            warnings.append("map layout missing")
+            return warnings
+        warnings.extend(_warnings_for_rect(surface_size, "map bounds", map_layout.get("map_bounds")))
+        warnings.extend(_warnings_for_rect(surface_size, "map header", map_layout.get("header_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "map info", map_layout.get("info_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "map viewport", map_layout.get("viewport_rect")))
+        return warnings
+
+    if current_state == "reward":
+        layout = ui_manager.reward_ui.build_layout(ui_manager._reward_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "reward header", layout.get("header_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "reward stage", layout.get("stage_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "reward action", layout.get("action_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "reward continue", layout.get("continue_rect"), required=False))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("buttons", []), "reward button"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("option_entries", []), "reward option"))
+        return warnings
+
+    if current_state == "shop":
+        layout = ui_manager.shop_ui.build_layout(ui_manager._shop_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "shop terminal", layout.get("terminal_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "shop title", layout.get("title_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "shop body", layout.get("body_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "shop status", layout.get("status_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "shop shelf", layout.get("shelf_region")))
+        warnings.extend(_warnings_for_rect(surface_size, "shop purge window", layout.get("purge_window_rect")))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("action_entries", []), "shop action"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("relic_entries", []), "shop relic"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("card_entries", []), "shop card"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("purge_entries", []), "shop purge"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("service_entries", []), "shop service"))
+        if not layout.get("action_entries"):
+            warnings.append("shop actions missing")
+        return warnings
+
+    if current_state == "event":
+        layout = ui_manager.event_ui.build_layout(ui_manager._event_view_state(snapshot), surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "event shell", layout.get("shell_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event dossier", layout.get("dossier_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event art frame", layout.get("art_frame_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event art inner", layout.get("art_inner_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event confirm", layout.get("confirm_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event hint", layout.get("hint_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event title", layout.get("title_rect")))
+        warnings.extend(_warnings_for_rect(surface_size, "event body", layout.get("body_rect")))
+        warnings.extend(_warnings_for_entry_rects(surface_size, [choice for choice in layout.get("choices", []) if not choice.get("hidden")], "event choice"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("purge_targets", []), "event purge"))
+        if not any(not choice.get("hidden") for choice in layout.get("choices", [])):
+            warnings.append("event choices missing")
+        return warnings
+
+    return warnings
+
+
+def _assert_overlay_layout(
+    ui_manager: UIManager,
+    snapshot: dict[str, Any],
+    surface_size: tuple[int, int],
+) -> list[str]:
+    warnings: list[str] = []
+    presentation = snapshot.get("presentation", {})
+    if presentation.get("pause_open"):
+        layout = ui_manager._pause_layout(snapshot, surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "pause panel", layout.get("panel_rect")))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("buttons", []), "pause button"))
+    if presentation.get("settings_open"):
+        layout = ui_manager._settings_layout(presentation, surface_size)
+        warnings.extend(_warnings_for_rect(surface_size, "settings panel", layout.get("panel_rect")))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("tabs", []), "settings tab"))
+        warnings.extend(_warnings_for_rect(surface_size, "settings help", layout.get("help_rect"), required=layout.get("page") == "general"))
+        warnings.extend(_warnings_for_rect(surface_size, "settings footer", layout.get("footer_rect")))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("footer_buttons", []), "settings footer button"))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("sections", []), "settings section"))
+        for index, row in enumerate(layout.get("rows", [])):
+            warnings.extend(_warnings_for_rect(surface_size, f"settings row {index}", row.get("row_rect")))
+        warnings.extend(_warnings_for_entry_rects(surface_size, layout.get("control_sections", []), "controls section"))
+        for row in layout.get("rows", []):
+            if row.get("kind") == "toggle":
+                warnings.extend(_warnings_for_rect(surface_size, "settings toggle", row.get("toggle_rect")))
+            else:
+                warnings.extend(_warnings_for_rect(surface_size, "settings step down", row.get("decrease_rect")))
+                warnings.extend(_warnings_for_rect(surface_size, "settings step value", row.get("value_rect")))
+                warnings.extend(_warnings_for_rect(surface_size, "settings step up", row.get("increase_rect")))
+    return warnings
+
+
 def _reset_combat_ui_interaction_state(ui_manager: UIManager) -> None:
     ui_manager.combat_ui._hovered_card_index = None
     ui_manager.combat_ui._hover_started_at = 0
@@ -505,6 +738,166 @@ def _reset_combat_ui_interaction_state(ui_manager: UIManager) -> None:
     ui_manager.combat_ui._pressed_end_turn = False
     ui_manager.combat_ui._mouse_pos = (-1, -1)
     ui_manager.combat_ui._pending_action = None
+
+
+def _collect_responsive_audit_snapshots(
+    *,
+    seed: int,
+    max_steps: int,
+) -> dict[str, dict[str, Any]]:
+    snapshots: dict[str, dict[str, Any]] = {
+        "title": _presentation_snapshot(_title_audit_snapshot()),
+    }
+    manager = StateManager()
+    manager.start_new_run(seed=seed)
+
+    step_count = 0
+    while manager.current_state not in {"victory", "game_over"} and step_count < max_steps:
+        step_count += 1
+        snapshot = _presentation_snapshot(copy.deepcopy(manager.get_state_snapshot()))
+        current_state = snapshot["current_state"]
+        if current_state in RESPONSIVE_AUDIT_STATES and current_state not in snapshots:
+            snapshots[current_state] = snapshot
+            if all(state_name in snapshots for state_name in RESPONSIVE_AUDIT_STATES):
+                break
+
+        if manager.current_state == "character_select":
+            manager.select_character("operator")
+            manager.confirm_character_selection()
+            continue
+
+        if manager.current_state == "map":
+            manager.select_map_node(_choose_map_node(snapshot, snapshots))
+            continue
+
+        if manager.current_state == "modifier_draft":
+            _resolve_modifier_draft(manager)
+            continue
+
+        if manager.current_state == "combat":
+            _play_simple_combat(manager)
+            continue
+
+        if manager.current_state == "reward":
+            _resolve_reward(manager)
+            continue
+
+        if manager.current_state == "shop":
+            manager.leave_shop()
+            continue
+
+        if manager.current_state == "event":
+            _resolve_event(manager)
+            continue
+
+        raise ValueError(f"Unsupported state during responsive layout validation: {manager.current_state}")
+
+    missing_states = [state_name for state_name in RESPONSIVE_AUDIT_STATES if state_name not in snapshots]
+    if missing_states:
+        raise ValueError(f"Could not collect responsive audit snapshots for: {', '.join(missing_states)}")
+    return snapshots
+
+
+def _overlay_audit_snapshots(
+    snapshots: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    combat_snapshot = copy.deepcopy(snapshots["combat"])
+    pause_snapshot = copy.deepcopy(combat_snapshot)
+    pause_snapshot["presentation"]["pause_open"] = True
+
+    settings_general = copy.deepcopy(combat_snapshot)
+    settings_general["presentation"]["settings_open"] = True
+    settings_general["presentation"]["settings_page"] = "general"
+
+    settings_general_large = copy.deepcopy(settings_general)
+    settings_general_large["presentation"]["ui_scale"] = 1.1
+
+    settings_controls = copy.deepcopy(combat_snapshot)
+    settings_controls["presentation"]["settings_open"] = True
+    settings_controls["presentation"]["settings_page"] = "controls"
+
+    settings_controls_large = copy.deepcopy(settings_controls)
+    settings_controls_large["presentation"]["ui_scale"] = 1.1
+
+    return {
+        "overlay_pause": pause_snapshot,
+        "overlay_settings_general": settings_general,
+        "overlay_settings_general_ui110": settings_general_large,
+        "overlay_settings_controls": settings_controls,
+        "overlay_settings_controls_ui110": settings_controls_large,
+    }
+
+
+def _title_audit_snapshot() -> dict[str, Any]:
+    return {
+        "current_state": "title",
+        "status_message": "Choose how to enter the city.",
+        "run_seed": None,
+        "title": {
+            "continue_enabled": True,
+            "continue_summary": {
+                "current_state": "map",
+                "character_name": "The Operator",
+                "floor": 3,
+                "current_hp": 57,
+                "max_hp": 70,
+                "map_name": "Outskirts",
+                "map_index": 1,
+            },
+            "confirm_overwrite": False,
+        },
+        "modifier_draft": None,
+        "character": None,
+        "character_select": None,
+        "run_modifiers": {"active": [], "count": 0, "primary_label": None},
+        "map": None,
+        "combat": None,
+        "event": None,
+        "reward": None,
+        "shop": None,
+        "player": None,
+        "player_hand": [],
+    }
+
+
+def _warnings_for_entry_rects(
+    surface_size: tuple[int, int],
+    entries: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    label: str,
+) -> list[str]:
+    warnings: list[str] = []
+    for index, entry in enumerate(entries):
+        warnings.extend(_warnings_for_rect(surface_size, f"{label} {index}", entry.get("rect")))
+    return warnings
+
+
+def _warnings_for_rect(
+    surface_size: tuple[int, int],
+    label: str,
+    rect: Any,
+    *,
+    required: bool = True,
+) -> list[str]:
+    normalized = _normalize_rect(rect)
+    if normalized is None:
+        return [] if not required else [f"{label} missing rect"]
+    x, y, width, height = normalized
+    surface_width, surface_height = surface_size
+    if width <= 0 or height <= 0:
+        return [f"{label} has non-positive size"]
+    if x < 0 or y < 0 or x + width > surface_width or y + height > surface_height:
+        return [f"{label} clipped at {surface_width}x{surface_height}"]
+    return []
+
+
+def _normalize_rect(rect: Any) -> tuple[int, int, int, int] | None:
+    if rect is None:
+        return None
+    if pygame is not None and isinstance(rect, pygame.Rect):
+        return int(rect.x), int(rect.y), int(rect.width), int(rect.height)
+    if isinstance(rect, (tuple, list)) and len(rect) == 4:
+        return tuple(int(round(value)) for value in rect)
+    return None
 
 
 def _combat_layout_audit_snapshot(hand_count: int = 5, enemy_count: int = 2) -> dict[str, Any]:

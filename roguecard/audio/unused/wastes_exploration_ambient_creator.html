@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wastes Exploration Ambient Music Creator</title>
+<style>
+  :root {
+    --bg:#090604;
+    --panel:#17100b;
+    --ink:#fff0d6;
+    --muted:#c59a70;
+    --accent:#d89b4a;
+    --accent2:#9d4d2c;
+    --sand:#e5c27c;
+    --line:#3b281b;
+    --green:#b6d58c;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    min-height:100vh;
+    color:var(--ink);
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(216,155,74,.13), transparent 28%),
+      radial-gradient(circle at 82% 0%, rgba(157,77,44,.12), transparent 22%),
+      radial-gradient(circle at 50% 100%, rgba(229,194,124,.08), transparent 34%),
+      linear-gradient(180deg,#070503,#130c08 48%,#060403);
+  }
+  header {
+    padding:30px 24px 20px;
+    border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(90deg, rgba(216,155,74,.09), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,.035), transparent);
+  }
+  h1 {
+    margin:0;
+    font-size:clamp(28px,4vw,52px);
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  .subtitle {
+    color:var(--muted);
+    max-width:1000px;
+    line-height:1.5;
+    margin-top:8px;
+  }
+  main {
+    padding:22px;
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:18px;
+  }
+  @media (max-width:940px){ main{grid-template-columns:1fr;} }
+  .panel {
+    background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 24px 80px rgba(0,0,0,.36);
+  }
+  .panel h2 {
+    margin:0;
+    padding:14px 16px;
+    font-size:14px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    background:rgba(255,255,255,.035);
+    border-bottom:1px solid var(--line);
+  }
+  .section { padding:16px; border-bottom:1px solid rgba(59,40,27,.82); }
+  .section:last-child { border-bottom:0; }
+  label {
+    display:block;
+    color:var(--muted);
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    margin-bottom:6px;
+  }
+  input[type="range"] { width:100%; accent-color:var(--accent); }
+  select, button {
+    width:100%;
+    padding:10px 12px;
+    color:var(--ink);
+    background:#100a07;
+    border:1px solid var(--line);
+    border-radius:10px;
+    outline:none;
+  }
+  button {
+    cursor:pointer;
+    font-weight:850;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    transition:.15s transform,.15s border-color;
+  }
+  button:hover { transform:translateY(-1px); border-color:var(--accent); }
+  .primary { background:linear-gradient(90deg,#7f5524,#2d1a0c); border-color:#d89b4a; }
+  .danger { background:linear-gradient(90deg,#74351f,#24100a); border-color:#9d4d2c; }
+  .gold { background:linear-gradient(90deg,#796020,#2a1d0c); border-color:#e5c27c; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .tiny { color:var(--muted); font-size:12px; line-height:1.45; }
+  .value { float:right; color:var(--sand); font-variant-numeric:tabular-nums; }
+  canvas {
+    display:block;
+    width:100%;
+    height:210px;
+    background:#060403;
+    border-bottom:1px solid var(--line);
+  }
+  .status {
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .timeline { padding:16px; }
+  .bargrid {
+    display:grid;
+    grid-template-columns:repeat(15, 1fr);
+    gap:6px;
+    margin-top:12px;
+  }
+  .minute {
+    height:42px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#100a07;
+    position:relative;
+    overflow:hidden;
+  }
+  .minute::after {
+    content:"";
+    position:absolute;
+    left:0; bottom:0;
+    height:var(--h,35%);
+    width:100%;
+    background:linear-gradient(180deg, rgba(229,194,124,.78), rgba(216,155,74,.1));
+  }
+  .minute.market::after { background:linear-gradient(180deg, rgba(182,213,140,.72), rgba(182,213,140,.1)); }
+  .minute.event::after { background:linear-gradient(180deg, rgba(157,77,44,.72), rgba(157,77,44,.1)); }
+  .minute.play { outline:2px solid var(--sand); box-shadow:0 0 22px rgba(229,194,124,.2); }
+  .instrument {
+    display:grid;
+    grid-template-columns:1.25fr .75fr;
+    gap:10px;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px dashed rgba(197,154,112,.18);
+  }
+  .instrument:last-child { border-bottom:0; }
+  .pill {
+    display:inline-block;
+    margin-top:4px;
+    padding:3px 8px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    color:var(--muted);
+    font-size:11px;
+  }
+  .meter { height:8px; background:#080503; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+  .meter > div { height:100%; width:0%; background:linear-gradient(90deg,var(--green),var(--sand),var(--accent2)); }
+  .footer { color:var(--muted); padding:18px 24px 28px; font-size:12px; text-align:center; }
+  .kbd { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--green); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Wastes Exploration Ambient Creator</h1>
+  <div class="subtitle">
+    A long-form ambient generator for City Outskirts / Red Wastes exploration: merchant browsing, map movement,
+    event choices, scavenger camps, and quiet danger. Slow tempo, evolving drones, sparse percussion, desert guitar,
+    bowed scrap, soft market bells, and filtered wind. Export a full 15-minute WAV.
+  </div>
+</header>
+
+<main>
+  <aside class="panel">
+    <h2>Exploration Console</h2>
+    <div class="section row">
+      <button class="primary" id="playBtn">Play Preview</button>
+      <button class="danger" id="stopBtn">Stop</button>
+    </div>
+    <div class="section">
+      <button class="gold" id="downloadBtn">Download 15-Min WAV</button>
+      <p class="tiny" id="renderStatus">Offline export may take a little while and creates a large WAV file.</p>
+    </div>
+    <div class="section row">
+      <div>
+        <label>Pulse Tempo <span class="value" id="tempoVal">72</span></label>
+        <input type="range" id="tempo" min="48" max="96" value="72">
+      </div>
+      <div>
+        <label>Wastes Mode</label>
+        <select id="key">
+          <option value="38">D desert minor</option>
+          <option value="40" selected>E desert minor</option>
+          <option value="43">G desert minor</option>
+          <option value="45">A desert minor</option>
+          <option value="48">C desert minor</option>
+        </select>
+      </div>
+    </div>
+    <div class="section row">
+      <div>
+        <label>Tension <span class="value" id="tensionVal">42</span></label>
+        <input type="range" id="tension" min="0" max="100" value="42">
+      </div>
+      <div>
+        <label>Variation Seed</label>
+        <button id="randomBtn">Randomize</button>
+      </div>
+    </div>
+    <div class="section">
+      <label>Master Volume <span class="value" id="volVal">72</span></label>
+      <input type="range" id="volume" min="0" max="100" value="72">
+      <div class="meter" style="margin-top:12px"><div id="meterBar"></div></div>
+    </div>
+    <div class="section">
+      <label>Duration</label>
+      <select id="duration">
+        <option value="300">5 minutes - quick test</option>
+        <option value="600">10 minutes - medium exploration</option>
+        <option value="900" selected>15 minutes - full wastes ambience</option>
+      </select>
+      <p class="tiny">The cue is designed to avoid obvious looping while still feeling stable enough for background play.</p>
+    </div>
+    <div class="section">
+      <label>Layer Mix</label>
+      <div class="instrument"><div><b>Wind Bed</b><br><span class="pill">filtered sand and distant air</span></div><input type="range" id="mixWind" min="0" max="100" value="46"></div>
+      <div class="instrument"><div><b>Low Drone</b><br><span class="pill">warm bowed wasteland hum</span></div><input type="range" id="mixDrone" min="0" max="100" value="78"></div>
+      <div class="instrument"><div><b>Desert Guitar</b><br><span class="pill">slow dry plucks</span></div><input type="range" id="mixGuitar" min="0" max="100" value="52"></div>
+      <div class="instrument"><div><b>Merchant Bells</b><br><span class="pill">soft metal charms and trade stalls</span></div><input type="range" id="mixBells" min="0" max="100" value="42"></div>
+      <div class="instrument"><div><b>Sparse Percussion</b><br><span class="pill">distant skins and salvage taps</span></div><input type="range" id="mixPerc" min="0" max="100" value="38"></div>
+      <div class="instrument"><div><b>Event Tension</b><br><span class="pill">subtle danger swells</span></div><input type="range" id="mixEvent" min="0" max="100" value="34"></div>
+    </div>
+  </aside>
+
+  <section class="panel">
+    <canvas id="scope" width="1200" height="300"></canvas>
+    <div class="status">
+      <span id="transport">Stopped</span>
+      <span>Theme: <span class="kbd">wastes map / merchant / events</span></span>
+      <span>Export: <span class="kbd">16-bit WAV</span></span>
+    </div>
+    <div class="timeline">
+      <h2 style="border:0;background:transparent;padding:0;margin-bottom:10px">15-Minute Ambient Arc</h2>
+      <p class="tiny">
+        Minutes 1–4 establish the wastes, 5–8 add merchant/camp color, 9–12 introduce event tension,
+        and 13–15 settle back into lonely map travel.
+      </p>
+      <div class="bargrid" id="bargrid"></div>
+    </div>
+  </section>
+</main>
+
+<div class="footer">
+  Tip: for a calmer merchant/map loop, lower Tension and Sparse Percussion. For event exploration, raise Event Tension.
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const state = { ctx:null, master:null, analyser:null, playing:false, timeout:null, startTime:0, seed:442211, visReq:null };
+
+  const params = {
+    tempo:()=>+$('tempo').value,
+    key:()=>+$('key').value,
+    tension:()=>+$('tension').value/100,
+    volume:()=>+$('volume').value/100,
+    duration:()=>+$('duration').value,
+    mixWind:()=>+$('mixWind').value/100,
+    mixDrone:()=>+$('mixDrone').value/100,
+    mixGuitar:()=>+$('mixGuitar').value/100,
+    mixBells:()=>+$('mixBells').value/100,
+    mixPerc:()=>+$('mixPerc').value/100,
+    mixEvent:()=>+$('mixEvent').value/100
+  };
+
+  function mulberry32(seed){ return function(){ let t=seed+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
+  function midiToHz(m){ return 440*Math.pow(2,(m-69)/12); }
+  function beatDur(tempo){ return 60/tempo; }
+  function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+
+  // Desert minor / Phrygian flavor
+  const scale = [0,1,3,5,7,8,10];
+  const roots = [0,6,1,0, 3,1,6,0, 0,5,1,6, 0,1,0,0];
+
+  function bus(ctx, master, gain=1){
+    const g=ctx.createGain(); g.gain.value=gain;
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=18; hp.Q.value=.25;
+    const comp=ctx.createDynamicsCompressor();
+    comp.threshold.value=-20; comp.knee.value=18; comp.ratio.value=2.2; comp.attack.value=.02; comp.release.value=.35;
+    g.connect(hp).connect(comp).connect(master);
+    return g;
+  }
+
+  function safeGain(ctx,dest,time,a,d,s,r,peak,dur){
+    const g=ctx.createGain();
+    const end=time+Math.max(dur,a+d+r+.02);
+    g.gain.setValueAtTime(0,time);
+    g.gain.linearRampToValueAtTime(Math.max(.0001,peak),time+Math.max(.01,a));
+    g.gain.linearRampToValueAtTime(Math.max(.0001,peak*s),time+Math.max(.02,a+d));
+    g.gain.setValueAtTime(Math.max(.0001,peak*s),Math.max(time+a+d,end-r));
+    g.gain.linearRampToValueAtTime(0,end);
+    g.connect(dest);
+    return g;
+  }
+
+  function filt(ctx,dest,type,freq,q=1){
+    const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q; f.connect(dest); return f;
+  }
+
+  function noiseBuffer(ctx, seconds=1, seedOffset=0){
+    const len=Math.ceil(ctx.sampleRate*seconds);
+    const b=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=b.getChannelData(0), rnd=mulberry32(state.seed+9000+seedOffset);
+    let a=0,b2=0,c=0;
+    for(let i=0;i<len;i++){
+      const raw=rnd()*2-1;
+      a=a*.985+raw*.015;
+      b2=b2*.94+raw*.06;
+      c=c*.72+raw*.28;
+      d[i]=(a*.75+b2*.22+c*.03);
+    }
+    const fade=Math.min(2048,Math.floor(len/6));
+    for(let i=0;i<fade;i++){ const k=i/fade; d[i]*=k; d[len-1-i]*=k; }
+    return b;
+  }
+
+  function windLayer(ctx,dest,time,dur,vel=1,seed=0){
+    const out=safeGain(ctx,dest,time,2.5,4,.72,3.5,.18*vel,dur);
+    const src=ctx.createBufferSource(); src.buffer=noiseBuffer(ctx,dur+1,seed); src.loop=false;
+    const bp=filt(ctx,out,'bandpass',420,.35);
+    const lp=filt(ctx,bp,'lowpass',1800,.6);
+    // slow filter drift
+    bp.frequency.setValueAtTime(260 + (seed%5)*70, time);
+    bp.frequency.linearRampToValueAtTime(520 + (seed%7)*65, time+dur*.48);
+    bp.frequency.linearRampToValueAtTime(340 + (seed%3)*80, time+dur*.96);
+    src.connect(bp);
+    src.start(time); src.stop(time+dur+.2);
+  }
+
+  function lowDrone(ctx,dest,time,root,dur,vel=1){
+    const out=safeGain(ctx,dest,time,3.5,5,.75,4,.22*vel,dur);
+    const lp=filt(ctx,out,'lowpass',950,1);
+    const notes=[0,7,12,13];
+    notes.forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type=i%2?'triangle':'sawtooth';
+      o.frequency.value=midiToHz(root+off-24);
+      o.detune.value=(i-1.5)*2.5;
+      const g=ctx.createGain(); g.gain.value=.055;
+      o.connect(g).connect(lp);
+      o.start(time); o.stop(time+dur+.3);
+    });
+  }
+
+  function eventSwell(ctx,dest,time,root,dur,vel=1){
+    const out=safeGain(ctx,dest,time,4,6,.55,5,.16*vel,dur);
+    const bp=filt(ctx,out,'bandpass',260,1.6);
+    bp.frequency.setValueAtTime(220,time);
+    bp.frequency.linearRampToValueAtTime(760,time+dur*.72);
+    bp.frequency.linearRampToValueAtTime(310,time+dur);
+    [0,1,7,10].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type='sawtooth';
+      o.frequency.value=midiToHz(root+off-12);
+      o.detune.value=(i-1.5)*5;
+      const g=ctx.createGain(); g.gain.value=.035;
+      o.connect(g).connect(bp);
+      o.start(time); o.stop(time+dur+.2);
+    });
+  }
+
+  function guitarPluck(ctx,dest,time,midi,vel=1){
+    const dur=2.4;
+    const out=safeGain(ctx,dest,time,.015,.35,.08,1.6,.16*vel,dur);
+    const hp=filt(ctx,out,'highpass',150,.6);
+    const lp=filt(ctx,hp,'lowpass',2100,.8);
+    [0,12].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type=i?'triangle':'sawtooth';
+      o.frequency.value=midiToHz(midi+off);
+      o.detune.value=i?2:-2;
+      const g=ctx.createGain(); g.gain.value=i?.035:.09;
+      o.connect(g).connect(lp);
+      o.start(time); o.stop(time+dur+.1);
+    });
+    const pick=ctx.createBufferSource(); pick.buffer=noiseBuffer(ctx,.08,midi);
+    const pg=safeGain(ctx,lp,time,.004,.025,.001,.04,.018*vel,.09);
+    pick.connect(pg); pick.start(time); pick.stop(time+.1);
+  }
+
+  function softBell(ctx,dest,time,midi,vel=1){
+    const dur=5.4;
+    const out=safeGain(ctx,dest,time,.02,1.4,.04,3.8,.20*vel,dur);
+    const hp=filt(ctx,out,'highpass',360,.6);
+    [0,12,19].forEach((off,i)=>{
+      const o=ctx.createOscillator(); o.type='sine';
+      o.frequency.value=midiToHz(midi+off)*(1+i*.004);
+      const g=ctx.createGain(); g.gain.value=[.14,.055,.025][i];
+      o.connect(g).connect(hp);
+      o.start(time); o.stop(time+dur+.2);
+    });
+  }
+
+  function skinPulse(ctx,dest,time,pitch=110,vel=1){
+    const dur=1.1;
+    const out=safeGain(ctx,dest,time,.015,.16,.001,.55,.18*vel,dur);
+    const o=ctx.createOscillator(); o.type='triangle';
+    o.frequency.setValueAtTime(pitch,time);
+    o.frequency.linearRampToValueAtTime(pitch*.68,time+.55);
+    o.connect(out); o.start(time); o.stop(time+dur+.05);
+    const n=ctx.createBufferSource(); n.buffer=noiseBuffer(ctx,.18,pitch);
+    const bp=filt(ctx,out,'bandpass',pitch*4,.45);
+    n.connect(bp); n.start(time); n.stop(time+.2);
+  }
+
+  function scrapTap(ctx,dest,time,vel=1){
+    const dur=1.2;
+    const out=safeGain(ctx,dest,time,.01,.18,.001,.7,.11*vel,dur);
+    const hp=filt(ctx,out,'highpass',700,.7);
+    const lp=filt(ctx,hp,'lowpass',3600,.6);
+    [410,690,990].forEach((freq,i)=>{
+      const o=ctx.createOscillator(); o.type='triangle';
+      o.frequency.value=freq*(1+i*.01);
+      const g=ctx.createGain(); g.gain.value=.03;
+      o.connect(g).connect(lp);
+      o.start(time); o.stop(time+dur+.05);
+    });
+  }
+
+  function scheduleAmbient(ctx,master,start,opts){
+    const rng=mulberry32(state.seed);
+    const duration=opts.duration;
+    const tempo=opts.tempo;
+    const beat=beatDur(tempo);
+    const key=opts.key;
+    const phrase=beat*16;
+    const minute=60;
+
+    const windBus=bus(ctx,master,opts.mixWind*.85);
+    const droneBus=bus(ctx,master,opts.mixDrone*.82);
+    const guitarBus=bus(ctx,master,opts.mixGuitar*.72);
+    const bellBus=bus(ctx,master,opts.mixBells*.65);
+    const percBus=bus(ctx,master,opts.mixPerc*.58);
+    const eventBus=bus(ctx,master,opts.mixEvent*.72);
+
+    // gentle delay for guitar and bells
+    const delay=ctx.createDelay(3);
+    delay.delayTime.value=beat*3.5;
+    const fb=ctx.createGain(); fb.gain.value=.18;
+    const wet=ctx.createGain(); wet.gain.value=.12;
+    delay.connect(fb).connect(delay); delay.connect(wet).connect(droneBus);
+    guitarBus.connect(delay); bellBus.connect(delay);
+
+    // long continuous wind blocks
+    for(let t=0;t<duration;t+=45){
+      const block=Math.min(58,duration-t+2);
+      windLayer(ctx,windBus,start+t,block,.55+rng()*.35,Math.floor(rng()*9999));
+    }
+
+    // 16-beat harmonic phrases
+    let phraseIndex=0;
+    for(let t=0;t<duration;t+=phrase){
+      const minutePos=t/duration;
+      const rootDegree=roots[phraseIndex%roots.length];
+      const root=key+scale[rootDegree%scale.length];
+
+      const merchantColor = minutePos>.28 && minutePos<.55;
+      const eventColor = minutePos>.56 && minutePos<.82;
+      const settle = minutePos>.82;
+
+      lowDrone(ctx,droneBus,start+t,root,phrase*1.08,.58 + rng()*.18);
+
+      if(eventColor && rng()<.72){
+        eventSwell(ctx,eventBus,start+t+beat*(rng()*4),root,phrase*(.8+rng()*.35),opts.tension*(.55+rng()*.45));
+      }
+
+      // Sparse guitar: never too busy
+      const pluckCount = merchantColor ? 4 : (eventColor ? 3 : 2);
+      for(let i=0;i<pluckCount;i++){
+        if(rng()<.85){
+          const offset=beat*(1 + Math.floor(rng()*14));
+          const note=root + [7,10,12,13,15,17][Math.floor(rng()*6)];
+          guitarPluck(ctx,guitarBus,start+t+offset,note,.42+rng()*.34);
+        }
+      }
+
+      // Merchant bells / charms
+      if(merchantColor || rng()<.28){
+        const count=merchantColor?3:1;
+        for(let i=0;i<count;i++){
+          if(rng()<.78){
+            const offset=beat*(2 + Math.floor(rng()*13));
+            const note=root + [12,15,19,22,24][Math.floor(rng()*5)];
+            softBell(ctx,bellBus,start+t+offset,note,.30+rng()*.34);
+          }
+        }
+      }
+
+      // Distant percussion
+      const pulseChance = settle ? .25 : (eventColor ? .58 : .38);
+      if(rng()<pulseChance){
+        const steps = eventColor ? [0,7,13] : [0,10];
+        steps.forEach(st=>{
+          if(rng()<(.55+opts.tension*.25)){
+            skinPulse(ctx,percBus,start+t+beat*st,95+rng()*55,.32+opts.tension*.35);
+          }
+        });
+      }
+      if(rng()<(.25+opts.tension*.25)){
+        scrapTap(ctx,percBus,start+t+beat*(4+Math.floor(rng()*10)),.26+opts.tension*.28);
+      }
+
+      phraseIndex++;
+    }
+
+    // rare landmark moments across the long cue
+    const landmarks = [duration*.18, duration*.34, duration*.52, duration*.68, duration*.86];
+    landmarks.forEach((lt,i)=>{
+      const root=key+scale[roots[(i*3)%roots.length]%scale.length];
+      softBell(ctx,bellBus,start+lt,root+24,.55);
+      if(i===2 || i===3) eventSwell(ctx,eventBus,start+lt-5,root,18,opts.tension*.9);
+    });
+
+    return start+duration+3;
+  }
+
+  function setupAudio(){
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!state.ctx){
+      state.ctx=new Ctx();
+      state.master=state.ctx.createGain();
+      state.master.gain.value=params.volume();
+      const hp=state.ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=18;
+      const limiter=state.ctx.createDynamicsCompressor();
+      limiter.threshold.value=-8; limiter.knee.value=7; limiter.ratio.value=8; limiter.attack.value=.012; limiter.release.value=.42;
+      state.analyser=state.ctx.createAnalyser(); state.analyser.fftSize=1024;
+      state.master.connect(hp).connect(limiter).connect(state.analyser).connect(state.ctx.destination);
+    }
+  }
+
+  function currentOpts(){
+    return {
+      tempo:params.tempo(), key:params.key(), tension:params.tension(), volume:params.volume(), duration:params.duration(),
+      mixWind:params.mixWind(), mixDrone:params.mixDrone(), mixGuitar:params.mixGuitar(),
+      mixBells:params.mixBells(), mixPerc:params.mixPerc(), mixEvent:params.mixEvent()
+    };
+  }
+
+  function play(){
+    setupAudio();
+    if(state.playing) stop();
+    setupAudio();
+    state.ctx.resume();
+    state.playing=true;
+    state.startTime=state.ctx.currentTime+.08;
+    state.master.gain.value=params.volume();
+    // Preview uses selected duration too. Stop manually when desired.
+    const end=scheduleAmbient(state.ctx,state.master,state.startTime,currentOpts());
+    $('transport').textContent='Playing long wastes exploration ambience';
+    animate(); animateMinutes();
+    state.timeout=setTimeout(stop,Math.max(500,(end-state.ctx.currentTime)*1000));
+  }
+
+  function stop(){
+    if(!state.ctx) return;
+    state.playing=false;
+    clearTimeout(state.timeout);
+    state.ctx.close();
+    state.ctx=null; state.master=null; state.analyser=null;
+    cancelAnimationFrame(state.visReq);
+    $('transport').textContent='Stopped';
+    $('meterBar').style.width='0%';
+    document.querySelectorAll('.minute').forEach(b=>b.classList.remove('play'));
+  }
+
+  async function downloadWav(){
+    const opts=currentOpts();
+    const seconds=opts.duration+3.5;
+    $('renderStatus').textContent='Rendering long ambient WAV... this may take a minute.';
+    const sampleRate=44100;
+    const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    const off=new Offline(2,Math.ceil(seconds*sampleRate),sampleRate);
+    const master=off.createGain(); master.gain.value=params.volume();
+    const hp=off.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=18;
+    const limiter=off.createDynamicsCompressor();
+    limiter.threshold.value=-8; limiter.knee.value=7; limiter.ratio.value=8; limiter.attack.value=.012; limiter.release.value=.42;
+    master.connect(hp).connect(limiter).connect(off.destination);
+    scheduleAmbient(off,master,.1,opts);
+    const buffer=await off.startRendering();
+    $('renderStatus').textContent='Encoding WAV...';
+    const wav=audioBufferToWav(buffer);
+    const blob=new Blob([wav],{type:'audio/wav'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const mins=Math.round(opts.duration/60);
+    const keyName=$('key').selectedOptions[0].textContent.replace(/\s+/g,'_');
+    a.href=url;
+    a.download=`wastes_exploration_ambient_${mins}min_${keyName}_seed${state.seed}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    $('renderStatus').textContent='Download complete. Randomize for a new long ambient take.';
+  }
+
+  function audioBufferToWav(buffer){
+    const channels=buffer.numberOfChannels, length=buffer.length*channels*2+44;
+    const view=new DataView(new ArrayBuffer(length));
+    function writeString(offset,str){ for(let i=0;i<str.length;i++) view.setUint8(offset+i,str.charCodeAt(i)); }
+    let o=0;
+    writeString(o,'RIFF'); o+=4; view.setUint32(o,length-8,true); o+=4;
+    writeString(o,'WAVE'); o+=4; writeString(o,'fmt '); o+=4;
+    view.setUint32(o,16,true); o+=4; view.setUint16(o,1,true); o+=2;
+    view.setUint16(o,channels,true); o+=2; view.setUint32(o,buffer.sampleRate,true); o+=4;
+    view.setUint32(o,buffer.sampleRate*channels*2,true); o+=4;
+    view.setUint16(o,channels*2,true); o+=2; view.setUint16(o,16,true); o+=2;
+    writeString(o,'data'); o+=4; view.setUint32(o,length-o-4,true); o+=4;
+    for(let i=0;i<buffer.length;i++){
+      for(let ch=0;ch<channels;ch++){
+        let s=buffer.getChannelData(ch)[i];
+        s=Math.max(-1,Math.min(1,s));
+        view.setInt16(o,s<0?s*0x8000:s*0x7FFF,true);
+        o+=2;
+      }
+    }
+    return view.buffer;
+  }
+
+  function animate(){
+    if(!state.analyser) return;
+    const canvas=$('scope'), c=canvas.getContext('2d');
+    const data=new Uint8Array(state.analyser.frequencyBinCount);
+    state.analyser.getByteFrequencyData(data);
+    c.clearRect(0,0,canvas.width,canvas.height);
+    c.fillStyle='#060403'; c.fillRect(0,0,canvas.width,canvas.height);
+    c.strokeStyle='rgba(216,155,74,.12)'; c.lineWidth=1;
+    for(let x=0;x<canvas.width;x+=48){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,canvas.height); c.stroke(); }
+    for(let y=0;y<canvas.height;y+=48){ c.beginPath(); c.moveTo(0,y); c.lineTo(canvas.width,y); c.stroke(); }
+    const w=canvas.width/data.length; let sum=0;
+    for(let i=0;i<data.length;i++){
+      const v=data[i]/255; sum+=v;
+      const h=v*canvas.height*.86;
+      c.fillStyle=i%13===0?'rgba(182,213,140,.68)':(i%7===0?'rgba(229,194,124,.76)':'rgba(216,155,74,.55)');
+      c.fillRect(i*w,canvas.height-h,Math.max(1,w*.8),h);
+    }
+    $('meterBar').style.width=clamp((sum/data.length)*190,0,100)+'%';
+    state.visReq=requestAnimationFrame(animate);
+  }
+
+  function drawMinutes(){
+    const grid=$('bargrid'); grid.innerHTML='';
+    const mins=Math.ceil(params.duration()/60);
+    grid.style.gridTemplateColumns = `repeat(${Math.min(15, mins)}, 1fr)`;
+    for(let i=0;i<mins;i++){
+      const d=document.createElement('div');
+      d.className='minute' + (i>=4 && i<=7 ? ' market' : '') + (i>=8 && i<=11 ? ' event' : '');
+      d.style.setProperty('--h',(22+(i%5)*8+(i>=8&&i<=11?12:0))+'%');
+      d.title=`Minute ${i+1}`;
+      grid.appendChild(d);
+    }
+  }
+
+  function animateMinutes(){
+    if(!state.playing||!state.ctx) return;
+    const idx=Math.floor((state.ctx.currentTime-state.startTime)/60);
+    const blocks=document.querySelectorAll('.minute');
+    blocks.forEach((b,i)=>b.classList.toggle('play',i===idx));
+    if(idx<blocks.length) requestAnimationFrame(animateMinutes);
+  }
+
+  function updateLabels(){
+    $('tempoVal').textContent=$('tempo').value;
+    $('tensionVal').textContent=$('tension').value;
+    $('volVal').textContent=$('volume').value;
+    if(state.master) state.master.gain.value=params.volume();
+    drawMinutes();
+  }
+
+  $('playBtn').addEventListener('click',play);
+  $('stopBtn').addEventListener('click',stop);
+  $('downloadBtn').addEventListener('click',downloadWav);
+  $('randomBtn').addEventListener('click',()=>{
+    state.seed=Math.floor(Math.random()*2147483647);
+    $('renderStatus').textContent=`Variation seed set to ${state.seed}.`;
+    drawMinutes();
+  });
+  ['tempo','tension','volume','duration','key','mixWind','mixDrone','mixGuitar','mixBells','mixPerc','mixEvent'].forEach(id=>{
+    $(id).addEventListener('input',updateLabels);
+    $(id).addEventListener('change',updateLabels);
+  });
+
+  drawMinutes();
+  updateLabels();
+})();
+</script>
+</body>
+</html>

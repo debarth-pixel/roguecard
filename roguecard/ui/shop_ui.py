@@ -267,6 +267,7 @@ class ShopUI:
         self._terminal_clock = 0.0
         self._denial_flash = 0.0
         self._sfx_callback: Callable[[str], None] | None = None
+        self._last_surface_size: tuple[int, int] = (SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def preload_assets(self) -> None:
         if pygame is None:
@@ -349,11 +350,16 @@ class ShopUI:
         self._denial_flash = DENIAL_FLASH_SECONDS
         self._emit_sfx("purchase_fail")
 
-    def handle_event(self, event: Any, shop_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        shop_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
 
-        layout = self.build_layout(shop_state)
+        layout = self.build_layout(shop_state, self._last_surface_size if screen_size is None else screen_size)
 
         if event.type == pygame.MOUSEMOTION:
             hovered_action = self._action_at_position(layout, event.pos)
@@ -785,8 +791,9 @@ class ShopUI:
         if pygame is None or surface is None:
             return
 
+        self._last_surface_size = surface.get_size()
         self._ensure_fonts(shop_state.get("presentation", {}).get("ui_scale", 1.0))
-        layout = self.build_layout(shop_state, surface.get_size())
+        layout = self.build_layout(shop_state, self._last_surface_size)
         self.render_scene_background(surface, shop_state)
         self._draw_merchant_van(surface)
         self._draw_scene_status(surface, layout)

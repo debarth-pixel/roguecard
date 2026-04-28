@@ -12,7 +12,7 @@ from config import MAX_UI_SCALE, MIN_UI_SCALE, resolve_asset_path
 from ui.card_renderer import draw_card
 from ui.card_style import CARD_PORTRAIT_HEIGHT_RATIO, resolve_card_theme
 from ui.relic_assets import relic_assets
-from ui.render_utils import clamp_scale, draw_screen_scrim, draw_wrapped_text, point_in_rect
+from ui.render_utils import clamp_scale, design_frame_scale, draw_screen_scrim, draw_wrapped_text, fit_design_frame, point_in_rect, scale_design_rect
 from ui.ui_system import (
     COLOR_CYAN,
     COLOR_GOLD,
@@ -40,6 +40,7 @@ REWARD_LAYOUT = {
     "purge_tile_height": 86,
     "purge_tile_gap": 12,
 }
+DESIGN_SIZE = (1280, 720)
 
 
 class RewardUI:
@@ -53,17 +54,23 @@ class RewardUI:
         self._image_cache: dict[str, Any] = {}
         self._hovered_action: str | None = None
         self._pressed_action: str | None = None
+        self._last_surface_size: tuple[int, int] = DESIGN_SIZE
 
     def preload_assets(self) -> None:
         if pygame is None:
             return
         self._load_image(resolve_asset_path("ui", "bg_map.png"))
 
-    def handle_event(self, event: Any, reward_state: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_event(
+        self,
+        event: Any,
+        reward_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any] | None:
         if pygame is None:
             return None
 
-        layout = self.build_layout(reward_state)
+        layout = self.build_layout(reward_state, self._last_surface_size if screen_size is None else screen_size)
         active_section = layout["active_section"]
 
         if event.type == pygame.MOUSEMOTION:
@@ -111,16 +118,23 @@ class RewardUI:
 
         return None
 
-    def build_layout(self, reward_state: dict[str, Any]) -> dict[str, Any]:
+    def build_layout(
+        self,
+        reward_state: dict[str, Any],
+        screen_size: tuple[int, int] | None = None,
+    ) -> dict[str, Any]:
         reward = reward_state["reward"]
+        resolved_surface_size = self._resolve_surface_size(screen_size)
+        layout_frame = fit_design_frame(resolved_surface_size, DESIGN_SIZE)
+        layout_scale = design_frame_scale(layout_frame, DESIGN_SIZE)
         sections = [dict(section) for section in reward["sections"]]
         active_section = next((section for section in sections if not section["resolved"]), None)
         display_section = active_section
         if display_section is None and sections:
             display_section = sections[-1]
 
-        action_rect = pygame.Rect(*REWARD_LAYOUT["action_rect"])
-        stage_rect = pygame.Rect(*REWARD_LAYOUT["stage_rect"])
+        action_rect = pygame.Rect(*scale_design_rect(REWARD_LAYOUT["action_rect"], layout_frame, DESIGN_SIZE))
+        stage_rect = pygame.Rect(*scale_design_rect(REWARD_LAYOUT["stage_rect"], layout_frame, DESIGN_SIZE))
         option_entries = self._active_option_entries(display_section, stage_rect) if display_section is not None and not reward["can_continue"] else []
         button_layout = self._build_action_buttons(action_rect, display_section, reward["can_continue"])
         step_index = 0
@@ -136,7 +150,7 @@ class RewardUI:
             "display_section": display_section,
             "active_section": active_section,
             "can_continue": reward["can_continue"],
-            "header_rect": pygame.Rect(*REWARD_LAYOUT["header_rect"]),
+            "header_rect": pygame.Rect(*scale_design_rect(REWARD_LAYOUT["header_rect"], layout_frame, DESIGN_SIZE)),
             "stage_rect": stage_rect,
             "action_rect": action_rect,
             "buttons": button_layout["buttons"],
@@ -144,6 +158,8 @@ class RewardUI:
             "continue_rect": button_layout.get("continue_rect"),
             "option_entries": option_entries,
             "step_label": "Rewards Locked" if reward["can_continue"] else f"Step {step_index + 1} of {max(1, len(sections))}",
+            "layout_scale": layout_scale,
+            "layout_frame": layout_frame,
         }
 
     def _layout_section(
@@ -234,12 +250,23 @@ class RewardUI:
         if pygame is None or surface is None:
             return
 
-        self._ensure_fonts(reward_state.get("presentation", {}).get("ui_scale", 1.0))
+        self._last_surface_size = surface.get_size()
+        layout = self.build_layout(reward_state, self._last_surface_size)
+        ui_scale = float(reward_state.get("presentation", {}).get("ui_scale", 1.0))
+        self._ensure_fonts(ui_scale * max(0.78, min(1.12, layout["layout_scale"])))
         high_contrast = reward_state.get("presentation", {}).get("high_contrast", False)
-        layout = self.build_layout(reward_state)
         background = self._scaled_image(resolve_asset_path("ui", "bg_map.png"), surface.get_size())
 
-        draw_background_stage(surface, background, veil_alpha=174, top_band_height=70, bottom_band_height=94, line_step=54, line_alpha=7)
+        stage_scale = max(0.82, min(1.12, layout["layout_scale"]))
+        draw_background_stage(
+            surface,
+            background,
+            veil_alpha=174,
+            top_band_height=max(54, int(round(70 * stage_scale))),
+            bottom_band_height=max(72, int(round(94 * stage_scale))),
+            line_step=max(38, int(round(54 * stage_scale))),
+            line_alpha=7,
+        )
         self._draw_header_clean(surface, layout)
         self._draw_stage_clean(surface, layout, high_contrast)
         self._draw_action_bar_clean(surface, layout)
@@ -1302,7 +1329,7 @@ class RewardUI:
         draw_wrapped_text(surface, text, position, font, color=color, width=width)
 
     def _ensure_fonts(self, scale: float) -> None:
-        scale = clamp_scale(scale, MIN_UI_SCALE, MAX_UI_SCALE)
+        scale = clamp_scale(scale, 0.78, MAX_UI_SCALE)
         if self._font_scale == scale and self._font is not None:
             return
 
@@ -1312,6 +1339,12 @@ class RewardUI:
         self._small_font = pygame.font.SysFont("consolas", max(16, int(19 * scale)), bold=True)
         self._tiny_font = pygame.font.SysFont("consolas", max(12, int(15 * scale)))
         self._micro_font = pygame.font.SysFont("consolas", max(10, int(12 * scale)))
+
+    def _resolve_surface_size(self, screen_size: tuple[int, int] | None) -> tuple[int, int]:
+        if screen_size is None:
+            return self._last_surface_size
+        self._last_surface_size = (max(1, int(screen_size[0])), max(1, int(screen_size[1])))
+        return self._last_surface_size
 
     def _scaled_image(self, path: Path, size: tuple[int, int]) -> Any:
         image = self._load_image(path)

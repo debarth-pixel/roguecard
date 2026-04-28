@@ -48,6 +48,7 @@ def _enemy_export_definition(
     frame_focus_points: dict[int, tuple[int, int]] | None = None,
     component_limits: dict[str, int] | None = None,
     cleanup_bright_islands: bool = False,
+    reference_only: bool = False,
 ) -> dict[str, Any]:
     return {
         "source_filename": source_filename,
@@ -58,6 +59,7 @@ def _enemy_export_definition(
         "frame_focus_points": dict(frame_focus_points or {}),
         "component_limits": dict(component_limits or {}),
         "cleanup_bright_islands": cleanup_bright_islands,
+        "reference_only": reference_only,
     }
 
 
@@ -72,6 +74,7 @@ ENEMY_EXPORTS = {
             "ledger_sweep": 2,
             "compliance_leap": 3,
         },
+        reference_only=True,
     ),
     "compliance_engine_ax9": _enemy_export_definition(
         "AX-9.png",
@@ -87,6 +90,7 @@ ENEMY_EXPORTS = {
         },
         extra_source_rects=[(384, 640, 768, 352)],
         frame_focus_points={7: (384, 200)},
+        reference_only=True,
     ),
     "dune_raider": _enemy_export_definition(
         "dune_raider.png",
@@ -154,8 +158,15 @@ ENEMY_EXPORTS = {
             "alpha_maul": 4,
             "blood_surge": 5,
         },
-        extra_source_rects=[(256, 672, 1024, 336)],
-        frame_focus_points={5: (256, 112), 7: (512, 180)},
+        source_rects=[
+            (0, 0, 101, 76),
+            (101, 0, 102, 76),
+            (203, 0, 102, 76),
+            (0, 76, 101, 77),
+            (101, 76, 102, 77),
+            (203, 76, 102, 77),
+            (0, 153, 305, 76),
+        ],
     ),
     "scrap_ticker": _enemy_export_definition(
         "scrap_ticker.png",
@@ -229,13 +240,19 @@ def _source_path(filename: str) -> Path:
 
 
 def _grid_source_rects(sheet: pygame.Surface, layout: dict[str, int]) -> list[pygame.Rect]:
-    cell_width = int(layout["cell_width"])
-    cell_height = int(layout["cell_height"])
     columns = int(layout["columns"])
     rows = int(layout["rows"])
-    required_width = cell_width * columns
-    required_height = cell_height * rows
-    if sheet.get_width() < required_width or sheet.get_height() < required_height:
+    configured_cell_width = int(layout["cell_width"])
+    configured_cell_height = int(layout["cell_height"])
+    cell_width = configured_cell_width
+    cell_height = configured_cell_height
+    required_width = configured_cell_width * columns
+    required_height = configured_cell_height * rows
+    if sheet.get_width() < required_width:
+        cell_width = max(1, sheet.get_width() // columns)
+    if sheet.get_height() < required_height:
+        cell_height = max(1, sheet.get_height() // rows)
+    if sheet.get_width() < cell_width * columns or sheet.get_height() < cell_height * rows:
         raise ValueError(
             f"Sheet {sheet.get_size()} is too small for layout {columns}x{rows} with cell {cell_width}x{cell_height}."
         )
@@ -715,6 +732,9 @@ def main() -> int:
     pygame.init()
     total_exported = 0
     for enemy_id, config in ENEMY_EXPORTS.items():
+        if config.get("reference_only"):
+            print(f"Skipped reference-only source for {enemy_id}.")
+            continue
         exported = _export_enemy(enemy_id, config)
         total_exported += exported
         print(f"Exported {exported:2d} frames for {enemy_id}.")

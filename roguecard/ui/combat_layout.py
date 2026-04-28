@@ -13,6 +13,7 @@ class CombatLayout:
     safe_rect: RectTuple
     top_hud_rect: RectTuple
     top_resource_bar_rect: RectTuple
+    relic_row_rect: RectTuple
     turn_label_rect: RectTuple
     arena_rect: RectTuple
     player_status_rect: RectTuple
@@ -31,6 +32,7 @@ class CombatLayout:
             "safe_rect": self.safe_rect,
             "top_hud_rect": self.top_hud_rect,
             "top_resource_bar_rect": self.top_resource_bar_rect,
+            "relic_row_rect": self.relic_row_rect,
             "turn_label_rect": self.turn_label_rect,
             "arena_rect": self.arena_rect,
             "player_status_rect": self.player_status_rect,
@@ -50,6 +52,7 @@ def build_combat_layout(
     width, height = surface_size or (SCREEN_WIDTH, SCREEN_HEIGHT)
     width = max(640, int(width))
     height = max(360, int(height))
+    compact_top_hud = width < 1200
 
     safe_x = max(20, int(round(width * 0.03)))
     safe_y = max(16, int(round(height * 0.03)))
@@ -57,17 +60,21 @@ def build_combat_layout(
     safe_right = _right(safe_rect)
     safe_bottom = _bottom(safe_rect)
 
-    gap = max(12, int(round(width * 0.014)))
-    top_band_h = _clamp(int(round(height * 0.16)), 94, 180)
-    bottom_band_h = _clamp(int(round(height * 0.32)), 218, 430)
+    gap = max(10 if compact_top_hud else 12, int(round(width * (0.012 if compact_top_hud else 0.014))))
+    top_band_h = _clamp(
+        int(round(height * (0.18 if compact_top_hud else 0.15))),
+        104 if compact_top_hud else 92,
+        190 if compact_top_hud else 170,
+    )
+    bottom_band_h = _clamp(int(round(height * 0.31)), 218, 410)
     if top_band_h + bottom_band_h > safe_rect[3] - 120:
         bottom_band_h = max(170, safe_rect[3] - top_band_h - 120)
 
     bottom_ui_rect = (safe_x, safe_bottom - bottom_band_h, safe_rect[2], bottom_band_h)
     bottom_top = bottom_ui_rect[1]
 
-    pause_w = _clamp(int(round(width * 0.10)), 126, 210)
-    pause_h = _clamp(int(round(height * 0.064)), 44, 72)
+    pause_w = _clamp(int(round(width * 0.095)), 108 if compact_top_hud else 118, 190)
+    pause_h = _clamp(int(round(height * 0.058)), 38 if compact_top_hud else 42, 60)
     top_pause_rect = (safe_right - pause_w, safe_y, pause_w, pause_h)
     intel_rect = None
     top_right_limit = top_pause_rect[0] - gap
@@ -76,45 +83,50 @@ def build_combat_layout(
         intel_rect = (top_right_limit - intel_w, safe_y, intel_w, pause_h)
         top_right_limit = intel_rect[0] - gap
 
-    top_hud_x = safe_x + _clamp(int(round(width * 0.18)), 194, 360)
-    top_hud_h = _clamp(int(round(height * 0.075)), 52, 84)
-    top_hud_w = max(520, top_right_limit - top_hud_x)
+    top_hud_x = safe_x
+    top_hud_h = _clamp(int(round(height * 0.068)), 42 if compact_top_hud else 46, 66)
+    top_hud_w = max(420 if compact_top_hud else 560, top_right_limit - top_hud_x)
     top_hud_rect = (top_hud_x, safe_y, top_hud_w, top_hud_h)
 
-    resource_gap = max(8, int(round(height * 0.014)))
-    resource_h = _clamp(int(round(height * 0.078)), 50, 86)
-    top_resource_bar_rect = (
-        top_hud_rect[0],
-        _bottom(top_hud_rect) + resource_gap,
-        top_hud_rect[2],
-        resource_h,
-    )
-
-    turn_w = _clamp(int(round(width * 0.15)), 150, 260)
-    turn_h = _clamp(int(round(height * 0.088)), 58, 96)
+    turn_w = _clamp(int(round(width * 0.16)), 152, 252)
+    turn_h = _clamp(int(round(height * 0.088)), 52, 82)
     turn_label_rect = (
         safe_x,
-        safe_y + _clamp(int(round(height * 0.075)), 48, 88),
+        _bottom(top_hud_rect) + max(8, int(round(height * 0.01))),
         turn_w,
         turn_h,
     )
 
-    arena_top = max(_bottom(top_resource_bar_rect) + max(10, int(round(height * 0.012))), _bottom(turn_label_rect) + 4)
+    relic_h = _clamp(int(round(height * 0.062)), 40, 58)
+    relic_x = _right(turn_label_rect) + gap
+    relic_y = _bottom(top_hud_rect) + max(8, int(round(height * 0.012)))
+    relic_w = max(
+        180,
+        min(
+            safe_right - relic_x,
+            _clamp(int(round(width * 0.52)), 420 if not compact_top_hud else 320, 760),
+        ),
+    )
+    relic_row_rect = (relic_x, relic_y, relic_w, relic_h)
+    # Compatibility alias while combat callers migrate from the old rail name.
+    top_resource_bar_rect = relic_row_rect
+
+    arena_top = max(_bottom(turn_label_rect), _bottom(relic_row_rect)) + max(8, int(round(height * 0.012)))
     arena_bottom = bottom_top - max(10, int(round(height * 0.018)))
     if arena_bottom <= arena_top + 90:
-        arena_top = _bottom(top_resource_bar_rect) + 8
+        arena_top = max(_bottom(turn_label_rect), _bottom(relic_row_rect)) + 6
         arena_bottom = bottom_top - 6
     arena_rect = (safe_x, arena_top, safe_rect[2], max(90, arena_bottom - arena_top))
 
-    left_w = _clamp(int(round(width * 0.27)), 310, 500)
-    right_w = _clamp(int(round(width * 0.22)), 238, 420)
+    left_w = _clamp(int(round(width * 0.25)), 280, 470)
+    right_w = _clamp(int(round(width * 0.20)), 210, 390)
     if safe_rect[2] - left_w - right_w - (gap * 2) < 360:
         overflow = 360 - (safe_rect[2] - left_w - right_w - (gap * 2))
         left_w = max(250, left_w - ((overflow + 1) // 2))
         right_w = max(210, right_w - (overflow // 2))
 
     panel_gap = max(8, int(round(height * 0.012)))
-    player_h = _clamp(int(round(height * 0.104)), 70, 124)
+    player_h = _clamp(int(round(height * 0.13)), 84, 132)
     player_status_rect = (
         safe_x,
         bottom_top + max(4, int(round(bottom_band_h * 0.02))),
@@ -128,7 +140,7 @@ def build_combat_layout(
         max(68, safe_bottom - (_bottom(player_status_rect) + panel_gap)),
     )
 
-    end_h = _clamp(int(round(height * 0.078)), 52, 86)
+    end_h = _clamp(int(round(height * 0.084)), 52, 88)
     end_turn_rect = (
         safe_right - right_w,
         safe_bottom - end_h,
@@ -175,6 +187,7 @@ def build_combat_layout(
         safe_rect=safe_rect,
         top_hud_rect=top_hud_rect,
         top_resource_bar_rect=top_resource_bar_rect,
+        relic_row_rect=relic_row_rect,
         turn_label_rect=turn_label_rect,
         arena_rect=arena_rect,
         player_status_rect=player_status_rect,
